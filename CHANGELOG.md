@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/subtopia-algo/subtopia-js/compare/v1.0.7...v1.0.8) (2023-03-29)
+
+
+### Bug Fixes
+
+* **deps:** update dependency beaker-ts to ^0.1.0 ([#6](https://github.com/subtopia-algo/subtopia-js/issues/6)) ([ce04287](https://github.com/subtopia-algo/subtopia-js/commit/ce04287d36d8df89fc18cce598042a5e1acf6d77))
+
 ## [1.0.7](https://github.com/subtopia-algo/subtopia-js/compare/v1.0.6...v1.0.7) (2023-03-29)
 
 

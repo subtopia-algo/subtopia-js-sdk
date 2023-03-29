@@ -1,0 +1,120 @@
+version: 2
+
+refs:
+  container: &container
+    docker:
+      - image: node:18.15.0
+    working_directory: ~/repo
+  steps:
+    - &Versions
+      run:
+        name: Versions
+        command: node -v && npm -v && yarn -v
+    - &CacheRestore
+      restore_cache:
+        key: dependency-cache-{{ checksum "yarn.lock" }}
+    - &Install
+      run:
+        name: Install Dependencies
+        command: yarn install --pure-lockfile
+    - &CacheSave
+      save_cache:
+        key: dependency-cache-{{ checksum "yarn.lock" }}
+        paths:
+          - ./node_modules
+    - &Build
+      run:
+        name: Build
+        command: yarn build
+    - &Run_Sandbox
+      run:
+        name: Run Sandbox
+        command: yarn localnet:start
+    - &Test
+      run:
+        name: Test
+        command: yarn test:integration
+    - &Release
+      run:
+        name: Release
+        command: yarn release
+
+jobs:
+  all:
+    <<: *container
+    steps:
+      - checkout
+      - *Versions
+      - *CacheRestore
+      - *Install
+      - *CacheSave
+      - *Build
+      - *Run_Sandbox
+      - *Test
+
+  next:
+    <<: *container
+    steps:
+      - checkout
+      - *Versions
+      - *CacheRestore
+      - *Install
+      - *CacheSave
+      - *Build
+      - *Run_Sandbox
+      - *Test
+      - run:
+          name: Setup GitHub
+          command: |
+            git config --global user.email "aorumbayev@pm.me"
+            git config --global user.name "aorumbayev"
+            git remote rm origin
+            git remote add origin https://${GITHUB_TOKEN}@github.com/aorumbayev/awesomealgo-hooks
+      - *Release
+
+  main:
+    <<: *container
+    steps:
+      - checkout
+      - *Versions
+      - *CacheRestore
+      - *Install
+      - *CacheSave
+      - *Build
+      - *Run_Sandbox
+      - *Test
+      - run:
+          name: Setup GitHub
+          command: |
+            git config --global user.email "aorumbayev@pm.me"
+            git config --global user.name "aorumbayev"
+            git remote rm origin
+            git remote add origin https://${GITHUB_TOKEN}@github.com/aorumbayev/awesomealgo-hooks
+      - *Release
+
+workflows:
+  version: 2
+  all:
+    jobs:
+      - all:
+          context: common-env-vars
+          filters:
+            branches:
+              ignore:
+                - main
+                - next
+                - gh-pages
+  next:
+    jobs:
+      - next:
+          context: common-env-vars
+          filters:
+            branches:
+              only: next
+  main:
+    jobs:
+      - main:
+          context: common-env-vars
+          filters:
+            branches:
+              only: main

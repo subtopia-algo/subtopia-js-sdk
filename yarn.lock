@@ -1437,10 +1437,10 @@ base64-js@^1.3.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-beaker-ts@^0.0.95:
-  version "0.0.95"
-  resolved "https://registry.yarnpkg.com/beaker-ts/-/beaker-ts-0.0.95.tgz#f283bef296506bc15df866216b455037585376d2"
-  integrity sha512-SZOHK3HYWrzJ/Eoc24nHt4avKc2K58gE3ABoORXWv7/J85k6K6dgVW3DnLJJnqNozcaCZzSRsztMu6Uu1rSYzw==
+beaker-ts@^0.1.0:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/beaker-ts/-/beaker-ts-0.1.1.tgz#b5fea607ca7f845f240cf5c4f48283cf729894b2"
+  integrity sha512-p/vV2J1N0jpk2jzXoW5r5008d6aK3JJ/lVwkw9an6odkX4xuhcTY3Heq5mTLuioAaWsQTLCb7O+iruwLErlbzg==
   dependencies:
     commander "^9.4.0"
     typescript "^4.7.4"

@@ -77,7 +77,7 @@ jobs:
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
-        if: runner.os == 'Linux' && matrix.node == '16'
+        if: runner.os == 'Linux' && matrix.node == '18'
         with:
             fail_ci_if_error: true
             token: ${{ secrets.CODECOV_TOKEN }}

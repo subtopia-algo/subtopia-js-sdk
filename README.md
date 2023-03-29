@@ -25,16 +25,16 @@ Subtopia JS SDK is a JavaScript library for interacting with the Subtopia Platfo
 
 ```bash
 # with npm
-npm install @subtopia-js
+npm install subtopia-js
 
 # or with yarn
-yarn add @subtopia-js
+yarn add subtopia-js
 ```
 
 ### Import the package:
 
 ```ts
-import { SubtopiaClient } from "@subtopia-js";
+import { SubtopiaClient } from "subtopia-js";
 ```
 
 ## 🛠️ Usage

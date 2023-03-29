@@ -63,8 +63,8 @@ console.log(response.returnValue) // response is of type ABIResult
 // ... your code
 const subscriberBox = await SubtopiaClient.getSubscriptionRecordForAccount(
   client,
-  subscriber,
-  smiID
+  { PUT_SUBSCRIBER_ADDRESS },
+  { PUT_SMI_ID_HERE }
 );
 
 // SubscriptionRecord (throws Error if not subscribed)
@@ -79,13 +79,13 @@ console.log(subscriberBox);
 const deleteResult = await SubtopiaClient.unsubscribe(
   {
     subscriber: {
-      address: subscriber.address,
-      signer: subscriber.signer,
+      address: { PUT_SUBSCRIBER_ADDRESS },
+      signer: { PUT_SUBSCRIBER_SIGNER },
     },
-    smiID: infrastructureID,
+    smiID: { PUT_INFRASTRUCTURE_ID },
   },
   {
-    client: algodClient,
+    client: { PUT_ALGOD_CLIENT },
   }
 );
 
@@ -100,15 +100,15 @@ console.log(deleteResult.returnValue);
 // ... your code
 const transferResult = await SubtopiaClient.transferSubscriptionPass(
   {
-    newOwnerAddress: newOwner.address,
+    newOwnerAddress: { PUT_NEW_OWNER_ADDRESS },
     oldOwner: {
-      address: oldOwner.address,
-      signer: oldOwner.signer,
+      address: { PUT_OLD_OWNER_ADDRESS },
+      signer: { PUT_OLD_OWNER_SIGNER },
     },
-    smiID: infrastructureID,
+    smiID: { PUT_INFRASTRUCTURE_ID },
     subID: Number(result.returnValue),
   },
-  { client: algodClient }
+  { client: { PUT_ALGOD_CLIENT } }
 );
 
 // Transaction ID of the transfer transaction

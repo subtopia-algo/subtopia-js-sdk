@@ -8,6 +8,7 @@
     <a href="https://codecov.io/gh/subtopia-algo/subtopia-js" >
     <img src="https://codecov.io/gh/subtopia-algo/subtopia-js/branch/main/graph/badge.svg?token=FEJBE5IAW5"/>
     </a>
+    <a href="https://subtopia.io"><img src="https://img.shields.io/badge/platform-link-cyan.svg" /></a>
     <a href="https://algorand.com"><img src="https://img.shields.io/badge/Powered by-Algorand-black.svg" /></a>
 </p>
 
@@ -19,7 +20,11 @@ Subtopia JS SDK is a JavaScript library for interacting with the Subtopia Platfo
 
 > For detailed documentation, refer to [sdk.subtopia.io](https://sdk.subtopia.io).
 
-## ⚡ Quick Start
+### ⚡ Examples
+
+- [NextJS](https://codesandbox.io/p/sandbox/hidden-violet-l74pj0?file=%2Fpages%2Findex.tsx&selection=%5B%7B%22endColumn%22%3A76%2C%22endLineNumber%22%3A82%2C%22startColumn%22%3A76%2C%22startLineNumber%22%3A82%7D%5D) - A simple NextJS app that demonstrates how to use the SDK to purchase a subscription and perform ownership lookup.
+
+## 📦 Installation
 
 ### Install the package:
 
@@ -63,8 +68,8 @@ console.log(response.returnValue) // response is of type ABIResult
 // ... your code
 const subscriberBox = await SubtopiaClient.getSubscriptionRecordForAccount(
   client,
-  subscriber,
-  smiID
+  { PUT_SUBSCRIBER_ADDRESS },
+  { PUT_SMI_ID_HERE }
 );
 
 // SubscriptionRecord (throws Error if not subscribed)
@@ -79,13 +84,13 @@ console.log(subscriberBox);
 const deleteResult = await SubtopiaClient.unsubscribe(
   {
     subscriber: {
-      address: subscriber.address,
-      signer: subscriber.signer,
+      address: { PUT_SUBSCRIBER_ADDRESS },
+      signer: { PUT_SUBSCRIBER_SIGNER },
     },
-    smiID: infrastructureID,
+    smiID: { PUT_INFRASTRUCTURE_ID },
   },
   {
-    client: algodClient,
+    client: { PUT_ALGOD_CLIENT },
   }
 );
 
@@ -100,18 +105,24 @@ console.log(deleteResult.returnValue);
 // ... your code
 const transferResult = await SubtopiaClient.transferSubscriptionPass(
   {
-    newOwnerAddress: newOwner.address,
+    newOwnerAddress: { PUT_NEW_OWNER_ADDRESS },
     oldOwner: {
-      address: oldOwner.address,
-      signer: oldOwner.signer,
+      address: { PUT_OLD_OWNER_ADDRESS },
+      signer: { PUT_OLD_OWNER_SIGNER },
     },
-    smiID: infrastructureID,
+    smiID: { PUT_INFRASTRUCTURE_ID },
     subID: Number(result.returnValue),
   },
-  { client: algodClient }
+  { client: { PUT_ALGOD_CLIENT } }
 );
 
 // Transaction ID of the transfer transaction
 console.log(deleteResult.txID);
 // ... your code
 ```
+
+## ⭐️ Stargazers
+
+Special thanks to everyone who starred the repository ❤️
+
+[![Stargazers repo roster for @subtopia-algo/subtopia-js](https://reporoster.com/stars/dark/subtopia-algo/subtopia-js)](https://github.com/subtopia-algo/subtopia-js/stargazers)

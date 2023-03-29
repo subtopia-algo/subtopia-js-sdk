@@ -1,8 +1,3 @@
-// =============================================================================
-// Subtopia JS SDK
-// Copyright (C) 2023 Altynbek Orumbayev
-// =============================================================================
-
 import algosdk from "algosdk";
 import * as bkr from "beaker-ts";
 export class Subscription {
@@ -100,91 +95,185 @@ export class SMI extends bkr.ApplicationClient {
   override methods: algosdk.ABIMethod[] = [
     new algosdk.ABIMethod({
       name: "create",
-      desc: "",
+      desc: "Creates a new instance of the subscription service with the provided parameters.",
       args: [
-        { type: "string", name: "version", desc: "" },
-        { type: "string", name: "name", desc: "" },
-        { type: "address", name: "manager", desc: "" },
-        { type: "uint64", name: "sub_type", desc: "" },
-        { type: "uint64", name: "price", desc: "" },
-        { type: "uint64", name: "max_subs", desc: "" },
-        { type: "uint64", name: "coin_id", desc: "" },
-        { type: "uint64", name: "expires_in", desc: "" },
+        {
+          type: "string",
+          name: "version",
+          desc: "The version of the subscription service.",
+        },
+        {
+          type: "string",
+          name: "name",
+          desc: "The name of the subscription service.",
+        },
+        {
+          type: "address",
+          name: "manager",
+          desc: "Manager of the subscription service.",
+        },
+        {
+          type: "uint64",
+          name: "sub_type",
+          desc: "The type of subscription service (e.g., monthly, yearly).",
+        },
+        {
+          type: "uint64",
+          name: "price",
+          desc: "The price of the subscription in the specified coin.",
+        },
+        {
+          type: "uint64",
+          name: "max_subs",
+          desc: "The maximum number of allowed subscriptions.",
+        },
+        {
+          type: "uint64",
+          name: "coin_id",
+          desc: "The ID of the coin used for subscription payments.",
+        },
+        {
+          type: "uint64",
+          name: "expires_in",
+          desc: "The number of seconds until the subscription expires.",
+        },
       ],
       returns: { type: "void", desc: "" },
     }),
     new algosdk.ABIMethod({
       name: "update_manager",
-      desc: "",
-      args: [{ type: "address", name: "new_manager_account", desc: "" }],
+      desc: "Updates the manager account of the subscription service.",
+      args: [
+        {
+          type: "address",
+          name: "new_manager_account",
+          desc: "The new manager account address.",
+        },
+      ],
       returns: { type: "void", desc: "" },
     }),
     new algosdk.ABIMethod({
       name: "subscribe",
-      desc: "",
+      desc: "Subscribes a user to the subscription service and creates a new\nsubscription.",
       args: [
-        { type: "address", name: "subscriber_account", desc: "" },
-        { type: "pay", name: "fee_txn", desc: "" },
-        { type: "txn", name: "subscribe_pay_txn", desc: "" },
+        {
+          type: "address",
+          name: "subscriber_account",
+          desc: "The subscriber's account address.",
+        },
+        {
+          type: "pay",
+          name: "fee_txn",
+          desc: "The transaction for the subscription fee payment.",
+        },
+        {
+          type: "txn",
+          name: "subscribe_pay_txn",
+          desc: "The transaction representing the payment for the subscription. Can be either abi.PaymentTransaction or abi.AssetTransferTransaction.",
+        },
       ],
-      returns: { type: "uint64", desc: "" },
+      returns: {
+        type: "uint64",
+        desc: "An expression that subscribes the user and creates a new subscription.",
+      },
     }),
     new algosdk.ABIMethod({
       name: "get_subscription",
-      desc: "",
-      args: [{ type: "address", name: "subscriber", desc: "" }],
-      returns: { type: "(uint64,uint64,uint64,uint64)", desc: "" },
+      desc: "Retrieves the subscription details of a given subscriber.",
+      args: [
+        {
+          type: "address",
+          name: "subscriber",
+          desc: "The subscriber address.",
+        },
+      ],
+      returns: {
+        type: "(uint64,uint64,uint64,uint64)",
+        desc: "An expression that retrieves the subscription details.",
+      },
     }),
     new algosdk.ABIMethod({
       name: "is_subscriber",
-      desc: "",
-      args: [{ type: "address", name: "subscriber", desc: "" }],
-      returns: { type: "uint64", desc: "" },
+      desc: "Checks if a given address is a subscriber of the subscription service.",
+      args: [
+        {
+          type: "address",
+          name: "subscriber",
+          desc: "The subscriber address.",
+        },
+      ],
+      returns: {
+        type: "uint64",
+        desc: "An expression that checks if the address is a subscriber.",
+      },
     }),
     new algosdk.ABIMethod({
       name: "claim_subscription",
-      desc: "",
+      desc: "Allows a subscriber to claim their subscription.",
       args: [{ type: "uint64", name: "subscription_id", desc: "" }],
       returns: { type: "void", desc: "" },
     }),
     new algosdk.ABIMethod({
       name: "transfer_subscription",
-      desc: "",
+      desc: "Transfers a subscription from the sender's address to a new address.",
       args: [
-        { type: "address", name: "new_address", desc: "" },
+        {
+          type: "address",
+          name: "new_address",
+          desc: "The new address to transfer the subscription to.",
+        },
         { type: "uint64", name: "subscription_id", desc: "" },
       ],
       returns: { type: "void", desc: "" },
     }),
     new algosdk.ABIMethod({
       name: "unsubscribe",
-      desc: "",
-      args: [{ type: "asset", name: "sub_id", desc: "" }],
-      returns: { type: "uint64", desc: "" },
+      desc: "Unsubscribes a user from the subscription service and deletes the\nsubscription.",
+      args: [
+        { type: "asset", name: "sub_id", desc: "The subscription ASA ID." },
+      ],
+      returns: {
+        type: "uint64",
+        desc: "An expression that unsubscribes the user and deletes the subscription.",
+      },
     }),
     new algosdk.ABIMethod({
       name: "mark_for_deletion",
-      desc: "",
-      args: [{ type: "pay", name: "locker_fund_txn", desc: "" }],
+      desc: "Marks the subscription service for deletion. Can only be called by the\nmanager account.",
+      args: [
+        {
+          type: "pay",
+          name: "locker_fund_txn",
+          desc: "The locker fund transaction.",
+        },
+      ],
       returns: { type: "void", desc: "" },
     }),
     new algosdk.ABIMethod({
       name: "delete_subscription",
-      desc: "",
+      desc: "Deletes a subscription for a given subscriber. Can only be called by the\nmanager account.",
       args: [
-        { type: "address", name: "subscriber", desc: "" },
-        { type: "uint64", name: "subscription_id", desc: "" },
+        {
+          type: "address",
+          name: "subscriber",
+          desc: "The subscriber address whose subscription needs to be deleted.",
+        },
+        {
+          type: "uint64",
+          name: "subscription_id",
+          desc: "The subscription ID to delete.",
+        },
       ],
       returns: { type: "void", desc: "" },
     }),
     new algosdk.ABIMethod({
       name: "delete",
-      desc: "",
+      desc: "Deletes the subscription service. Can only be called by the manager account\nwhen there are no active subscriptions or the lifecycle state is not active.",
       args: [],
       returns: { type: "void", desc: "" },
     }),
   ];
-  async create_app(
+  async create(
     args: {
       version: string;
       name: string;
@@ -197,7 +286,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.create(
         {
           version: args.version,
@@ -220,7 +309,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.update_manager(
         { new_manager_account: args.new_manager_account },
         txnParams
@@ -236,7 +325,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<bigint>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.subscribe(
         {
           subscriber_account: args.subscriber_account,
@@ -253,16 +342,16 @@ export class SMI extends bkr.ApplicationClient {
       subscriber: string;
     },
     txnParams?: bkr.TransactionOverrides
-  ): Promise<bkr.ABIResult<[bigint, bigint, bigint, bigint]>> {
-    const result = await this.execute(
+  ): Promise<bkr.ABIResult<Subscription>> {
+    const result = await this._execute(
       await this.compose.get_subscription(
         { subscriber: args.subscriber },
         txnParams
       )
     );
-    return new bkr.ABIResult<[bigint, bigint, bigint, bigint]>(
+    return new bkr.ABIResult<Subscription>(
       result,
-      result.returnValue as [bigint, bigint, bigint, bigint]
+      Subscription.decodeResult(result.returnValue)
     );
   }
   async is_subscriber(
@@ -271,7 +360,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<bigint>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.is_subscriber(
         { subscriber: args.subscriber },
         txnParams
@@ -285,7 +374,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.claim_subscription(
         { subscription_id: args.subscription_id },
         txnParams
@@ -300,7 +389,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.transfer_subscription(
         {
           new_address: args.new_address,
@@ -317,7 +406,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<bigint>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.unsubscribe({ sub_id: args.sub_id }, txnParams)
     );
     return new bkr.ABIResult<bigint>(result, result.returnValue as bigint);
@@ -328,7 +417,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.mark_for_deletion(
         { locker_fund_txn: args.locker_fund_txn },
         txnParams
@@ -343,7 +432,7 @@ export class SMI extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.delete_subscription(
         { subscriber: args.subscriber, subscription_id: args.subscription_id },
         txnParams
@@ -351,10 +440,10 @@ export class SMI extends bkr.ApplicationClient {
     );
     return new bkr.ABIResult<void>(result);
   }
-  async delete_app(
+  async delete(
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(await this.compose.delete(txnParams));
+    const result = await this._execute(await this.compose.delete(txnParams));
     return new bkr.ABIResult<void>(result);
   }
   compose = {
@@ -372,7 +461,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "create"),
         {
           version: args.version,
@@ -395,7 +484,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "update_manager"),
         { new_manager_account: args.new_manager_account },
         txnParams,
@@ -411,7 +500,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "subscribe"),
         {
           subscriber_account: args.subscriber_account,
@@ -429,7 +518,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "get_subscription"),
         { subscriber: args.subscriber },
         txnParams,
@@ -443,7 +532,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "is_subscriber"),
         { subscriber: args.subscriber },
         txnParams,
@@ -457,7 +546,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "claim_subscription"),
         { subscription_id: args.subscription_id },
         txnParams,
@@ -472,7 +561,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "transfer_subscription"),
         {
           new_address: args.new_address,
@@ -489,7 +578,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "unsubscribe"),
         { sub_id: args.sub_id },
         txnParams,
@@ -503,7 +592,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "mark_for_deletion"),
         { locker_fund_txn: args.locker_fund_txn },
         txnParams,
@@ -518,7 +607,7 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "delete_subscription"),
         { subscriber: args.subscriber, subscription_id: args.subscription_id },
         txnParams,
@@ -529,10 +618,11 @@ export class SMI extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      const deleteParams = await this._deleteParameters({ ...txnParams });
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "delete"),
         {},
-        txnParams,
+        deleteParams,
         atc
       );
     },

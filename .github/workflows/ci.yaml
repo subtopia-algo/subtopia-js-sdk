@@ -9,16 +9,20 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 18
 
@@ -33,10 +37,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 18
 
@@ -55,10 +59,10 @@ jobs:
         node: [18, 19]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
 
@@ -83,16 +87,17 @@ jobs:
             token: ${{ secrets.CODECOV_TOKEN }}
 
   deploy-docs:
+    if: github.ref == 'refs/heads/main'
     permissions: write-all
     name: Deploy docs
-    # needs: [build, lint, unit-tests]
+    needs: [build, lint, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 18
 
@@ -110,19 +115,20 @@ jobs:
           folder: docs # The folder the action should deploy.
 
   release:
+    if: github.ref == 'refs/heads/main'
     permissions: write-all
     name: Release
-    # needs: [build, lint, unit-tests, deploy-docs]
+    needs: [build, lint, unit-tests, deploy-docs]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           persist-credentials: false # <--- override default gh token
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 18
 

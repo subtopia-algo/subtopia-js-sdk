@@ -164,23 +164,21 @@ export class SubtopiaClient {
       signer: subscriber.signer,
     };
 
-    const result = await smi.execute(
-      await smi.compose.subscribe(
-        {
-          fee_txn: feeTxn,
-          subscribe_pay_txn: subscribePayTxn,
-          subscriber_account: subscriber.address,
-        },
-        {
-          appAccounts: [subscriber.address],
-          boxes: [
-            {
-              appIndex: smi.appId,
-              name: decodeAddress(subscriber.address).publicKey,
-            },
-          ],
-        }
-      )
+    const result = await smi.subscribe(
+      {
+        fee_txn: feeTxn,
+        subscribe_pay_txn: subscribePayTxn,
+        subscriber_account: subscriber.address,
+      },
+      {
+        appAccounts: [subscriber.address],
+        boxes: [
+          {
+            appIndex: smi.appId,
+            name: decodeAddress(subscriber.address).publicKey,
+          },
+        ],
+      }
     );
 
     return new ABIResult<void>(result);
@@ -215,20 +213,18 @@ export class SubtopiaClient {
       .catch(() => false);
     const sp = await getParamsWithFeeCount(client, isOptedToPassId ? 3 : 2);
 
-    const result = await smi.execute(
-      await smi.compose.unsubscribe(
-        { sub_id: BigInt(subscriptionRecord.subID) },
-        {
-          appAccounts: [subscriber.address],
-          boxes: [
-            {
-              appIndex: smiID,
-              name: decodeAddress(subscriber.address).publicKey,
-            },
-          ],
-          suggestedParams: sp,
-        }
-      )
+    const result = await smi.unsubscribe(
+      { sub_id: BigInt(subscriptionRecord.subID) },
+      {
+        appAccounts: [subscriber.address],
+        boxes: [
+          {
+            appIndex: smiID,
+            name: decodeAddress(subscriber.address).publicKey,
+          },
+        ],
+        suggestedParams: sp,
+      }
     );
 
     return new ABIResult<void>(result);
@@ -260,13 +256,11 @@ export class SubtopiaClient {
 
     const sp = await getParamsWithFeeCount(client, 3);
 
-    const result = await smi.execute(
-      await smi.compose.claim_subscription(
-        {
-          subscription_id: BigInt(subID),
-        },
-        { suggestedParams: sp, appForeignAssets: [subID] }
-      )
+    const result = await smi.claim_subscription(
+      {
+        subscription_id: BigInt(subID),
+      },
+      { suggestedParams: sp, appForeignAssets: [subID] }
     );
 
     return new ABIResult<void>(result);
@@ -373,28 +367,26 @@ export class SubtopiaClient {
       throw new Error("SMI not initialized");
     }
 
-    const result = await smi.execute(
-      await smi.compose.transfer_subscription(
-        {
-          new_address: newOwnerAddress,
-          subscription_id: BigInt(subID),
-        },
-        {
-          appAccounts: [newOwnerAddress],
-          appForeignAssets: [subID],
-          boxes: [
-            {
-              appIndex: smi.appId,
-              name: decodeAddress(oldOwner.address).publicKey,
-            },
+    const result = await smi.transfer_subscription(
+      {
+        new_address: newOwnerAddress,
+        subscription_id: BigInt(subID),
+      },
+      {
+        appAccounts: [newOwnerAddress],
+        appForeignAssets: [subID],
+        boxes: [
+          {
+            appIndex: smi.appId,
+            name: decodeAddress(oldOwner.address).publicKey,
+          },
 
-            {
-              appIndex: smi.appId,
-              name: decodeAddress(newOwnerAddress).publicKey,
-            },
-          ],
-        }
-      )
+          {
+            appIndex: smi.appId,
+            name: decodeAddress(newOwnerAddress).publicKey,
+          },
+        ],
+      }
     );
 
     return new ABIResult<void>(result);
@@ -431,25 +423,23 @@ export class SubtopiaClient {
     const sp = await getParamsWithFeeCount(client, 3);
     const userLocker = await getLocker(client, user.address, smr.appAddress);
 
-    const result = await smi.execute(
-      await smi.compose.mark_for_deletion(
-        {
-          locker_fund_txn: {
-            txn: makePaymentTxnWithSuggestedParamsFromObject({
-              from: user.address,
-              to: userLocker.lsig.address(),
-              amount: (
-                await getParamsWithFeeCount(client, 3 * smiState.activeSubs)
-              ).fee,
-              suggestedParams: await getParamsWithFeeCount(client, 2),
-            }),
-            signer: user.signer,
-          },
+    const result = await smi.mark_for_deletion(
+      {
+        locker_fund_txn: {
+          txn: makePaymentTxnWithSuggestedParamsFromObject({
+            from: user.address,
+            to: userLocker.lsig.address(),
+            amount: (
+              await getParamsWithFeeCount(client, 3 * smiState.activeSubs)
+            ).fee,
+            suggestedParams: await getParamsWithFeeCount(client, 2),
+          }),
+          signer: user.signer,
         },
-        {
-          suggestedParams: sp,
-        }
-      )
+      },
+      {
+        suggestedParams: sp,
+      }
     );
 
     return new ABIResult<void>(result);

@@ -4,6 +4,7 @@
   "description": "Subtopia SDK for JavaScript",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
+  "license": "SEE LICENSE IN LICENSE.md",
   "author": "info@subtopia.io",
   "types": "dist/index.d.ts",
   "files": [

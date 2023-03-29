@@ -29,7 +29,7 @@ refs:
     - &Run_Sandbox
       run:
         name: Run Sandbox
-        command: python3 -m pip install --user pipx && python3 -m pipx ensurepath && yarn localnet:start
+        command: python -m venv venv && . venv/bin/activate && pip install --upgrade pip && pip install pipx && pipx ensurepath && yarn localnet:start
     - &Test
       run:
         name: Test

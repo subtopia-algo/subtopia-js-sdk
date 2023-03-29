@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/subtopia-algo/subtopia-js/compare/v1.0.1...v1.0.2) (2023-03-29)
+
+
+### Bug Fixes
+
+* bumping version ([f88cc80](https://github.com/subtopia-algo/subtopia-js/commit/f88cc80b68a98fb436b3610255bb636158128912))
+
 ## [1.0.1](https://github.com/subtopia-algo/subtopia-js/compare/v1.0.0...v1.0.1) (2023-03-29)
 
 

@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/subtopia-algo/subtopia-js/compare/v1.0.3...v1.0.4) (2023-03-29)
+
+
+### Bug Fixes
+
+* testing ci ([b712a05](https://github.com/subtopia-algo/subtopia-js/commit/b712a058794e5ceb175dcd78c29cdff9fb962bf8))
+
 ## [1.0.3](https://github.com/subtopia-algo/subtopia-js/compare/v1.0.2...v1.0.3) (2023-03-29)
 
 

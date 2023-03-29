@@ -3,7 +3,7 @@
 <p align="center">
     <a href="https://www.npmjs.com/package/subtopia-js"><img src="https://badge.fury.io/js/subtopia-js.svg" alt="npm version"></a>
     <a href="https://www.npmjs.com/package/subtopia-js" >
-    <img src="https://img.shields.io/npm/types/subtopia-js"/>
+    <img src="https://img.shields.io/npm/types/subtopia-js"/>yarn
     </a>
     <a href="https://codecov.io/gh/subtopia-algo/subtopia-js" >
     <img src="https://codecov.io/gh/subtopia-algo/subtopia-js/branch/main/graph/badge.svg?token=FEJBE5IAW5"/>

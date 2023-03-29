@@ -116,27 +116,25 @@ export class SubtopiaAdminClient {
 
     const asset = await getAssetByID(client, coinID);
 
-    const result = await smr.execute(
-      await smr.compose.add(
-        {
-          fee_txn: feeTxn,
-          name: name,
-          price: BigInt(
-            normalizePrice(price, asset.decimals, PriceNormalizationType.RAW)
-          ),
-          sub_type: BigInt(subType),
-          max_subs: BigInt(maxSubs),
-          coin_id: BigInt(coinID),
-          expires_in: BigInt(expiresIn),
-          version: version,
-          manager: creator.address,
-          locker: locker.lsig.address(),
-        },
-        {
-          appAccounts: [locker.lsig.address()],
-          appForeignAssets: coinID > 0 ? [coinID] : [],
-        }
-      )
+    const result = await smr.add(
+      {
+        fee_txn: feeTxn,
+        name: name,
+        price: BigInt(
+          normalizePrice(price, asset.decimals, PriceNormalizationType.RAW)
+        ),
+        sub_type: BigInt(subType),
+        max_subs: BigInt(maxSubs),
+        coin_id: BigInt(coinID),
+        expires_in: BigInt(expiresIn),
+        version: version,
+        manager: creator.address,
+        locker: locker.lsig.address(),
+      },
+      {
+        appAccounts: [locker.lsig.address()],
+        appForeignAssets: coinID > 0 ? [coinID] : [],
+      }
     );
 
     const abiResult = new ABIResult<void>(result);
@@ -199,26 +197,24 @@ export class SubtopiaAdminClient {
       amount: Number(510_000),
       suggestedParams,
     });
-    const result = await smr.execute(
-      await smr.compose.transfer_smi(
-        {
-          transfer_fee_txn: feeTxn,
-          new_owner: newCreatorAddress,
-          smi_id: BigInt(smiID),
-          old_locker: locker.lsig.address(),
-          new_locker: newManagerLocker.lsig.address(),
-        },
-        {
-          appAccounts: [locker.lsig.address(), newManagerLocker.lsig.address()],
-          appForeignApps: [smiID],
-          boxes: [
-            {
-              appIndex: smr.appId,
-              name: decodeAddress(newCreatorAddress).publicKey,
-            },
-          ],
-        }
-      )
+    const result = await smr.transfer_smi(
+      {
+        transfer_fee_txn: feeTxn,
+        new_owner: newCreatorAddress,
+        smi_id: BigInt(smiID),
+        old_locker: locker.lsig.address(),
+        new_locker: newManagerLocker.lsig.address(),
+      },
+      {
+        appAccounts: [locker.lsig.address(), newManagerLocker.lsig.address()],
+        appForeignApps: [smiID],
+        boxes: [
+          {
+            appIndex: smr.appId,
+            name: decodeAddress(newCreatorAddress).publicKey,
+          },
+        ],
+      }
     );
 
     const abiResult = new ABIResult<void>(result);
@@ -257,29 +253,27 @@ export class SubtopiaAdminClient {
     const foreignAssetRef =
       smiState.coinID > 0 ? { appForeignAssets: [smiState.coinID] } : {};
 
-    const result = await smr.execute(
-      await smr.compose.claim_smi(
-        {
-          new_owner: creator.address,
-          smi: BigInt(smiID),
-          coin_id: BigInt(smiState.coinID),
-        },
-        {
-          appAccounts: [locker.lsig.address()],
-          appForeignApps: [smiID],
-          suggestedParams: await getParamsWithFeeCount(
-            client,
-            smiState.coinID > 0 ? 3 : 2
-          ),
-          boxes: [
-            {
-              appIndex: smr.appId,
-              name: decodeAddress(creator.address).publicKey,
-            },
-          ],
-          ...foreignAssetRef,
-        }
-      )
+    const result = await smr.claim_smi(
+      {
+        new_owner: creator.address,
+        smi: BigInt(smiID),
+        coin_id: BigInt(smiState.coinID),
+      },
+      {
+        appAccounts: [locker.lsig.address()],
+        appForeignApps: [smiID],
+        suggestedParams: await getParamsWithFeeCount(
+          client,
+          smiState.coinID > 0 ? 3 : 2
+        ),
+        boxes: [
+          {
+            appIndex: smr.appId,
+            name: decodeAddress(creator.address).publicKey,
+          },
+        ],
+        ...foreignAssetRef,
+      }
     );
 
     const abiResult = new ABIResult<void>(result);

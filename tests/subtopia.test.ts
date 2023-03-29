@@ -23,9 +23,10 @@ const dummyRegistry = new SMR({
 });
 
 async function setupDummyRegistry() {
-  const { appId: dummyRegistryId, appAddress } = await dummyRegistry.create({
-    extraPages: 2,
-  });
+  const { appId: dummyRegistryId, appAddress } =
+    await dummyRegistry.createApplication({
+      extraPages: 2,
+    });
   const dummyRegistryAddress = await SubtopiaAdminClient.getRegistryAddress({
     client: algodClient,
     user: { address: adminAccount.addr, signer: adminAccount.signer },

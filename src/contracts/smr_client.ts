@@ -36,7 +36,7 @@ export class SMR extends bkr.ApplicationClient {
   override methods: algosdk.ABIMethod[] = [
     new algosdk.ABIMethod({
       name: "add",
-      desc: "",
+      desc: "Adds a new Subscription Management Instance (SMI) to the SMR.\nArgs:     fee_txn (abi.PaymentTransaction): The payment transaction containing     the transaction fee.     version (abi.String): The version of the Subtopia contracts.     name (abi.String): The name of the SMI.     sub_type (abi.Uint64): The type of subscription.     price (abi.Uint64): The price of the subscription.     max_subs (abi.Uint64): The maximum number of subscribers allowed.     coin_id (abi.Uint64): The ID of the coin used for payment.     expires_in (abi.Uint64): The expiration time of the subscription in seconds.     output (abi.Uint64): The output of the created SMI.",
       args: [
         { type: "string", name: "version", desc: "" },
         { type: "string", name: "name", desc: "" },
@@ -53,7 +53,7 @@ export class SMR extends bkr.ApplicationClient {
     }),
     new algosdk.ABIMethod({
       name: "transfer_smi",
-      desc: "",
+      desc: "Transfers a Subscription Management Instance (SMI) to a new owner.\nArgs:     transfer_fee_txn (abi.PaymentTransaction): The payment transaction     containing the transfer fee.     new_owner (abi.Address): The address of the new owner.     smi_id (abi.Uint64): The ID of the SMI to be transferred.     output (PendingTransfer): The output of the pending transfer.",
       args: [
         { type: "uint64", name: "smi_id", desc: "" },
         { type: "address", name: "old_locker", desc: "" },
@@ -65,18 +65,32 @@ export class SMR extends bkr.ApplicationClient {
     }),
     new algosdk.ABIMethod({
       name: "claim_smi",
-      desc: "",
+      desc: "Claims a transferred Subscription Management Instance (SMI) by the new owner.",
       args: [
-        { type: "address", name: "new_owner", desc: "" },
-        { type: "application", name: "smi", desc: "" },
-        { type: "uint64", name: "coin_id", desc: "" },
+        {
+          type: "address",
+          name: "new_owner",
+          desc: "The address of the new owner.",
+        },
+        { type: "application", name: "smi", desc: "The SMI to be claimed." },
+        {
+          type: "uint64",
+          name: "coin_id",
+          desc: "The ID of the coin in which SMI fees are paid.",
+        },
       ],
       returns: { type: "void", desc: "" },
     }),
     new algosdk.ABIMethod({
       name: "rekey_locker_back",
-      desc: "",
-      args: [{ type: "address", name: "locker_address", desc: "" }],
+      desc: "Rekeys the locker back to itself.",
+      args: [
+        {
+          type: "address",
+          name: "locker_address",
+          desc: "The address of the locker.",
+        },
+      ],
       returns: { type: "void", desc: "" },
     }),
     new algosdk.ABIMethod({
@@ -101,7 +115,7 @@ export class SMR extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<bigint>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.add(
         {
           version: args.version,
@@ -129,8 +143,8 @@ export class SMR extends bkr.ApplicationClient {
       transfer_fee_txn: algosdk.TransactionWithSigner | algosdk.Transaction;
     },
     txnParams?: bkr.TransactionOverrides
-  ): Promise<bkr.ABIResult<[string, bigint]>> {
-    const result = await this.execute(
+  ): Promise<bkr.ABIResult<PendingTransfer>> {
+    const result = await this._execute(
       await this.compose.transfer_smi(
         {
           smi_id: args.smi_id,
@@ -142,9 +156,9 @@ export class SMR extends bkr.ApplicationClient {
         txnParams
       )
     );
-    return new bkr.ABIResult<[string, bigint]>(
+    return new bkr.ABIResult<PendingTransfer>(
       result,
-      result.returnValue as [string, bigint]
+      PendingTransfer.decodeResult(result.returnValue)
     );
   }
   async claim_smi(
@@ -155,7 +169,7 @@ export class SMR extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.claim_smi(
         { new_owner: args.new_owner, smi: args.smi, coin_id: args.coin_id },
         txnParams
@@ -169,7 +183,7 @@ export class SMR extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.rekey_locker_back(
         { locker_address: args.locker_address },
         txnParams
@@ -183,7 +197,7 @@ export class SMR extends bkr.ApplicationClient {
     },
     txnParams?: bkr.TransactionOverrides
   ): Promise<bkr.ABIResult<void>> {
-    const result = await this.execute(
+    const result = await this._execute(
       await this.compose.delete_smi({ smi_id: args.smi_id }, txnParams)
     );
     return new bkr.ABIResult<void>(result);
@@ -205,7 +219,7 @@ export class SMR extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "add"),
         {
           version: args.version,
@@ -234,7 +248,7 @@ export class SMR extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "transfer_smi"),
         {
           smi_id: args.smi_id,
@@ -256,7 +270,7 @@ export class SMR extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "claim_smi"),
         { new_owner: args.new_owner, smi: args.smi, coin_id: args.coin_id },
         txnParams,
@@ -270,7 +284,7 @@ export class SMR extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "rekey_locker_back"),
         { locker_address: args.locker_address },
         txnParams,
@@ -284,7 +298,7 @@ export class SMR extends bkr.ApplicationClient {
       txnParams?: bkr.TransactionOverrides,
       atc?: algosdk.AtomicTransactionComposer
     ): Promise<algosdk.AtomicTransactionComposer> => {
-      return this.addMethodCall(
+      return this._addMethodCall(
         algosdk.getMethodByName(this.methods, "delete_smi"),
         { smi_id: args.smi_id },
         txnParams,

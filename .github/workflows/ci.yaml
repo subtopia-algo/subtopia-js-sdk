@@ -131,5 +131,6 @@ jobs:
 
       - name: Release
         env:
+          GH_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: yarn release

@@ -3,11 +3,12 @@
 <p align="center">
     <a href="https://www.npmjs.com/package/subtopia-js"><img src="https://badge.fury.io/js/subtopia-js.svg" alt="npm version"></a>
     <a href="https://www.npmjs.com/package/subtopia-js" >
-    <img src="https://img.shields.io/npm/types/subtopia-js"/>yarn
+    <img src="https://img.shields.io/npm/types/subtopia-js"/>
     </a>
     <a href="https://codecov.io/gh/subtopia-algo/subtopia-js" >
     <img src="https://codecov.io/gh/subtopia-algo/subtopia-js/branch/main/graph/badge.svg?token=FEJBE5IAW5"/>
     </a>
+    <a href="https://subtopia.io"><img src="https://img.shields.io/badge/platform-link-cyan.svg" /></a>
     <a href="https://algorand.com"><img src="https://img.shields.io/badge/Powered by-Algorand-black.svg" /></a>
 </p>
 
@@ -19,7 +20,11 @@ Subtopia JS SDK is a JavaScript library for interacting with the Subtopia Platfo
 
 > For detailed documentation, refer to [sdk.subtopia.io](https://sdk.subtopia.io).
 
-## ⚡ Quick Start
+### ⚡ Examples
+
+- [NextJS](https://codesandbox.io/p/sandbox/hidden-violet-l74pj0?file=%2Fpages%2Findex.tsx&selection=%5B%7B%22endColumn%22%3A76%2C%22endLineNumber%22%3A82%2C%22startColumn%22%3A76%2C%22startLineNumber%22%3A82%7D%5D) - A simple NextJS app that demonstrates how to use the SDK to purchase a subscription and perform ownership lookup.
+
+## 📦 Installation
 
 ### Install the package:
 
@@ -115,3 +120,9 @@ const transferResult = await SubtopiaClient.transferSubscriptionPass(
 console.log(deleteResult.txID);
 // ... your code
 ```
+
+## ⭐️ Stargazers
+
+Special thanks to everyone who starred the repository ❤️
+
+[![Stargazers repo roster for @subtopia-algo/subtopia-js](https://reporoster.com/stars/dark/subtopia-algo/subtopia-js)](https://github.com/subtopia-algo/subtopia-js/stargazers)

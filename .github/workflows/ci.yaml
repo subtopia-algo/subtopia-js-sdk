@@ -83,9 +83,10 @@ jobs:
             token: ${{ secrets.CODECOV_TOKEN }}
 
   deploy-docs:
+    if: github.ref == 'refs/heads/main'
     permissions: write-all
     name: Deploy docs
-    # needs: [build, lint, unit-tests]
+    needs: [build, lint, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -110,9 +111,10 @@ jobs:
           folder: docs # The folder the action should deploy.
 
   release:
+    if: github.ref == 'refs/heads/main'
     permissions: write-all
     name: Release
-    # needs: [build, lint, unit-tests, deploy-docs]
+    needs: [build, lint, unit-tests, deploy-docs]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

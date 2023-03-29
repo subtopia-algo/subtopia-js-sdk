@@ -52,7 +52,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node: [18]
+        node: [18, 19]
     steps:
       - name: Check out repository
         uses: actions/checkout@v2

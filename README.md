@@ -15,7 +15,7 @@
 
 ## 🌟 About
 
-Subtopia JS SDK is a JS library for interacting with the Subtopia Platform. It provides a simple interface for creating and managing Subscription Management Infrastructures (`SMI`s).
+Subtopia JS SDK is a JavaScript library for interacting with the Subtopia Platform. It provides a simple interface for creating and managing Subscription Management Infrastructures (`SMI`s).
 
 > For detailed documentation, please visit [sdk.subtopia.io](https://sdk.subtopia.io).
 

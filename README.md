@@ -22,7 +22,7 @@ Subtopia JS SDK is a JavaScript library for interacting with the Subtopia Platfo
 
 ### ⚡ Examples
 
-- [NextJS](https://codesandbox.io/p/sandbox/hidden-violet-l74pj0?file=%2Fpages%2Findex.tsx&selection=%5B%7B%22endColumn%22%3A76%2C%22endLineNumber%22%3A82%2C%22startColumn%22%3A76%2C%22startLineNumber%22%3A82%7D%5D) - A simple NextJS app that demonstrates how to use the SDK to purchase a subscription and perform ownership lookup.
+- [subtopia-js-examples](https://github.com/subtopia-algo/subtopia-js-examples) - A separate repository with examples of using the Subtopia JS SDK in React, Svelte, Vue and NextJS.
 
 ## 📦 Installation
 

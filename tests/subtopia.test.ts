@@ -1,12 +1,30 @@
 import { Algodv2, decodeAddress } from "algosdk";
-import { getLocker, SubtopiaAdminClient, SubtopiaClient } from "../src/index";
+import {
+  getLocker,
+  SubscriptionType,
+  SubtopiaAdminClient,
+  SubtopiaClient,
+} from "../src/index";
 import { it, describe, expect } from "vitest";
 import { sandbox } from "beaker-ts";
 
-import { SandboxAccount } from "beaker-ts/lib/sandbox/accounts";
 import { SMR } from "../src/contracts/smr_client";
-import { getRandomAccount, filterAsync, generateRandomAsset } from "./utils";
+import {
+  getRandomAccount,
+  filterAsync,
+  generateRandomAsset,
+  getRandomElement,
+} from "./utils";
 import { rekeyLocker } from "../src/common/utils";
+import { SandboxAccount } from "beaker-ts/dist/types/sandbox/accounts";
+import { SubscriptionExpirationType } from "../src/common/enums";
+
+const TIME_BASED_EXPIRATION_TYPES = [
+  SubscriptionExpirationType.MONTHLY,
+  SubscriptionExpirationType.QUARTERLY,
+  SubscriptionExpirationType.SEMI_ANNUAL,
+  SubscriptionExpirationType.ANNUAL,
+];
 
 const algodClient = new Algodv2("a".repeat(64), "http://localhost", "4001");
 const accounts = await sandbox.getAccounts();
@@ -50,10 +68,9 @@ describe("subtopia", () => {
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: SubscriptionType.UNLIMITED,
         maxSubs: 0,
         coinID: 0,
-        expiresIn: 0,
       });
 
       const infrastructureID = Number(result.returnValue);
@@ -109,10 +126,9 @@ describe("subtopia", () => {
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: SubscriptionType.UNLIMITED,
         maxSubs: 0,
         coinID: 0,
-        expiresIn: 0,
       });
 
       const infrastructureID = Number(result.returnValue);
@@ -144,16 +160,19 @@ describe("subtopia", () => {
       // Setup
       const { dummyRegistryId } = await setupDummyRegistry();
 
+      const randomSubType = getRandomElement([
+        SubscriptionType.TIME_BASED,
+        SubscriptionType.UNLIMITED,
+      ]);
       const response = await SubtopiaAdminClient.addInfrastructure({
         creator: { address: adminAccount.addr, signer: adminAccount.signer },
         smrID: dummyRegistryId,
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: randomSubType,
         maxSubs: 0,
         coinID: 0,
-        expiresIn: 0,
       });
 
       const infrastructureID = Number(response.returnValue);
@@ -165,6 +184,11 @@ describe("subtopia", () => {
         adminAccount.signer
       );
 
+      const randomExpirationType =
+        randomSubType === SubscriptionType.TIME_BASED
+          ? getRandomElement(TIME_BASED_EXPIRATION_TYPES)
+          : undefined;
+
       const result = await SubtopiaClient.subscribe(
         {
           subscriber: {
@@ -173,6 +197,7 @@ describe("subtopia", () => {
           },
           smiID: infrastructureID,
           smrID: dummyRegistryId,
+          expirationType: randomExpirationType,
         },
         {
           client: algodClient,
@@ -235,16 +260,20 @@ describe("subtopia", () => {
       // Setup
       const { dummyRegistryId } = await setupDummyRegistry();
 
+      const randomSubType = getRandomElement([
+        SubscriptionType.TIME_BASED,
+        SubscriptionType.UNLIMITED,
+      ]);
+
       const response = await SubtopiaAdminClient.addInfrastructure({
         creator: { address: adminAccount.addr, signer: adminAccount.signer },
         smrID: dummyRegistryId,
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: randomSubType,
         maxSubs: 0,
         coinID: 0,
-        expiresIn: 0,
       });
 
       const infrastructureID = Number(response.returnValue);
@@ -256,6 +285,11 @@ describe("subtopia", () => {
         adminAccount.signer
       );
 
+      const randomExpirationType =
+        randomSubType === SubscriptionType.TIME_BASED
+          ? getRandomElement(TIME_BASED_EXPIRATION_TYPES)
+          : undefined;
+
       await SubtopiaClient.subscribe(
         {
           subscriber: {
@@ -264,6 +298,7 @@ describe("subtopia", () => {
           },
           smiID: infrastructureID,
           smrID: dummyRegistryId,
+          expirationType: randomExpirationType,
         },
         {
           client: algodClient,
@@ -289,9 +324,9 @@ describe("subtopia", () => {
     { timeout: 1e6 }
   );
 
-  it(
-    "should correctly delete SMI with N subscribers before deleting SMI",
-    async () => {
+  it.each([[SubscriptionType.UNLIMITED], [SubscriptionType.TIME_BASED]])(
+    "should correctly delete SMI of type %i with N subscribers before deleting SMI",
+    async (randomSubType) => {
       // Setup
       const { dummyRegistryId } = await setupDummyRegistry();
 
@@ -301,10 +336,9 @@ describe("subtopia", () => {
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: randomSubType,
         maxSubs: 0,
         coinID: 0,
-        expiresIn: 0,
       });
 
       const infrastructureID = Number(addResponse.returnValue);
@@ -318,6 +352,11 @@ describe("subtopia", () => {
           adminAccount.signer
         );
 
+        const randomExpirationType =
+          randomSubType === SubscriptionType.TIME_BASED
+            ? getRandomElement(TIME_BASED_EXPIRATION_TYPES)
+            : undefined;
+
         const result = await SubtopiaClient.subscribe(
           {
             subscriber: {
@@ -326,6 +365,7 @@ describe("subtopia", () => {
             },
             smiID: infrastructureID,
             smrID: dummyRegistryId,
+            expirationType: randomExpirationType,
           },
           {
             client: algodClient,
@@ -398,7 +438,10 @@ describe("subtopia", () => {
       const { dummyRegistryId } = await setupDummyRegistry();
 
       const randomAsset = await generateRandomAsset(algodClient, adminAccount);
-
+      const randomSubType = getRandomElement([
+        SubscriptionType.TIME_BASED,
+        SubscriptionType.UNLIMITED,
+      ]);
       const response = await SubtopiaAdminClient.addInfrastructure({
         creator: { address: adminAccount.addr, signer: adminAccount.signer },
         smrID: dummyRegistryId,
@@ -406,9 +449,8 @@ describe("subtopia", () => {
         price: 1,
         client: algodClient,
         coinID: randomAsset.index,
-        subType: 1,
+        subType: randomSubType,
         maxSubs: 0,
-        expiresIn: 0,
       });
 
       const infrastructureID = Number(response.returnValue);
@@ -421,6 +463,11 @@ describe("subtopia", () => {
         randomAsset
       );
 
+      const randomExpirationType =
+        randomSubType === SubscriptionType.TIME_BASED
+          ? getRandomElement(TIME_BASED_EXPIRATION_TYPES)
+          : undefined;
+
       const result = await SubtopiaClient.subscribe(
         {
           subscriber: {
@@ -429,6 +476,7 @@ describe("subtopia", () => {
           },
           smiID: infrastructureID,
           smrID: dummyRegistryId,
+          expirationType: randomExpirationType,
         },
         {
           client: algodClient,
@@ -487,9 +535,8 @@ describe("subtopia", () => {
         price: 1,
         client: algodClient,
         coinID: randomAsset.index,
-        subType: 1,
+        subType: SubscriptionType.TIME_BASED,
         maxSubs: 0,
-        expiresIn: 0,
       });
 
       const infrastructureID = Number(response.returnValue);
@@ -502,6 +549,10 @@ describe("subtopia", () => {
         randomAsset
       );
 
+      const randomExpirationType = getRandomElement(
+        TIME_BASED_EXPIRATION_TYPES
+      );
+
       await SubtopiaClient.subscribe(
         {
           subscriber: {
@@ -510,6 +561,7 @@ describe("subtopia", () => {
           },
           smiID: infrastructureID,
           smrID: dummyRegistryId,
+          expirationType: randomExpirationType,
         },
         {
           client: algodClient,
@@ -542,16 +594,19 @@ describe("subtopia", () => {
       // Setup
       const { dummyRegistryId } = await setupDummyRegistry();
 
+      const randomSubType = getRandomElement([
+        SubscriptionType.TIME_BASED,
+        SubscriptionType.UNLIMITED,
+      ]);
       const response = await SubtopiaAdminClient.addInfrastructure({
         creator: { address: adminAccount.addr, signer: adminAccount.signer },
         smrID: dummyRegistryId,
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: randomSubType,
         maxSubs: 0,
         coinID: 0,
-        expiresIn: 0,
       });
       const infrastructureID = Number(response.returnValue);
 
@@ -561,11 +616,16 @@ describe("subtopia", () => {
         adminAccount.signer
       );
 
+      const randomExpirationType =
+        randomSubType === SubscriptionType.TIME_BASED
+          ? getRandomElement(TIME_BASED_EXPIRATION_TYPES)
+          : undefined;
       const result = await SubtopiaClient.subscribe(
         {
           subscriber: { address: oldOwner.address, signer: oldOwner.signer },
           smiID: infrastructureID,
           smrID: dummyRegistryId,
+          expirationType: randomExpirationType,
         },
         {
           client: algodClient,
@@ -631,10 +691,9 @@ describe("subtopia", () => {
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: SubscriptionType.UNLIMITED,
         maxSubs: 0,
         coinID: 0,
-        expiresIn: 0,
       });
       const infrastructureID = Number(response.returnValue);
 
@@ -644,6 +703,9 @@ describe("subtopia", () => {
         adminAccount.signer
       );
 
+      const randomExpirationType = getRandomElement(
+        TIME_BASED_EXPIRATION_TYPES
+      );
       const result = await SubtopiaClient.subscribe(
         {
           subscriber: {
@@ -652,6 +714,7 @@ describe("subtopia", () => {
           },
           smiID: infrastructureID,
           smrID: dummyRegistryId,
+          expirationType: randomExpirationType,
         },
         {
           client: algodClient,
@@ -707,10 +770,9 @@ describe("subtopia", () => {
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: SubscriptionType.UNLIMITED,
         maxSubs: 0,
         coinID: 0,
-        expiresIn: 0,
       });
       const infrastructureID = Number(response.returnValue);
 
@@ -778,10 +840,9 @@ describe("subtopia", () => {
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
-        subType: 0,
+        subType: SubscriptionType.UNLIMITED,
         maxSubs: 0,
         coinID: randomAsset.index,
-        expiresIn: 0,
       });
       const infrastructureID = Number(response.returnValue);
 
@@ -835,4 +896,35 @@ describe("subtopia", () => {
     },
     { timeout: 1e6 }
   );
+
+  it("should correctly create discount on SMI", async () => {
+    // Setup
+    const { dummyRegistryId } = await setupDummyRegistry();
+    const randomAsset = await generateRandomAsset(algodClient, adminAccount);
+
+    const response = await SubtopiaAdminClient.addInfrastructure({
+      creator: { address: adminAccount.addr, signer: adminAccount.signer },
+      smrID: dummyRegistryId,
+      name: "Cool infrastructure",
+      price: 1,
+      client: algodClient,
+      subType: SubscriptionType.UNLIMITED,
+      maxSubs: 0,
+      coinID: randomAsset.index,
+    });
+    const infrastructureID = Number(response.returnValue);
+
+    // Test
+    const discount = await SubtopiaClient.createDiscount({
+      client: algodClient,
+      creator: { address: adminAccount.addr, signer: adminAccount.signer },
+      smiID: infrastructureID,
+      smrID: dummyRegistryId,
+      discount: 0.5,
+    });
+
+    // Assert
+    expect(discount).toBeDefined();
+    expect(discount.txID).toBeDefined();
+  });
 });

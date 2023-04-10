@@ -81,7 +81,6 @@ export class SubtopiaAdminClient {
     subType = SubscriptionType.UNLIMITED,
     maxSubs = 0,
     coinID = 0,
-    expiresIn = 0,
   }: SMRAddInfrastructureParams): Promise<ABIResult<void>> {
     const smr = new SMR({
       client,
@@ -126,7 +125,6 @@ export class SubtopiaAdminClient {
         sub_type: BigInt(subType),
         max_subs: BigInt(maxSubs),
         coin_id: BigInt(coinID),
-        expires_in: BigInt(expiresIn),
         version: version,
         manager: creator.address,
         locker: locker.lsig.address(),

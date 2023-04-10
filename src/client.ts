@@ -7,6 +7,7 @@ import algosdk, {
   AtomicTransactionComposer,
   decodeAddress,
   encodeAddress,
+  encodeUint64,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   makePaymentTxnWithSuggestedParamsFromObject,
 } from "algosdk";
@@ -19,11 +20,15 @@ import {
   optInAsset,
   getParamsWithFeeCount,
   rekeyLocker,
+  expirationTypeToMonths,
 } from "./common/utils";
 import { SMI, Subscription } from "./contracts/smi_client";
 import { SMR } from "./contracts/smr_client";
 import { getAssetByID } from "./common/utils";
-import { PriceNormalizationType } from "./common/enums";
+import {
+  PriceNormalizationType,
+  SubscriptionExpirationType,
+} from "./common/enums";
 import {
   SMIClaimSubscriptionParams,
   SMIState,
@@ -99,7 +104,12 @@ export class SubtopiaClient {
   }
 
   static async subscribe(
-    { subscriber, smiID, smrID = SUBTOPIA_REGISTRY_APP_ID }: SMISubscribeParams,
+    {
+      subscriber,
+      smiID,
+      smrID = SUBTOPIA_REGISTRY_APP_ID,
+      expirationType = SubscriptionExpirationType.UNLIMITED,
+    }: SMISubscribeParams,
     { client, sender, signer }: ChainMethodParams
   ) {
     const smi = new SMI({
@@ -136,13 +146,14 @@ export class SubtopiaClient {
       txn: makePaymentTxnWithSuggestedParamsFromObject({
         from: subscriber.address,
         to: smi.appAddress,
-        amount: Number(120_000 + 100_000 + 8000 + 100),
+        amount: Number(120_000 + 100_000 + 11_200 + 100),
         suggestedParams: feeSp,
       }),
       signer: subscriber.signer,
     };
 
     const subscribeSp = await getParamsWithFeeCount(client, 0);
+    const price = smiState.price * expirationTypeToMonths(expirationType);
 
     /* eslint-disable prettier/prettier */
     const subscribePayTxn = {
@@ -151,13 +162,13 @@ export class SubtopiaClient {
           ? makePaymentTxnWithSuggestedParamsFromObject({
               from: subscriber.address,
               to: managerLocker.lsig.address(),
-              amount: smiState.price,
+              amount: price,
               suggestedParams: subscribeSp,
             })
           : makeAssetTransferTxnWithSuggestedParamsFromObject({
               from: subscriber.address,
               to: managerLocker.lsig.address(),
-              amount: smiState.price,
+              amount: price,
               assetIndex: smiState.coinID,
               suggestedParams: subscribeSp,
             }),
@@ -169,10 +180,15 @@ export class SubtopiaClient {
         fee_txn: feeTxn,
         subscribe_pay_txn: subscribePayTxn,
         subscriber_account: subscriber.address,
+        expiration_type: BigInt(expirationType),
       },
       {
         appAccounts: [subscriber.address],
         boxes: [
+          {
+            appIndex: smi.appId,
+            name: encodeUint64(expirationType),
+          },
           {
             appIndex: smi.appId,
             name: decodeAddress(subscriber.address).publicKey,
@@ -573,5 +589,70 @@ export class SubtopiaClient {
     );
 
     return response;
+  }
+
+  static async createDiscount(
+    {
+      smiID,
+      user,
+      discount,
+      smrID = SUBTOPIA_REGISTRY_APP_ID,
+    }: SMICreateDiscountParams,
+    { client, sender, signer }: ChainMethodParams
+  ) {
+    const smi = new SMI({
+      client: client,
+      sender: sender ?? user.address,
+      signer: signer ?? user.signer,
+      appId: smiID,
+    });
+
+    const smr = new SMR({
+      client: client,
+      sender: sender ?? user.address,
+      signer: signer ?? user.signer,
+      appId: smrID,
+    });
+
+    if (!smi) {
+      throw new Error("SMI not initialized");
+    }
+
+    const smiState = await SubtopiaClient.getInfrastructureState(
+      client,
+      smi.appId,
+      false
+    );
+
+    const userLocker = await getLocker(client, user.address, smr.appAddress);
+
+    const result = await smi.create_discount(
+      {
+        expiration_type: discount.expirationType,
+        discount_type: discount.discountType,
+        discount_value: discount.discountValue,
+        expires_in: discount.expiresIn,
+        fee_txn: {
+          txn: makePaymentTxnWithSuggestedParamsFromObject({
+            from: user.address,
+            to: userLocker.lsig.address(),
+            amount: (
+              await getParamsWithFeeCount(client, 3 * smiState.activeSubs)
+            ).fee,
+            suggestedParams: await getParamsWithFeeCount(client, 2),
+          }),
+          signer: user.signer,
+        },
+      },
+      {
+        appAccounts: [userLocker.lsig.address()],
+        suggestedParams: await getParamsWithFeeCount(
+          client,
+          3 * smiState.activeSubs
+        ),
+      }
+    );
+
+    return new ABIResult<void>(result);
   }
 }

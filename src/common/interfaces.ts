@@ -5,7 +5,11 @@
 
 import { Algodv2, LogicSigAccount, TransactionSigner } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
-import { SMILifecycle, SubscriptionType } from "./enums";
+import {
+  SMILifecycle,
+  SubscriptionExpirationType,
+  SubscriptionType,
+} from "./enums";
 
 // === Boxes ===
 
@@ -64,7 +68,6 @@ export interface SMIInputParams {
   subType: SubscriptionType;
   maxSubs: number;
   coinID: number;
-  expiresIn: number;
 }
 
 // === SMR ===
@@ -126,6 +129,7 @@ export interface SMITransferSubscriptionParams {
 export interface SMISubscribeParams {
   smrID?: number;
   smiID: number;
+  expirationType?: SubscriptionExpirationType;
   subscriber: User;
 }
 

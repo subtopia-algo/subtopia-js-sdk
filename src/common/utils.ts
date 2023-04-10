@@ -18,7 +18,7 @@ import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import { StateValue, State, ApplicationClient } from "beaker-ts";
 import { ALGO_ASSET, DEFAULT_AWAIT_ROUNDS, LOCKER_TEAL_URL } from "./constants";
 import axios from "axios";
-import { PriceNormalizationType } from "./enums";
+import { PriceNormalizationType, SubscriptionExpirationType } from "./enums";
 import { LockerRekeyParameters, AssetMetadata, Locker } from "./interfaces";
 
 function strOrHex(v: Buffer): string {
@@ -241,4 +241,22 @@ export async function getParamsWithFeeCount(
   params.flatFee = true;
   params.fee = ALGORAND_MIN_TX_FEE * txnNumber;
   return params;
+}
+
+export function expirationTypeToMonths(
+  expirationType: SubscriptionExpirationType
+): number {
+  if (expirationType === SubscriptionExpirationType.UNLIMITED) {
+    return 1;
+  } else if (expirationType === SubscriptionExpirationType.MONTHLY) {
+    return 1;
+  } else if (expirationType === SubscriptionExpirationType.QUARTERLY) {
+    return 3;
+  } else if (expirationType === SubscriptionExpirationType.SEMI_ANNUAL) {
+    return 6;
+  } else if (expirationType === SubscriptionExpirationType.ANNUAL) {
+    return 12;
+  } else {
+    throw new Error("Invalid expiration type");
+  }
 }

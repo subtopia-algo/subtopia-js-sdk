@@ -38,7 +38,7 @@ export async function getRandomAccount(
     txn: makePaymentTxnWithSuggestedParamsFromObject({
       from: funderAddress,
       to: randomAccount.addr,
-      amount: Number(100e6),
+      amount: Number(200e6),
       suggestedParams: await client.getTransactionParams().do(),
     }),
     signer: funderSigner,
@@ -86,8 +86,8 @@ export async function generateRandomAsset(
   total?: number,
   decimals?: number
 ) {
-  total = !total ? Math.floor(Math.random() * 100) + 1 : total;
-  decimals = !decimals ? Math.floor(Math.random() * 10) + 1 : decimals;
+  total = !total ? Math.floor(Math.random() * 100) + 20 : total;
+  decimals = !decimals ? Math.floor(Math.random() * 10) + 2 : decimals;
   assetName = !assetName
     ? `ASA ${Math.floor(Math.random() * 100) + 1}_${
         Math.floor(Math.random() * 100) + 1
@@ -110,8 +110,6 @@ export async function generateRandomAsset(
     clawback: sender.addr,
     assetURL: "https://path/to/my/asset/details",
   });
-
-  console.log(txn);
 
   const stxn = txn.signTxn(sender.privateKey);
 

@@ -18,6 +18,8 @@ import {
 import {
   PriceNormalizationType,
   SubscriptionType,
+  SubscriptionExpirationType,
+  DiscountType,
   SMILifecycle,
 } from "./common/enums";
 import {
@@ -36,6 +38,12 @@ import {
   SMIClaimRevenueParams,
   SubscriptionRecord,
   SMIDeleteSubscriptionParams,
+  DiscountRecord,
+  DiscountMetadata,
+  BaseDiscountRecord,
+  SMICreateDiscountParams,
+  SMIDeleteDiscountParams,
+  AssetMetadata,
   Locker,
   User,
 } from "./common/interfaces";
@@ -45,16 +53,18 @@ export {
   SubtopiaAdminClient,
   SubtopiaClient,
   SubscriptionType,
+  SubscriptionExpirationType,
+  DiscountType,
   getLocker,
   loadApplicationState,
   normalizePrice,
+  SUBTOPIA_CONTRACTS_VERSION,
+  SUBTOPIA_REGISTRY_APP_ID,
+  SMILifecycle,
 };
 
 export type {
   Locker,
-  SUBTOPIA_CONTRACTS_VERSION,
-  SUBTOPIA_REGISTRY_APP_ID,
-  SMILifecycle,
   SMRGetRegistryParams,
   SMIClaimRevenueParams,
   SMIMarkForDeletionParams,
@@ -71,4 +81,10 @@ export type {
   SMITransferSubscriptionParams,
   SMIUnsubscribeParams,
   SubscriptionRecord,
+  DiscountRecord,
+  DiscountMetadata,
+  BaseDiscountRecord,
+  SMICreateDiscountParams,
+  SMIDeleteDiscountParams,
+  AssetMetadata,
 };

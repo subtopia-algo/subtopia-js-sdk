@@ -6,6 +6,7 @@
 import { Algodv2, LogicSigAccount, TransactionSigner } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
+  DiscountType,
   SMILifecycle,
   SubscriptionExpirationType,
   SubscriptionType,
@@ -18,6 +19,18 @@ export interface SubscriptionRecord {
   expiresAt: Date | undefined;
   subID: number;
   subType: SubscriptionType;
+}
+
+export interface BaseDiscountRecord {
+  expirationType: SubscriptionExpirationType;
+  discountType: DiscountType;
+  discountValue: number;
+}
+
+export interface DiscountRecord extends BaseDiscountRecord {
+  createdAt: Date;
+  expiresAt: Date | undefined;
+  totalClaims: number;
 }
 
 export interface PendingTransferRecord {
@@ -70,6 +83,24 @@ export interface SMIInputParams {
   coinID: number;
 }
 
+export interface DiscountMetadata extends BaseDiscountRecord {
+  expiresIn?: number;
+}
+
+export interface SMICreateDiscountParams {
+  smiID: number;
+  creator: User;
+  discount: DiscountMetadata;
+  smrID?: number;
+}
+
+export interface SMIDeleteDiscountParams {
+  smiID: number;
+  creator: User;
+  expirationType: SubscriptionExpirationType;
+  smrID?: number;
+}
+
 // === SMR ===
 
 export interface SMRAddInfrastructureParams extends SMIInputParams {
@@ -104,8 +135,9 @@ export interface SMIState extends SMIInputParams {
   manager: string;
   activeSubs: number;
   totalSubs: number;
-  isPendingTransfer?: boolean;
   lifecycle: SMILifecycle;
+  discounts: DiscountRecord[];
+  isPendingTransfer?: boolean;
 }
 
 export interface SMIUnsubscribeParams {

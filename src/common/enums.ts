@@ -25,3 +25,8 @@ export enum SMILifecycle {
   ACTIVE = 0,
   DELETING = 1,
 }
+
+export enum DiscountType {
+  PERCENTAGE = 0,
+  FIXED = 1,
+}

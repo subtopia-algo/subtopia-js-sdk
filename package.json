@@ -1,6 +1,6 @@
 {
   "name": "subtopia-js",
-  "version": "1.0.8",
+  "version": "0.0.3",
   "description": "Subtopia SDK for JavaScript",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -27,8 +27,7 @@
   },
   "dependencies": {
     "algosdk": "2.2.0",
-    "axios": "^1.3.4",
-    "beaker-ts": "^0.1.0"
+    "beaker-ts": "^0.1.2"
   },
   "devDependencies": {
     "@feki.de/semantic-release-yarn": "1.0.1",

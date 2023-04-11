@@ -15,9 +15,14 @@ import {
   generateRandomAsset,
   getRandomElement,
 } from "./utils";
-import { rekeyLocker } from "../src/common/utils";
+import { normalizePrice, rekeyLocker } from "../src/common/utils";
 import { SandboxAccount } from "beaker-ts/dist/types/sandbox/accounts";
-import { SubscriptionExpirationType } from "../src/common/enums";
+import {
+  DiscountType,
+  PriceNormalizationType,
+  SubscriptionExpirationType,
+} from "../src/common/enums";
+import { assert } from "console";
 
 const TIME_BASED_EXPIRATION_TYPES = [
   SubscriptionExpirationType.MONTHLY,
@@ -154,12 +159,279 @@ describe("subtopia", () => {
     { timeout: 1e6 }
   );
 
+  it.each([
+    [SubscriptionExpirationType.UNLIMITED, DiscountType.FIXED, 1],
+    [SubscriptionExpirationType.MONTHLY, DiscountType.FIXED, 2],
+    [SubscriptionExpirationType.QUARTERLY, DiscountType.FIXED, 3],
+    [SubscriptionExpirationType.SEMI_ANNUAL, DiscountType.FIXED, 4],
+    [SubscriptionExpirationType.ANNUAL, DiscountType.FIXED, 10],
+    [SubscriptionExpirationType.UNLIMITED, DiscountType.PERCENTAGE, 1],
+    [SubscriptionExpirationType.MONTHLY, DiscountType.PERCENTAGE, 2],
+    [SubscriptionExpirationType.QUARTERLY, DiscountType.PERCENTAGE, 3],
+    [SubscriptionExpirationType.SEMI_ANNUAL, DiscountType.PERCENTAGE, 4],
+    [SubscriptionExpirationType.ANNUAL, DiscountType.PERCENTAGE, 10],
+  ])(
+    "should correctly create discount of type %i, %i and %i on SMI",
+    async (expirationType, discountType, discountValue) => {
+      // Setup
+      const { dummyRegistryId } = await setupDummyRegistry();
+      const randomAsset = await generateRandomAsset(algodClient, adminAccount);
+
+      const response = await SubtopiaAdminClient.addInfrastructure({
+        creator: { address: adminAccount.addr, signer: adminAccount.signer },
+        smrID: dummyRegistryId,
+        name: "Cool infrastructure",
+        price: 1,
+        client: algodClient,
+        subType:
+          expirationType === SubscriptionExpirationType.UNLIMITED
+            ? SubscriptionType.UNLIMITED
+            : SubscriptionType.TIME_BASED,
+        maxSubs: 0,
+        coinID: randomAsset.index,
+      });
+      const infrastructureID = Number(response.returnValue);
+
+      // Test
+      const discount = await SubtopiaClient.createDiscount(
+        {
+          creator: { address: adminAccount.addr, signer: adminAccount.signer },
+          smiID: infrastructureID,
+          smrID: dummyRegistryId,
+          discount: {
+            expirationType: expirationType,
+            discountType: discountType,
+            discountValue: discountValue,
+          },
+        },
+        { client: algodClient }
+      );
+
+      // Assert
+      expect(discount).toBeDefined();
+      expect(discount.txID).toBeDefined();
+
+      const discountRecord = await SubtopiaClient.getDiscountRecordForType(
+        algodClient,
+        infrastructureID,
+        expirationType
+      );
+
+      const smiState = await SubtopiaClient.getInfrastructureState(
+        algodClient,
+        infrastructureID
+      );
+      assert(smiState.discounts[0] === discountRecord);
+      assert(smiState.discounts.length === 1);
+
+      expect(discountRecord).toBeDefined();
+      expect(discountRecord.discountType).toBe(discountType);
+      expect(discountRecord.discountValue).toBe(
+        discountType === DiscountType.FIXED
+          ? normalizePrice(
+              discountValue,
+              randomAsset.decimals,
+              PriceNormalizationType.RAW
+            )
+          : discountValue
+      );
+      expect(discountRecord.expirationType).toBe(expirationType);
+
+      await SubtopiaClient.deleteDiscount(
+        {
+          creator: { address: adminAccount.addr, signer: adminAccount.signer },
+          smiID: infrastructureID,
+          smrID: dummyRegistryId,
+          expirationType: expirationType,
+        },
+        { client: algodClient }
+      );
+
+      // Should be deleted
+      await expect(
+        SubtopiaClient.getDiscountRecordForType(
+          algodClient,
+          infrastructureID,
+          expirationType
+        )
+      ).rejects.toThrowError();
+
+      const postDeleteSmiState = await SubtopiaClient.getInfrastructureState(
+        algodClient,
+        infrastructureID
+      );
+      assert(postDeleteSmiState.discounts.length === 0);
+    },
+    { timeout: 1e6 }
+  );
+
+  // it.each([
+  //   // [SubscriptionExpirationType.UNLIMITED, undefined, 0],
+  //   // [SubscriptionExpirationType.UNLIMITED, DiscountType.FIXED, 1],
+  //   [SubscriptionExpirationType.MONTHLY, DiscountType.FIXED, 2],
+  //   // [SubscriptionExpirationType.QUARTERLY, DiscountType.FIXED, 3],
+  //   // [SubscriptionExpirationType.SEMI_ANNUAL, DiscountType.FIXED, 4],
+  //   // [SubscriptionExpirationType.ANNUAL, DiscountType.FIXED, 10],
+  //   // [SubscriptionExpirationType.UNLIMITED, DiscountType.PERCENTAGE, 1],
+  //   // [SubscriptionExpirationType.MONTHLY, DiscountType.PERCENTAGE, 2],
+  //   // [SubscriptionExpirationType.QUARTERLY, DiscountType.PERCENTAGE, 3],
+  //   // [SubscriptionExpirationType.SEMI_ANNUAL, DiscountType.PERCENTAGE, 4],
+  //   // [SubscriptionExpirationType.ANNUAL, DiscountType.PERCENTAGE, 10],
+  // ]
   it(
-    "should correctly purchase subscription with algo",
-    async () => {
+    "should correctly purchase subscription with algo and discount of type %i, %i and %i",
+    async () =>
+      // expirationType: SubscriptionExpirationType,
+      // discountType: DiscountType | undefined,
+      // discountValue: number
+      {
+        const expirationType = SubscriptionExpirationType.MONTHLY;
+        const discountType = DiscountType.FIXED;
+        const discountValue = 2;
+        // Setup
+        const { dummyRegistryId } = await setupDummyRegistry();
+
+        const response = await SubtopiaAdminClient.addInfrastructure({
+          creator: { address: adminAccount.addr, signer: adminAccount.signer },
+          smrID: dummyRegistryId,
+          name: "Cool infrastructure",
+          price: 20,
+          client: algodClient,
+          subType:
+            expirationType === SubscriptionExpirationType.UNLIMITED
+              ? SubscriptionType.UNLIMITED
+              : SubscriptionType.TIME_BASED,
+          maxSubs: 0,
+          coinID: 0,
+        });
+
+        const infrastructureID = Number(response.returnValue);
+
+        // Test
+        const subscriber = await getRandomAccount(
+          algodClient,
+          adminAccount.addr,
+          adminAccount.signer
+        );
+
+        if (discountType !== undefined) {
+          await SubtopiaClient.createDiscount(
+            {
+              creator: {
+                address: adminAccount.addr,
+                signer: adminAccount.signer,
+              },
+              smiID: infrastructureID,
+              smrID: dummyRegistryId,
+              discount: {
+                expirationType: expirationType,
+                discountType: discountType,
+                discountValue: discountValue,
+              },
+            },
+            { client: algodClient }
+          );
+        }
+
+        const result = await SubtopiaClient.subscribe(
+          {
+            subscriber: {
+              address: subscriber.address,
+              signer: subscriber.signer,
+            },
+            smiID: infrastructureID,
+            smrID: dummyRegistryId,
+            expirationType: expirationType,
+          },
+          {
+            client: algodClient,
+          }
+        );
+
+        const claimResult = await SubtopiaClient.claimSubscriptionPass(
+          {
+            smiID: infrastructureID,
+            subID: Number(result.returnValue),
+            subscriber: {
+              address: subscriber.address,
+              signer: subscriber.signer,
+            },
+          },
+          {
+            client: algodClient,
+          }
+        );
+
+        const boxContent = await SubtopiaClient.getSubscriptionRecordForAccount(
+          algodClient,
+          subscriber.address,
+          infrastructureID
+        );
+
+        // Assert
+        expect(boxContent.subID).toBe(Number(result.returnValue));
+        expect(result).toBeDefined();
+        expect(result.txID).toBeDefined();
+        expect(result.returnValue).toBeGreaterThan(0);
+        expect(claimResult).toBeDefined();
+
+        const balance = algodClient.accountAssetInformation(
+          subscriber.address,
+          Number(result.returnValue)
+        );
+        expect(balance).toBeDefined();
+        expect(balance["assetID"]).toBe(Number(result.returnValue));
+
+        await SubtopiaClient.unsubscribe(
+          {
+            smiID: infrastructureID,
+            subscriber: {
+              address: subscriber.address,
+              signer: subscriber.signer,
+            },
+          },
+          {
+            client: algodClient,
+          }
+        );
+
+        if (discountType !== undefined) {
+          await SubtopiaClient.deleteDiscount(
+            {
+              creator: {
+                address: adminAccount.addr,
+                signer: adminAccount.signer,
+              },
+              smiID: infrastructureID,
+              smrID: dummyRegistryId,
+              expirationType: expirationType,
+            },
+            { client: algodClient }
+          );
+        }
+      },
+    { timeout: 1e6 }
+  );
+
+  it.each([
+    [SubscriptionExpirationType.UNLIMITED, undefined, 0],
+    [SubscriptionExpirationType.UNLIMITED, DiscountType.FIXED, 1],
+    [SubscriptionExpirationType.MONTHLY, DiscountType.FIXED, 2],
+    [SubscriptionExpirationType.QUARTERLY, DiscountType.FIXED, 3],
+    [SubscriptionExpirationType.SEMI_ANNUAL, DiscountType.FIXED, 4],
+    [SubscriptionExpirationType.ANNUAL, DiscountType.FIXED, 10],
+    [SubscriptionExpirationType.UNLIMITED, DiscountType.PERCENTAGE, 1],
+    [SubscriptionExpirationType.MONTHLY, DiscountType.PERCENTAGE, 2],
+    [SubscriptionExpirationType.QUARTERLY, DiscountType.PERCENTAGE, 3],
+    [SubscriptionExpirationType.SEMI_ANNUAL, DiscountType.PERCENTAGE, 4],
+    [SubscriptionExpirationType.ANNUAL, DiscountType.PERCENTAGE, 10],
+  ])(
+    "should correctly purchase subscription with custom ASA and discount of type %i %i %i",
+    async (expirationType, discountType, discountValue) => {
       // Setup
       const { dummyRegistryId } = await setupDummyRegistry();
 
+      const randomAsset = await generateRandomAsset(algodClient, adminAccount);
       const randomSubType = getRandomElement([
         SubscriptionType.TIME_BASED,
         SubscriptionType.UNLIMITED,
@@ -170,9 +442,9 @@ describe("subtopia", () => {
         name: "Cool infrastructure",
         price: 1,
         client: algodClient,
+        coinID: randomAsset.index,
         subType: randomSubType,
         maxSubs: 0,
-        coinID: 0,
       });
 
       const infrastructureID = Number(response.returnValue);
@@ -181,13 +453,29 @@ describe("subtopia", () => {
       const subscriber = await getRandomAccount(
         algodClient,
         adminAccount.addr,
-        adminAccount.signer
+        adminAccount.signer,
+        randomAsset
       );
 
-      const randomExpirationType =
-        randomSubType === SubscriptionType.TIME_BASED
-          ? getRandomElement(TIME_BASED_EXPIRATION_TYPES)
-          : undefined;
+      if (discountType !== undefined) {
+        const response = await SubtopiaClient.createDiscount(
+          {
+            creator: {
+              address: adminAccount.addr,
+              signer: adminAccount.signer,
+            },
+            smiID: infrastructureID,
+            smrID: dummyRegistryId,
+            discount: {
+              expirationType: expirationType,
+              discountType: discountType,
+              discountValue: discountValue,
+            },
+          },
+          { client: algodClient }
+        );
+        console.log(response);
+      }
 
       const result = await SubtopiaClient.subscribe(
         {
@@ -197,7 +485,7 @@ describe("subtopia", () => {
           },
           smiID: infrastructureID,
           smrID: dummyRegistryId,
-          expirationType: randomExpirationType,
+          expirationType: expirationType,
         },
         {
           client: algodClient,
@@ -237,19 +525,6 @@ describe("subtopia", () => {
       );
       expect(balance).toBeDefined();
       expect(balance["assetID"]).toBe(Number(result.returnValue));
-
-      await SubtopiaClient.unsubscribe(
-        {
-          smiID: infrastructureID,
-          subscriber: {
-            address: subscriber.address,
-            signer: subscriber.signer,
-          },
-        },
-        {
-          client: algodClient,
-        }
-      );
     },
     { timeout: 1e6 }
   );
@@ -427,163 +702,6 @@ describe("subtopia", () => {
       await expect(
         SubtopiaClient.getInfrastructureState(algodClient, infrastructureID)
       ).rejects.toThrowError();
-    },
-    { timeout: 1e6 }
-  );
-
-  it(
-    "should correctly purchase subscription with custom ASA",
-    async () => {
-      // Setup
-      const { dummyRegistryId } = await setupDummyRegistry();
-
-      const randomAsset = await generateRandomAsset(algodClient, adminAccount);
-      const randomSubType = getRandomElement([
-        SubscriptionType.TIME_BASED,
-        SubscriptionType.UNLIMITED,
-      ]);
-      const response = await SubtopiaAdminClient.addInfrastructure({
-        creator: { address: adminAccount.addr, signer: adminAccount.signer },
-        smrID: dummyRegistryId,
-        name: "Cool infrastructure",
-        price: 1,
-        client: algodClient,
-        coinID: randomAsset.index,
-        subType: randomSubType,
-        maxSubs: 0,
-      });
-
-      const infrastructureID = Number(response.returnValue);
-
-      // Test
-      const subscriber = await getRandomAccount(
-        algodClient,
-        adminAccount.addr,
-        adminAccount.signer,
-        randomAsset
-      );
-
-      const randomExpirationType =
-        randomSubType === SubscriptionType.TIME_BASED
-          ? getRandomElement(TIME_BASED_EXPIRATION_TYPES)
-          : undefined;
-
-      const result = await SubtopiaClient.subscribe(
-        {
-          subscriber: {
-            address: subscriber.address,
-            signer: subscriber.signer,
-          },
-          smiID: infrastructureID,
-          smrID: dummyRegistryId,
-          expirationType: randomExpirationType,
-        },
-        {
-          client: algodClient,
-        }
-      );
-
-      const claimResult = await SubtopiaClient.claimSubscriptionPass(
-        {
-          smiID: infrastructureID,
-          subID: Number(result.returnValue),
-          subscriber: {
-            address: subscriber.address,
-            signer: subscriber.signer,
-          },
-        },
-        {
-          client: algodClient,
-        }
-      );
-
-      const boxContent = await SubtopiaClient.getSubscriptionRecordForAccount(
-        algodClient,
-        subscriber.address,
-        infrastructureID
-      );
-
-      // Assert
-      expect(boxContent.subID).toBe(Number(result.returnValue));
-      expect(result).toBeDefined();
-      expect(result.txID).toBeDefined();
-      expect(result.returnValue).toBeGreaterThan(0);
-      expect(claimResult).toBeDefined();
-
-      const balance = algodClient.accountAssetInformation(
-        subscriber.address,
-        Number(result.returnValue)
-      );
-      expect(balance).toBeDefined();
-      expect(balance["assetID"]).toBe(Number(result.returnValue));
-    },
-    { timeout: 1e6 }
-  );
-
-  it(
-    "should correctly claim revenue with custom ASA",
-    async () => {
-      // Setup
-      const { dummyRegistryId } = await setupDummyRegistry();
-
-      const randomAsset = await generateRandomAsset(algodClient, adminAccount);
-
-      const response = await SubtopiaAdminClient.addInfrastructure({
-        creator: { address: adminAccount.addr, signer: adminAccount.signer },
-        smrID: dummyRegistryId,
-        name: "Cool infrastructure",
-        price: 1,
-        client: algodClient,
-        coinID: randomAsset.index,
-        subType: SubscriptionType.TIME_BASED,
-        maxSubs: 0,
-      });
-
-      const infrastructureID = Number(response.returnValue);
-
-      // Test
-      const subscriber = await getRandomAccount(
-        algodClient,
-        adminAccount.addr,
-        adminAccount.signer,
-        randomAsset
-      );
-
-      const randomExpirationType = getRandomElement(
-        TIME_BASED_EXPIRATION_TYPES
-      );
-
-      await SubtopiaClient.subscribe(
-        {
-          subscriber: {
-            address: subscriber.address,
-            signer: subscriber.signer,
-          },
-          smiID: infrastructureID,
-          smrID: dummyRegistryId,
-          expirationType: randomExpirationType,
-        },
-        {
-          client: algodClient,
-        }
-      );
-
-      const claimResponse = await SubtopiaClient.claimRevenue(
-        {
-          user: {
-            address: adminAccount.addr,
-            signer: adminAccount.signer,
-          },
-          smrID: dummyRegistryId,
-          coinID: randomAsset.index,
-        },
-        {
-          client: algodClient,
-        }
-      );
-
-      // Assert
-      expect(claimResponse).toBeDefined();
     },
     { timeout: 1e6 }
   );
@@ -896,35 +1014,4 @@ describe("subtopia", () => {
     },
     { timeout: 1e6 }
   );
-
-  it("should correctly create discount on SMI", async () => {
-    // Setup
-    const { dummyRegistryId } = await setupDummyRegistry();
-    const randomAsset = await generateRandomAsset(algodClient, adminAccount);
-
-    const response = await SubtopiaAdminClient.addInfrastructure({
-      creator: { address: adminAccount.addr, signer: adminAccount.signer },
-      smrID: dummyRegistryId,
-      name: "Cool infrastructure",
-      price: 1,
-      client: algodClient,
-      subType: SubscriptionType.UNLIMITED,
-      maxSubs: 0,
-      coinID: randomAsset.index,
-    });
-    const infrastructureID = Number(response.returnValue);
-
-    // Test
-    const discount = await SubtopiaClient.createDiscount({
-      client: algodClient,
-      creator: { address: adminAccount.addr, signer: adminAccount.signer },
-      smiID: infrastructureID,
-      smrID: dummyRegistryId,
-      discount: 0.5,
-    });
-
-    // Assert
-    expect(discount).toBeDefined();
-    expect(discount.txID).toBeDefined();
-  });
 });

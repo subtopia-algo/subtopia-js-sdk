@@ -22,12 +22,14 @@ import {
   rekeyLocker,
   expirationTypeToMonths,
 } from "./common/utils";
-import { SMI, Subscription } from "./contracts/smi_client";
+import { Discount, SMI, Subscription } from "./contracts/smi_client";
 import { SMR } from "./contracts/smr_client";
 import { getAssetByID } from "./common/utils";
 import {
+  DiscountType,
   PriceNormalizationType,
   SubscriptionExpirationType,
+  SubscriptionType,
 } from "./common/enums";
 import {
   SMIClaimSubscriptionParams,
@@ -40,6 +42,9 @@ import {
   SMIMarkForDeletionParams,
   SMIDeleteSubscriptionParams,
   SMIClaimRevenueParams,
+  DiscountRecord,
+  SMICreateDiscountParams,
+  SMIDeleteDiscountParams,
 } from "./common/interfaces";
 import {
   DEFAULT_AWAIT_ROUNDS,
@@ -54,6 +59,32 @@ export class SubtopiaClient {
   ) {
     const state = await loadApplicationState(client, smiID);
     const asset = await getAssetByID(client, Number(state["coin_id"]));
+
+    const expirationTypes = [];
+    if (state["sub_type"] === SubscriptionType.UNLIMITED) {
+      expirationTypes.push(SubscriptionExpirationType.UNLIMITED);
+    } else {
+      expirationTypes.push(
+        SubscriptionExpirationType.MONTHLY,
+        SubscriptionExpirationType.QUARTERLY,
+        SubscriptionExpirationType.SEMI_ANNUAL,
+        SubscriptionExpirationType.ANNUAL
+      );
+    }
+
+    const discounts = [];
+    for (const expirationType of expirationTypes) {
+      try {
+        const discount = await SubtopiaClient.getDiscountRecordForType(
+          client,
+          smiID,
+          expirationType
+        );
+        discounts.push(discount);
+      } catch (e) {
+        /* empty */
+      }
+    }
 
     /* eslint-disable prettier/prettier */
     return {
@@ -74,6 +105,7 @@ export class SubtopiaClient {
       totalSubs: state["total_subs"],
       coinID: state["coin_id"],
       expiresIn: state["expires_in"],
+      discounts: discounts,
     } as SMIState;
     /* eslint-enable prettier/prettier */
   }
@@ -101,6 +133,33 @@ export class SubtopiaClient {
     } as SubscriptionRecord;
 
     return subscriptionRecord;
+  }
+
+  static async getDiscountRecordForType(
+    client: AlgodClient,
+    smiID: number,
+    expirationType: SubscriptionExpirationType
+  ): Promise<DiscountRecord> {
+    const response = await client
+      .getApplicationBoxByName(smiID, encodeUint64(expirationType))
+      .do();
+    const decoded = Discount.decodeBytes(response.value);
+
+    const expiresAt =
+      Number(decoded["expires_at"]) === 0
+        ? undefined
+        : new Date(Number(decoded["expires_at"]) * 1000);
+
+    const discountRecord = {
+      discountType: Number(decoded["discount_type"]),
+      discountValue: Number(decoded["discount_value"]),
+      expirationType: Number(decoded["expiration_type"]),
+      expiresAt: expiresAt,
+      createdAt: new Date(Number(decoded["created_at"]) * 1000),
+      totalClaims: Number(decoded["total_claims"]),
+    } as DiscountRecord;
+
+    return discountRecord;
   }
 
   static async subscribe(
@@ -132,28 +191,36 @@ export class SubtopiaClient {
       false
     );
 
-    const managerAddress = smiState["manager"] as string;
-
     const managerLocker = await getLocker(
       client,
-      managerAddress,
+      smiState.manager,
       smr.appAddress
     );
-
-    const feeSp = await getParamsWithFeeCount(client, 3);
 
     const feeTxn = {
       txn: makePaymentTxnWithSuggestedParamsFromObject({
         from: subscriber.address,
         to: smi.appAddress,
-        amount: Number(120_000 + 100_000 + 11_200 + 100),
-        suggestedParams: feeSp,
+        amount: Number(
+          120_000 + 100_000 + 11_300 + (smiState.coinID > 0 ? 100 : 0)
+        ),
+        suggestedParams: await getParamsWithFeeCount(client, 4),
       }),
       signer: subscriber.signer,
     };
 
-    const subscribeSp = await getParamsWithFeeCount(client, 0);
-    const price = smiState.price * expirationTypeToMonths(expirationType);
+    let price = smiState.price * expirationTypeToMonths(expirationType);
+
+    const discount: DiscountRecord | undefined = smiState.discounts.find(
+      (d) => d.expirationType === expirationType
+    );
+
+    if (discount) {
+      price =
+        discount.discountType === DiscountType.FIXED
+          ? price - discount.discountValue
+          : price - (price * discount.discountValue) / 100;
+    }
 
     /* eslint-disable prettier/prettier */
     const subscribePayTxn = {
@@ -163,14 +230,14 @@ export class SubtopiaClient {
               from: subscriber.address,
               to: managerLocker.lsig.address(),
               amount: price,
-              suggestedParams: subscribeSp,
+              suggestedParams: await getParamsWithFeeCount(client, 0),
             })
           : makeAssetTransferTxnWithSuggestedParamsFromObject({
               from: subscriber.address,
               to: managerLocker.lsig.address(),
               amount: price,
               assetIndex: smiState.coinID,
-              suggestedParams: subscribeSp,
+              suggestedParams: await getParamsWithFeeCount(client, 0),
             }),
       signer: subscriber.signer,
     };
@@ -183,7 +250,6 @@ export class SubtopiaClient {
         expiration_type: BigInt(expirationType),
       },
       {
-        appAccounts: [subscriber.address],
         boxes: [
           {
             appIndex: smi.appId,
@@ -554,11 +620,7 @@ export class SubtopiaClient {
           });
         }
       );
-      console.log(
-        "Method calls",
-        methodCalls.length,
-        subscribesSubsetFromBoxes
-      );
+
       await Promise.all(methodCalls);
 
       await atc.execute(client, DEFAULT_AWAIT_ROUNDS);
@@ -592,26 +654,14 @@ export class SubtopiaClient {
   }
 
   static async createDiscount(
-    {
-      smiID,
-      user,
-      discount,
-      smrID = SUBTOPIA_REGISTRY_APP_ID,
-    }: SMICreateDiscountParams,
+    { smiID, creator, discount }: SMICreateDiscountParams,
     { client, sender, signer }: ChainMethodParams
   ) {
     const smi = new SMI({
       client: client,
-      sender: sender ?? user.address,
-      signer: signer ?? user.signer,
+      sender: sender ?? creator.address,
+      signer: signer ?? creator.signer,
       appId: smiID,
-    });
-
-    const smr = new SMR({
-      client: client,
-      sender: sender ?? user.address,
-      signer: signer ?? user.signer,
-      appId: smrID,
     });
 
     if (!smi) {
@@ -623,33 +673,74 @@ export class SubtopiaClient {
       smi.appId,
       false
     );
-
-    const userLocker = await getLocker(client, user.address, smr.appAddress);
+    const asset = await getAssetByID(client, smiState.coinID);
 
     const result = await smi.create_discount(
       {
-        expiration_type: discount.expirationType,
-        discount_type: discount.discountType,
-        discount_value: discount.discountValue,
-        expires_in: discount.expiresIn,
+        expiration_type: BigInt(discount.expirationType),
+        discount_value: BigInt(
+          discount.discountType === DiscountType.FIXED
+            ? normalizePrice(
+                discount.discountValue,
+                asset.decimals,
+                PriceNormalizationType.RAW
+              )
+            : discount.discountValue
+        ),
+        discount_type: BigInt(discount.discountType),
+        expires_in: BigInt(discount.expiresIn ?? 0),
         fee_txn: {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: user.address,
-            to: userLocker.lsig.address(),
-            amount: (
-              await getParamsWithFeeCount(client, 3 * smiState.activeSubs)
-            ).fee,
-            suggestedParams: await getParamsWithFeeCount(client, 2),
+            from: creator.address,
+            to: smi.appAddress,
+            amount: 100_000 + 24900,
+            suggestedParams: await getParamsWithFeeCount(client, 0),
           }),
-          signer: user.signer,
+          signer: creator.signer,
         },
       },
       {
-        appAccounts: [userLocker.lsig.address()],
-        suggestedParams: await getParamsWithFeeCount(
-          client,
-          3 * smiState.activeSubs
-        ),
+        suggestedParams: await getParamsWithFeeCount(client, 2),
+        boxes: [
+          {
+            appIndex: smi.appId,
+            name: encodeUint64(discount.expirationType),
+          },
+        ],
+      }
+    );
+
+    return new ABIResult<void>(result);
+  }
+
+  static async deleteDiscount(
+    { smiID, creator, expirationType }: SMIDeleteDiscountParams,
+    { client, sender, signer }: ChainMethodParams
+  ) {
+    const smi = new SMI({
+      client: client,
+      sender: sender ?? creator.address,
+      signer: signer ?? creator.signer,
+      appId: smiID,
+    });
+
+    if (!smi) {
+      throw new Error("SMI not initialized");
+    }
+
+    const result = await smi.delete_discount(
+      {
+        expiration_type: BigInt(expirationType),
+      },
+      {
+        signer: creator.signer,
+        suggestedParams: await getParamsWithFeeCount(client, 2),
+        boxes: [
+          {
+            appIndex: smi.appId,
+            name: encodeUint64(expirationType),
+          },
+        ],
       }
     );
 

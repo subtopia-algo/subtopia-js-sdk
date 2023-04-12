@@ -16,16 +16,10 @@ import algosdk, {
 } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import { StateValue, State, ApplicationClient } from "beaker-ts";
-import {
-  ALGO_ASSET,
-  DEFAULT_AWAIT_ROUNDS,
-  LOCKER_TEAL_FILENAME,
-} from "./constants";
+import { ALGO_ASSET, DEFAULT_AWAIT_ROUNDS } from "./constants";
 import { PriceNormalizationType, SubscriptionExpirationType } from "./enums";
 import { LockerRekeyParameters, AssetMetadata, Locker } from "./interfaces";
-
-import fs from "fs";
-import path from "path";
+import { SML_TEAL } from "../contracts/sml_client";
 
 function strOrHex(v: Buffer): string {
   try {
@@ -41,21 +35,6 @@ function strOrHex(v: Buffer): string {
     return response;
   } catch (e) {
     return v.toString(`hex`);
-  }
-}
-
-async function loadFileAsString(fileName: string): Promise<string> {
-  try {
-    // Get the sibling folder's path
-    const siblingFolderPath = path.join(__dirname, "..", "contracts");
-    // Get the full path of the file
-    const filePath = path.join(siblingFolderPath, fileName);
-
-    // Read the file and return its content as a string
-    return await fs.promises.readFile(filePath, "utf-8");
-  } catch (error) {
-    console.error(`Error reading file: ${fileName}`, error);
-    throw error;
   }
 }
 
@@ -117,7 +96,7 @@ export async function getLocker(
   registryAddress: string
 ): Promise<Locker> {
   // load sml.teal file into string
-  let sml = await loadFileAsString(LOCKER_TEAL_FILENAME);
+  let sml = SML_TEAL;
 
   // replace TMPL_CREATOR_ADDRESS with decoded creator address
   sml = sml.replace(`TMPL_CREATOR_ADDRESS`, addressToHex(creatorAddress));

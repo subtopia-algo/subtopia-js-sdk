@@ -1,3 +1,4 @@
+export const SML_TEAL = `
 #pragma version 8
 intcblock 1 0 2 4
 pushbytes TMPL_CREATOR_ADDRESS // TMPL_CREATOR_ADDRESS
@@ -530,3 +531,4 @@ intc_0 // 1
 assert
 intc_0 // 1
 retsub
+`;

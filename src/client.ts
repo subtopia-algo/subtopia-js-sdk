@@ -204,7 +204,7 @@ export class SubtopiaClient {
         amount: Number(
           120_000 + 100_000 + 11_300 + (smiState.coinID > 0 ? 100 : 0)
         ),
-        suggestedParams: await getParamsWithFeeCount(client, 4),
+        suggestedParams: await getParamsWithFeeCount(client, 5),
       }),
       signer: subscriber.signer,
     };
@@ -457,6 +457,7 @@ export class SubtopiaClient {
       {
         appAccounts: [newOwnerAddress],
         appForeignAssets: [subID],
+        suggestedParams: await getParamsWithFeeCount(client, 2),
         boxes: [
           {
             appIndex: smi.appId,

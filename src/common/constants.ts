@@ -6,7 +6,6 @@
 import { AssetMetadata } from "./interfaces";
 
 export const DEFAULT_AWAIT_ROUNDS = 10;
-export const LOCKER_TEAL_FILENAME = "sml.teal";
 export const SUBTOPIA_CONTRACTS_VERSION = "0.3.0";
 export const SUBTOPIA_REGISTRY_APP_ID = 182723614;
 

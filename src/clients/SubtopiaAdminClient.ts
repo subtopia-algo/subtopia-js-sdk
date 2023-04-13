@@ -13,23 +13,23 @@ import {
   getParamsWithFeeCount,
   normalizePrice,
   rekeyLocker,
-} from "./common/utils";
-import { PendingTransfer, SMR } from "./contracts/smr_client";
-import { getAssetByID } from "./common/utils";
-import { PriceNormalizationType, SubscriptionType } from "./common/enums";
+} from "../utils";
+import { PendingTransfer, SMR } from "../contracts/smr_client";
+import { getAssetByID } from "../utils";
+import { PriceNormalizationType, SubscriptionType } from "../enums";
+import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
+import { SubtopiaClient } from "./SubtopiaClient";
+import {
+  SUBTOPIA_REGISTRY_APP_ID,
+  SUBTOPIA_CONTRACTS_VERSION,
+} from "../constants";
 import {
   PendingTransferRecord,
   SMRAddInfrastructureParams,
   SMRClaimInfrastructureParams,
   SMRGetRegistryParams,
   SMRTransferInfrastructureParams,
-} from "./common/interfaces";
-import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
-import {
-  SUBTOPIA_CONTRACTS_VERSION,
-  SUBTOPIA_REGISTRY_APP_ID,
-} from "./common/constants";
-import { SubtopiaClient } from "./client";
+} from "../interfaces";
 
 export class SubtopiaAdminClient {
   static async getRegistryAddress({
@@ -81,7 +81,6 @@ export class SubtopiaAdminClient {
     subType = SubscriptionType.UNLIMITED,
     maxSubs = 0,
     coinID = 0,
-    expiresIn = 0,
   }: SMRAddInfrastructureParams): Promise<ABIResult<void>> {
     const smr = new SMR({
       client,
@@ -126,7 +125,6 @@ export class SubtopiaAdminClient {
         sub_type: BigInt(subType),
         max_subs: BigInt(maxSubs),
         coin_id: BigInt(coinID),
-        expires_in: BigInt(expiresIn),
         version: version,
         manager: creator.address,
         locker: locker.lsig.address(),

@@ -8,19 +8,26 @@ import algosdk, {
   AtomicTransactionComposer,
   encodeAddress,
   makeLogicSigAccountTransactionSigner,
-  TransactionSigner,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   Algodv2,
   ALGORAND_MIN_TX_FEE,
   SuggestedParams,
+  ABIResult as SdkABIResult,
 } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import { StateValue, State, ApplicationClient } from "beaker-ts";
-import { ALGO_ASSET, DEFAULT_AWAIT_ROUNDS, LOCKER_TEAL_URL } from "./constants";
-import axios from "axios";
-import { PriceNormalizationType } from "./enums";
-import { LockerRekeyParameters, AssetMetadata, Locker } from "./interfaces";
 
+import { SML_TEAL } from "../contracts/sml_client";
+import {
+  AssetMetadata,
+  Locker,
+  LockerRekeyParameters,
+  User,
+} from "../interfaces";
+import { DEFAULT_AWAIT_ROUNDS, ALGO_ASSET } from "../constants";
+import { PriceNormalizationType, SubscriptionExpirationType } from "../enums";
+
+/* c8 ignore start */
 function strOrHex(v: Buffer): string {
   try {
     const response = v.toString(`utf-8`);
@@ -36,6 +43,14 @@ function strOrHex(v: Buffer): string {
   } catch (e) {
     return v.toString(`hex`);
   }
+}
+
+export async function debugPcCode(client: ApplicationClient, pcLine: number) {
+  const [, appMap] = await client.compile(
+    Buffer.from(client.approvalProgram as string, "base64").toString()
+  );
+
+  return appMap.pcToLine[pcLine];
 }
 
 function decodeState(state: StateValue[], raw?: boolean): State {
@@ -64,6 +79,7 @@ function decodeState(state: StateValue[], raw?: boolean): State {
 
   return obj;
 }
+/* c8 ignore stop */
 
 export async function loadApplicationState(
   client: AlgodClient,
@@ -96,8 +112,7 @@ export async function getLocker(
   registryAddress: string
 ): Promise<Locker> {
   // load sml.teal file into string
-  const smlTealResponse = await axios(LOCKER_TEAL_URL);
-  let sml = smlTealResponse.data;
+  let sml = SML_TEAL;
 
   // replace TMPL_CREATOR_ADDRESS with decoded creator address
   sml = sml.replace(`TMPL_CREATOR_ADDRESS`, addressToHex(creatorAddress));
@@ -125,7 +140,7 @@ export async function getLocker(
 export async function rekeyLocker(params: LockerRekeyParameters): Promise<{
   confirmedRound: number;
   txIDs: string[];
-  methodResults: algosdk.ABIResult[];
+  methodResults: SdkABIResult[];
 }> {
   const lsigSigner = makeLogicSigAccountTransactionSigner(params.locker);
   const sp = await getParamsWithFeeCount(params.client, 2);
@@ -167,24 +182,54 @@ export async function rekeyLocker(params: LockerRekeyParameters): Promise<{
 
 export async function optInAsset(
   client: Algodv2,
-  userAddress: string,
-  userSigner: TransactionSigner,
+  user: User,
   passId: number
-) {
+): Promise<{
+  confirmedRound: number;
+  txIDs: string[];
+  methodResults: SdkABIResult[];
+}> {
   const optInAtc = new AtomicTransactionComposer();
   optInAtc.addTransaction({
     txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: userAddress,
-      to: userAddress,
+      from: user.address,
+      to: user.address,
       amount: 0,
       suggestedParams: await getParamsWithFeeCount(client, 1),
       assetIndex: passId,
     }),
-    signer: userSigner,
+    signer: user.signer,
   });
   const optInResult = await optInAtc.execute(client, DEFAULT_AWAIT_ROUNDS);
 
   console.log("Opted in to pass", optInResult);
+  return optInResult;
+}
+
+export async function optOutAsset(
+  client: Algodv2,
+  user: User,
+  passId: number
+): Promise<{
+  confirmedRound: number;
+  txIDs: string[];
+  methodResults: SdkABIResult[];
+}> {
+  const optInAtc = new AtomicTransactionComposer();
+  optInAtc.addTransaction({
+    txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
+      from: user.address,
+      to: user.address,
+      closeRemainderTo: user.address,
+      amount: 0,
+      suggestedParams: await getParamsWithFeeCount(client, 1),
+      assetIndex: passId,
+    }),
+    signer: user.signer,
+  });
+  const optInResult = await optInAtc.execute(client, DEFAULT_AWAIT_ROUNDS);
+
+  console.log("Opted out from pass", optInResult);
   return optInResult;
 }
 
@@ -196,14 +241,6 @@ export function normalizePrice(
   return direction === PriceNormalizationType.RAW
     ? Math.floor(price * 10 ** decimals)
     : Math.floor(price / 10 ** decimals);
-}
-
-export async function debugPcCode(client: ApplicationClient, pcLine: number) {
-  const [, appMap] = await client.compile(
-    Buffer.from(client.approvalProgram as string, "base64").toString()
-  );
-
-  return appMap.pcToLine[pcLine];
 }
 
 export async function getAssetByID(
@@ -241,4 +278,20 @@ export async function getParamsWithFeeCount(
   params.flatFee = true;
   params.fee = ALGORAND_MIN_TX_FEE * txnNumber;
   return params;
+}
+
+export function expirationTypeToMonths(
+  expirationType: SubscriptionExpirationType
+): number {
+  if (expirationType === SubscriptionExpirationType.MONTHLY) {
+    return 1;
+  } else if (expirationType === SubscriptionExpirationType.QUARTERLY) {
+    return 3;
+  } else if (expirationType === SubscriptionExpirationType.SEMI_ANNUAL) {
+    return 6;
+  } else if (expirationType === SubscriptionExpirationType.ANNUAL) {
+    return 12;
+  } else {
+    return 1;
+  }
 }

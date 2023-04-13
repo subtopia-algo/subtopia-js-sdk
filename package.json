@@ -17,7 +17,7 @@
     "test:integration": "vitest run --coverage",
     "localnet:start": "pipx run algokit localnet start",
     "localnet:stop": "pipx run algokit localnet start",
-    "lint:scripts": "eslint . --ext .ts",
+    "lint:scripts": "eslint src --ext .ts",
     "lint:styles": "stylelint ./**/*.{css,scss}",
     "format:scripts": "prettier . --write",
     "format:styles": "stylelint ./**/*.{css,scss} --fix",
@@ -27,8 +27,7 @@
   },
   "dependencies": {
     "algosdk": "2.2.0",
-    "axios": "^1.3.4",
-    "beaker-ts": "^0.1.0"
+    "beaker-ts": "^0.1.2"
   },
   "devDependencies": {
     "@feki.de/semantic-release-yarn": "1.0.1",

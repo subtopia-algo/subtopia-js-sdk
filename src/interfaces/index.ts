@@ -5,15 +5,33 @@
 
 import { Algodv2, LogicSigAccount, TransactionSigner } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
-import { SMILifecycle, SubscriptionType } from "./enums";
+import {
+  DiscountType,
+  SMILifecycle,
+  SubscriptionExpirationType,
+  SubscriptionType,
+} from "../enums";
 
 // === Boxes ===
 
 export interface SubscriptionRecord {
   createdAt: Date;
   expiresAt: Date | undefined;
+  expirationType: SubscriptionExpirationType;
   subID: number;
   subType: SubscriptionType;
+}
+
+export interface BaseDiscountRecord {
+  expirationType: SubscriptionExpirationType;
+  discountType: DiscountType;
+  discountValue: number;
+}
+
+export interface DiscountRecord extends BaseDiscountRecord {
+  createdAt: Date;
+  expiresAt: Date | undefined;
+  totalClaims: number;
 }
 
 export interface PendingTransferRecord {
@@ -64,7 +82,24 @@ export interface SMIInputParams {
   subType: SubscriptionType;
   maxSubs: number;
   coinID: number;
-  expiresIn: number;
+}
+
+export interface DiscountMetadata extends BaseDiscountRecord {
+  expiresIn?: number;
+}
+
+export interface SMICreateDiscountParams {
+  smiID: number;
+  creator: User;
+  discount: DiscountMetadata;
+  smrID?: number;
+}
+
+export interface SMIDeleteDiscountParams {
+  smiID: number;
+  creator: User;
+  expirationType: SubscriptionExpirationType;
+  smrID?: number;
 }
 
 // === SMR ===
@@ -101,8 +136,10 @@ export interface SMIState extends SMIInputParams {
   manager: string;
   activeSubs: number;
   totalSubs: number;
-  isPendingTransfer?: boolean;
   lifecycle: SMILifecycle;
+  discounts: DiscountRecord[];
+  createdAt: Date;
+  isPendingTransfer?: boolean;
 }
 
 export interface SMIUnsubscribeParams {
@@ -126,6 +163,7 @@ export interface SMITransferSubscriptionParams {
 export interface SMISubscribeParams {
   smrID?: number;
   smiID: number;
+  expirationType?: SubscriptionExpirationType;
   subscriber: User;
 }
 

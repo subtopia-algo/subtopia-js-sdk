@@ -12,11 +12,10 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
-      external: ["algosdk", "beaker-ts", "axios"],
+      external: ["algosdk", "beaker-ts"],
       output: {
         sourcemap: true,
         globals: {
-          axios: "axios",
           algosdk: "algosdk",
           "beaker-ts": "beaker-ts",
         },

@@ -1,3 +1,13 @@
+# [2.0.0](https://github.com/subtopia-algo/subtopia-js/compare/v1.0.8...v2.0.0) (2023-04-13)
+
+
+* Discounts  (#11) ([9eeedb7](https://github.com/subtopia-algo/subtopia-js/commit/9eeedb72e7fa5eb49b2209ece88241408866a878)), closes [#11](https://github.com/subtopia-algo/subtopia-js/issues/11)
+
+
+### BREAKING CHANGES
+
+* ExpirationType parameter. Discounts feature support
+
 ## [1.0.8](https://github.com/subtopia-algo/subtopia-js/compare/v1.0.7...v1.0.8) (2023-03-29)
 
 

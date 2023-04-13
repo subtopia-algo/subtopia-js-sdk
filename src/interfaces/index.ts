@@ -10,13 +10,14 @@ import {
   SMILifecycle,
   SubscriptionExpirationType,
   SubscriptionType,
-} from "./enums";
+} from "../enums";
 
 // === Boxes ===
 
 export interface SubscriptionRecord {
   createdAt: Date;
   expiresAt: Date | undefined;
+  expirationType: SubscriptionExpirationType;
   subID: number;
   subType: SubscriptionType;
 }
@@ -137,6 +138,7 @@ export interface SMIState extends SMIInputParams {
   totalSubs: number;
   lifecycle: SMILifecycle;
   discounts: DiscountRecord[];
+  createdAt: Date;
   isPendingTransfer?: boolean;
 }
 

@@ -44,6 +44,10 @@ import { SubtopiaClient } from "subtopia-js";
 
 ## 🛠️ Usage
 
+Example snippets of using the Subtopia JS SDK.
+
+### **Subscriptions**
+
 ### Purchasing a subscription:
 
 ```ts
@@ -53,6 +57,7 @@ const response = await SubtopiaClient.subscribe(
   {
     subscriber: { address: {PUT_WALLET_ADDRESS}, signer: {PUT_WALLET_SIGNER} },
     smiID: { PUT_SMI_ID_HERE }, // number - the ID of the SMI instance you want to subscribe to
+    expirationType: { PUT_EXPIRATION_TYPE_HERE }, // pick duration from SubscriptionExpirationType enum. If there is a discount available for this duration, it will be auto applied.
   },
   { client: {PUT_ALGOD_INSTANCE_HERE} // object of type algosdk.Algodv2
 );
@@ -117,6 +122,73 @@ const transferResult = await SubtopiaClient.transferSubscriptionPass(
 );
 
 // Transaction ID of the transfer transaction
+console.log(deleteResult.txID);
+// ... your code
+```
+
+### **Discounts**
+
+### Creating a discount:
+
+```ts
+// ... your code
+
+const discount = await SubtopiaClient.createDiscount(
+  {
+    creator: { address: {PUT_WALLET_ADDRESS}, signer: {PUT_WALLET_SIGNER} },
+    smiID: { PUT_SMI_ID_HERE }, // number - the ID of the SMI instance you want to subscribe to
+    discount: {
+      expirationType: SubscriptionExpirationType // number - the type of expiration to apply. Also serves as static id for the discount.
+      discountType: {PUT_DISCOUNT_TYPE_HERE} // number - the type of discount to apply. FIXED or PERCENTAGE
+      discountValue: {PUT_DISCOUNT_VALUE_HERE} // number - the discount to be deducted from the subscription price
+      expiresIn: {PUT_EXPIRATION_TIME_HERE} // (Optional) Set 0 for discount to never expire. Else set number of seconds to append to unix timestamp at time of creation.
+    }, // number - the discount in percent
+  },
+  { client: {PUT_ALGOD_INSTANCE_HERE} } // object of type algosdk.Algodv2
+);
+
+
+console.log(discount.returnValue) // response is of type ABIResult
+
+// ... rest of your code
+```
+
+### Discount lookup:
+
+```ts
+// ... your code
+
+const discount = await SubtopiaClient.getDiscountRecordForType(
+  client,
+  { PUT_SMI_ID_HERE }
+  { PUT_EXPIRATION_TYPE_HERE },
+);
+
+// DiscountRecord (throws Error if not found)
+console.log(discount);
+// ... rest of your code
+```
+
+### Deleting a discount:
+
+```ts
+// ... your code
+
+const deleteResult = await SubtopiaClient.deleteDiscount(
+  {
+    creator: {
+      address: { PUT_SUBSCRIBER_ADDRESS },
+      signer: { PUT_SUBSCRIBER_SIGNER },
+    },
+    smiID: { PUT_INFRASTRUCTURE_ID },
+    expirationType: { PUT_EXPIRATION_TYPE_HERE },
+  },
+  {
+    client: { PUT_ALGOD_CLIENT },
+  }
+);
+
+// ID of the deleted discount ASA txn
 console.log(deleteResult.txID);
 // ... your code
 ```

@@ -18,14 +18,15 @@ import {
 import {
   expirationTypeToMonths,
   normalizePrice,
+  optOutAsset,
   rekeyLocker,
-} from "../src/common/utils";
+} from "../src/utils";
 import { SandboxAccount } from "beaker-ts/dist/types/sandbox/accounts";
 import {
   DiscountType,
   PriceNormalizationType,
   SubscriptionExpirationType,
-} from "../src/common/enums";
+} from "../src/enums";
 import { assert } from "console";
 
 const TIME_BASED_EXPIRATION_TYPES = [
@@ -383,6 +384,7 @@ describe("subtopia", () => {
 
       // Assert
       expect(boxContent.subID).toBe(Number(result.returnValue));
+      expect(boxContent.expirationType).toBe(expirationType);
       expect(result).toBeDefined();
       expect(result.txID).toBeDefined();
       expect(result.returnValue).toBeGreaterThan(0);
@@ -583,7 +585,7 @@ describe("subtopia", () => {
           ? getRandomElement(TIME_BASED_EXPIRATION_TYPES)
           : undefined;
 
-      await SubtopiaClient.subscribe(
+      const subResponse = await SubtopiaClient.subscribe(
         {
           subscriber: {
             address: subscriber.address,
@@ -596,6 +598,12 @@ describe("subtopia", () => {
         {
           client: algodClient,
         }
+      );
+
+      await optOutAsset(
+        algodClient,
+        subscriber,
+        Number(subResponse.returnValue)
       );
 
       const claimResponse = await SubtopiaClient.claimRevenue(
@@ -687,6 +695,7 @@ describe("subtopia", () => {
 
         // Assert
         expect(boxContent.subID).toBe(Number(result.returnValue));
+        expect(boxContent.expirationType).toBe(randomExpirationType ?? 0);
         expect(result).toBeDefined();
         expect(result.txID).toBeDefined();
         expect(result.returnValue).toBeGreaterThan(0);

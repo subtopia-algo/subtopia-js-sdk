@@ -8,9 +8,9 @@ import {
   makeAssetCreateTxnWithSuggestedParamsFromObject,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
 } from "algosdk";
-import { DEFAULT_AWAIT_ROUNDS } from "../src/common/constants";
-import { PriceNormalizationType } from "../src/common/enums";
-import { normalizePrice, optInAsset } from "../src/common/utils";
+import { DEFAULT_AWAIT_ROUNDS } from "../src/constants";
+import { PriceNormalizationType } from "../src/enums";
+import { normalizePrice, optInAsset } from "../src/utils";
 import { AssetMetadata } from "./interfaces";
 import { SandboxAccount } from "beaker-ts/dist/types/sandbox/accounts";
 
@@ -49,8 +49,10 @@ export async function getRandomAccount(
   if (asset) {
     await optInAsset(
       client,
-      randomAccount.addr,
-      makeBasicAccountTransactionSigner(randomAccount),
+      {
+        address: randomAccount.addr,
+        signer: makeBasicAccountTransactionSigner(randomAccount),
+      },
       asset.index
     );
 

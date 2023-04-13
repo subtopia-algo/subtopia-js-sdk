@@ -1,3 +1,4 @@
+/* c8 ignore start */
 export const SML_TEAL = `
 #pragma version 8
 intcblock 1 0 2 4
@@ -532,3 +533,4 @@ assert
 intc_0 // 1
 retsub
 `;
+/* c8 ignore stop */

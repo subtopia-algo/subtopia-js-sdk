@@ -21,35 +21,32 @@ import {
   getParamsWithFeeCount,
   rekeyLocker,
   expirationTypeToMonths,
-} from "./common/utils";
-import { Discount, SMI, Subscription } from "./contracts/smi_client";
-import { SMR } from "./contracts/smr_client";
-import { getAssetByID } from "./common/utils";
+} from "../utils";
+import { Discount, SMI, Subscription } from "../contracts/smi_client";
+import { SMR } from "../contracts/smr_client";
+import { getAssetByID } from "../utils";
+import { SUBTOPIA_REGISTRY_APP_ID, DEFAULT_AWAIT_ROUNDS } from "../constants";
 import {
-  DiscountType,
-  PriceNormalizationType,
-  SubscriptionExpirationType,
   SubscriptionType,
-} from "./common/enums";
+  SubscriptionExpirationType,
+  PriceNormalizationType,
+  DiscountType,
+} from "../enums";
 import {
-  SMIClaimSubscriptionParams,
   SMIState,
-  ChainMethodParams,
-  SMISubscribeParams,
-  SMITransferSubscriptionParams,
-  SMIUnsubscribeParams,
   SubscriptionRecord,
+  DiscountRecord,
+  SMISubscribeParams,
+  ChainMethodParams,
+  SMIUnsubscribeParams,
+  SMIClaimSubscriptionParams,
+  SMIClaimRevenueParams,
+  SMITransferSubscriptionParams,
   SMIMarkForDeletionParams,
   SMIDeleteSubscriptionParams,
-  SMIClaimRevenueParams,
-  DiscountRecord,
   SMICreateDiscountParams,
   SMIDeleteDiscountParams,
-} from "./common/interfaces";
-import {
-  DEFAULT_AWAIT_ROUNDS,
-  SUBTOPIA_REGISTRY_APP_ID,
-} from "./common/constants";
+} from "../interfaces";
 
 export class SubtopiaClient {
   static async getInfrastructureState(
@@ -105,6 +102,7 @@ export class SubtopiaClient {
       totalSubs: state["total_subs"],
       coinID: state["coin_id"],
       expiresIn: state["expires_in"],
+      createdAt: new Date(Number(state["created_at"]) * 1000),
       discounts: discounts,
     } as SMIState;
     /* eslint-enable prettier/prettier */
@@ -129,6 +127,9 @@ export class SubtopiaClient {
       subID: Number(decoded["sub_id"]),
       subType: Number(decoded["sub_type"]),
       expiresAt: expiresAt,
+      expirationType: Number(
+        decoded["expiration_type"]
+      ) as SubscriptionExpirationType,
       createdAt: new Date(Number(decoded["created_at"]) * 1000),
     } as SubscriptionRecord;
 
@@ -333,7 +334,7 @@ export class SubtopiaClient {
       .catch(() => false);
 
     if (!isOptedToPassId) {
-      await optInAsset(client, subscriber.address, subscriber.signer, subID);
+      await optInAsset(client, subscriber, subID);
     }
 
     const sp = await getParamsWithFeeCount(client, 3);
@@ -399,7 +400,7 @@ export class SubtopiaClient {
         .then(() => true)
         .catch(() => false);
       if (!isOptedToCoinID) {
-        await optInAsset(client, user.address, user.signer, coinID);
+        await optInAsset(client, user, coinID);
       }
 
       withdrawalAmount =

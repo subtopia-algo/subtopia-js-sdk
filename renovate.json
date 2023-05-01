@@ -1,5 +1,6 @@
 {
   "extends": ["config:base"],
+  "semanticCommits": true,
   "ignoreDeps": [],
   "schedule": "before 3am on the first day of the month",
   "assignees": ["aorumbayev"],
@@ -8,14 +9,22 @@
   "rebaseStalePrs": true,
   "lockFileMaintenance": {
     "enabled": true,
-    "extends": "schedule:monthly"
+    "extends": "schedule:monthly",
+    "automerge": true
   },
   "packageRules": [
     {
       "matchPackagePatterns": ["*"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "all non-major dependencies",
-      "groupSlug": "all-minor-patch"
+      "groupSlug": "all-minor-patch",
+      "automerge": true
     }
-  ]
+  ],
+  "docker": {
+    "enabled": true
+  },
+  "python": {
+    "enabled": false
+  }
 }

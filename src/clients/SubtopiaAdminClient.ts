@@ -75,7 +75,6 @@ export class SubtopiaAdminClient {
     creator,
     client,
     smrID = SUBTOPIA_REGISTRY_APP_ID,
-    version = SUBTOPIA_CONTRACTS_VERSION,
     name,
     price,
     subType = SubscriptionType.UNLIMITED,

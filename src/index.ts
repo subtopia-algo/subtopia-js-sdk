@@ -12,10 +12,7 @@ import {
   optInAsset,
   optOutAsset,
 } from "./utils";
-import {
-  SUBTOPIA_CONTRACTS_VERSION,
-  SUBTOPIA_REGISTRY_APP_ID,
-} from "./constants";
+import { SUBTOPIA_CONTRACTS_VERSION } from "./constants";
 import {
   PriceNormalizationType,
   SubscriptionType,
@@ -60,7 +57,6 @@ export {
   loadApplicationState,
   normalizePrice,
   SUBTOPIA_CONTRACTS_VERSION,
-  SUBTOPIA_REGISTRY_APP_ID,
   SMILifecycle,
   optInAsset,
   optOutAsset,

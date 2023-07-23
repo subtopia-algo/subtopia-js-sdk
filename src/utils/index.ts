@@ -13,9 +13,15 @@ import algosdk, {
   ALGORAND_MIN_TX_FEE,
   SuggestedParams,
   ABIResult as SdkABIResult,
+  ABIType,
+  ABIArrayDynamicType,
+  ABIUintType,
+  decodeAddress,
 } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import { StateValue, State, ApplicationClient } from "beaker-ts";
+import { APP_SPEC as SmiAppSpec } from "../contracts/SMI";
+import { APP_SPEC as SmlAppSpec } from "../contracts/SML";
 
 import { SML_TEAL } from "../contracts/sml_client";
 import {
@@ -26,6 +32,9 @@ import {
 } from "../interfaces";
 import { DEFAULT_AWAIT_ROUNDS, ALGO_ASSET } from "../constants";
 import { PriceNormalizationType, SubscriptionExpirationType } from "../enums";
+import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
+import { AppSpec } from "@algorandfoundation/algokit-utils/types/app-spec";
+import { algos } from "@algorandfoundation/algokit-utils";
 
 /* c8 ignore start */
 function strOrHex(v: Buffer): string {
@@ -269,6 +278,12 @@ export async function getAssetByID(
   return asset;
 }
 
+export function getTxnFeeCount(txnNumber: number): number {
+  // Get suggested params with a specific fee.
+  const fee = ALGORAND_MIN_TX_FEE * txnNumber;
+  return fee;
+}
+
 export async function getParamsWithFeeCount(
   client: Algodv2,
   txnNumber: number
@@ -276,7 +291,7 @@ export async function getParamsWithFeeCount(
   // Get suggested params with a specific fee.
   const params: SuggestedParams = await client.getTransactionParams().do();
   params.flatFee = true;
-  params.fee = ALGORAND_MIN_TX_FEE * txnNumber;
+  params.fee = getTxnFeeCount(txnNumber);
   return params;
 }
 
@@ -294,4 +309,114 @@ export function expirationTypeToMonths(
   } else {
     return 1;
   }
+}
+
+// Price MBR calculations
+
+export async function calculateExtraPages(
+  approval: string,
+  clear: string,
+  algodClient: AlgodClient
+): Promise<number> {
+  const approvalCompiled = await algodClient
+    .compile(Buffer.from(approval, "base64").toString("utf-8"))
+    .do();
+  const approvalDecoded = new Uint8Array(
+    Buffer.from(approvalCompiled.result, "base64")
+  );
+  const clearCompiled = await algodClient
+    .compile(Buffer.from(clear, "base64").toString("utf-8"))
+    .do();
+  const clearDecoded = new Uint8Array(
+    Buffer.from(clearCompiled.result, "base64")
+  );
+  return Math.floor(
+    (approvalDecoded.length + clearDecoded.length) / APP_PAGE_MAX_SIZE
+  );
+}
+
+export function calculateBoxMbr(
+  name: string | number | Uint8Array,
+  size: number,
+  action: string,
+  abiType: ABIType | null = null
+): number {
+  if (action !== "create" && action !== "destroy") {
+    throw new Error("Action must be 'create' or 'destroy'");
+  }
+  const nameSize = typeof name === "number" ? name : name.length;
+  let mbrChange = 2_500 + 400 * (nameSize + size);
+
+  if (abiType !== null) {
+    if (abiType instanceof ABIArrayDynamicType) {
+      mbrChange += 800;
+    } else {
+      throw new Error(`Unknown abi type: ${abiType}`);
+    }
+  }
+
+  return action === "create" ? mbrChange : -mbrChange;
+}
+
+export function calculateRegistryLockerBoxCreateMbr(
+  locker_owner: string
+): number {
+  const uint64Type = new ABIUintType(64);
+  return calculateBoxMbr(
+    decodeAddress(locker_owner).publicKey,
+    uint64Type.byteLen(), // UInt64 is 8 bytes - 800 is microalgos
+    "create"
+  );
+}
+
+export function calculateCreationMbr(
+  extraProgramPages: number,
+  globalNumUint: number,
+  globalNumByteSlice: number
+): number {
+  return (
+    100_000 * (1 + extraProgramPages) +
+    (25_000 + 3_500) * globalNumUint +
+    (25_000 + 25_000) * globalNumByteSlice
+  );
+}
+
+export async function calculateSmiCreationMbr(
+  algodClient: AlgodClient
+): Promise<number> {
+  const extraPages = await calculateExtraPages(
+    SmiAppSpec.source.approval,
+    SmiAppSpec.source.clear,
+    algodClient
+  );
+  return calculateCreationMbr(
+    extraPages,
+    SmiAppSpec.state.global.num_uints,
+    SmiAppSpec.state.global.num_byte_slices
+  );
+}
+
+export async function calculateSmlCreationMbr(
+  algodClient: AlgodClient
+): Promise<number> {
+  const extraPages = await calculateExtraPages(
+    SmlAppSpec.source.approval,
+    SmlAppSpec.source.clear,
+    algodClient
+  );
+  return calculateCreationMbr(
+    extraPages,
+    SmlAppSpec.state.global.num_uints,
+    SmlAppSpec.state.global.num_byte_slices
+  );
+}
+
+export function convertCentsToAlgos(
+  totalCents: number,
+  priceOfAlgo: number
+): number {
+  const microAlgos = (totalCents * 10000 * Math.pow(10, 6)) / priceOfAlgo;
+  const algos = microAlgos / 10000;
+  const roundedAlgos = Math.floor(algos / 10000) * 10000;
+  return roundedAlgos < 100_000 ? 100_000 : roundedAlgos;
 }

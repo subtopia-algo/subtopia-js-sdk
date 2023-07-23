@@ -11,6 +11,7 @@ import {
   SubscriptionExpirationType,
   SubscriptionType,
 } from "../enums";
+import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 
 // === Boxes ===
 
@@ -105,10 +106,11 @@ export interface SMIDeleteDiscountParams {
 // === SMR ===
 
 export interface SMRAddInfrastructureParams extends SMIInputParams {
-  creator: User;
+  creator: TransactionSignerAccount;
   client: AlgodClient;
-  version?: string;
   smrID?: number;
+  unitName?: string;
+  imageUrl?: string;
 }
 
 export interface SMRGetRegistryParams {

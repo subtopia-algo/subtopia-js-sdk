@@ -26,6 +26,7 @@
     "release": "semantic-release"
   },
   "dependencies": {
+    "@algorandfoundation/algokit-utils": "^2.3.1",
     "algosdk": "2.3.0",
     "beaker-ts": "^0.1.2"
   },
@@ -42,6 +43,7 @@
     "@vitest/coverage-c8": "^0.31.0",
     "commitizen": "4.3.0",
     "cz-conventional-changelog": "3.3.0",
+    "dotenv": "^16.3.1",
     "dts-bundle-generator": "^8.0.0",
     "eslint": "^8.29.0",
     "eslint-config-prettier": "^8.5.0",

@@ -28,10 +28,10 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run build
-        run: yarn build
+        run: npm run build
 
   lint:
     name: Linting
@@ -46,10 +46,10 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Lint
-        run: yarn lint:scripts
+        run: npm run lint:scripts
 
   unit-tests:
     name: Unit tests
@@ -72,20 +72,20 @@ jobs:
         timeout-minutes: 12
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run sandbox
-        run: yarn localnet:start
+        run: npm run localnet:start
 
       - name: Run tests
-        run: yarn test:integration
+        run: npm run test:integration
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
         if: runner.os == 'Linux' && matrix.node == '18'
         with:
-            fail_ci_if_error: true
-            token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   deploy-docs:
     if: github.ref == 'refs/heads/main'
@@ -103,10 +103,10 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Build docs
-        run: yarn docs
+        run: npm run docs
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
@@ -134,13 +134,13 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run build
-        run: yarn build
+        run: npm run build
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: yarn release
+        run: npm run release

@@ -15,6 +15,24 @@ import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/type
 
 // === Boxes ===
 
+export interface RawDiscount {
+  duration: bigint;
+  discount_type: bigint;
+  discount_value: bigint;
+  expires_at: bigint;
+  created_at: bigint;
+  total_claims: bigint;
+}
+
+export interface ApplicationSpec {
+  approval: Uint8Array;
+  clear: Uint8Array;
+  globalNumUint: number;
+  globalNumByteSlice: number;
+  localNumUint: number;
+  localNumByteSlice: number;
+}
+
 export interface SubscriptionRecord {
   createdAt: Date;
   expiresAt: Date | undefined;

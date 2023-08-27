@@ -4,84 +4,48 @@
 // =============================================================================
 
 import algosdk, {
-  ABIStringType,
-  ABIType,
-  AtomicTransactionComposer,
-  TransactionSigner,
   algosToMicroalgos,
   decodeAddress,
+  decodeUint64,
   encodeAddress,
-  encodeUint64,
-  makeAssetTransferTxnWithSuggestedParamsFromObject,
+  AtomicTransactionComposer,
   makePaymentTxnWithSuggestedParamsFromObject,
+  ABIMethod,
+  getApplicationAddress,
 } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
-  loadApplicationState,
-  getLocker,
   normalizePrice,
-  optInAsset,
   getParamsWithFeeCount,
-  rekeyLocker,
-  expirationTypeToMonths,
   calculateSmiCreationMbr,
-  convertCentsToAlgos,
   calculateSmlCreationMbr,
   calculateRegistryLockerBoxCreateMbr,
-  getTxnFeeCount,
 } from "../utils";
-import { Discount, SMI, Subscription } from "../contracts/smi_client";
-import { SmrClient } from "../contracts/SMR";
 import { getAssetByID } from "../utils";
 import {
-  SUBTOPIA_REGISTRY_APP_ID,
-  DEFAULT_AWAIT_ROUNDS,
   SMI_APPROVAL_KEY,
   SMI_CLEAR_KEY,
   MIN_APP_OPTIN_MBR,
   MIN_APP_BALANCE_MBR,
   MIN_ASA_OPTIN_MBR,
   SMI_CREATION_PLATFORM_FEE_CENTS,
-  SMI_VERSION,
-  SMR_VERSION,
   SML_APPROVAL_KEY,
   SML_CLEAR_KEY,
+  SUBTOPIA_REGISTRY_ID,
 } from "../constants";
 import {
   SubscriptionType,
-  SubscriptionExpirationType,
   PriceNormalizationType,
-  DiscountType,
+  ChainType,
+  LockerType,
 } from "../enums";
-import {
-  SMIState,
-  SubscriptionRecord,
-  DiscountRecord,
-  SMISubscribeParams,
-  ChainMethodParams,
-  SMIUnsubscribeParams,
-  SMIClaimSubscriptionParams,
-  SMIClaimRevenueParams,
-  SMITransferSubscriptionParams,
-  SMIMarkForDeletionParams,
-  SMIDeleteSubscriptionParams,
-  SMICreateDiscountParams,
-  SMIDeleteDiscountParams,
-  SMRAddInfrastructureParams,
-} from "../interfaces";
 
 import {
-  getAppClient,
-  microAlgos,
-  transactionFees,
+  getAppById,
+  getAppGlobalState,
 } from "@algorandfoundation/algokit-utils";
-import { ApplicationClient } from "@algorandfoundation/algokit-utils/types/app-client";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
-import { SmaClient } from "../contracts/SMA";
-import {
-  AppCallTransactionResultOfType,
-  AppReference,
-} from "@algorandfoundation/algokit-utils/types/app";
+import { ApplicationSpec } from "interfaces";
 
 const STP_IMAGE_URL =
   "ipfs://bafybeicddz7kbuxajj6bob5bjqtweq6wchkdkiq4vvhwrwrne7iz4f25xi";
@@ -90,285 +54,521 @@ const encoder = new TextEncoder();
 
 export class SubtopiaRegistry {
   algodClient: algosdk.Algodv2;
-  registryClient: SmrClient;
-  smaClient: SmaClient;
   creator: TransactionSignerAccount;
   version: string;
-  appId: number;
-  appAddress;
+  appID: number;
+  appAddress: string;
+  appSpec: ApplicationSpec;
+  oracleID: number;
 
-  private constructor(
-    algodClient: AlgodClient,
-    creator: TransactionSignerAccount,
-    registryClient: SmrClient,
-    appReference: AppReference,
-    smaClient: SmaClient,
-    version: string
-  ) {
+  private constructor({
+    algodClient,
+    creator,
+    appID,
+    appAddress,
+    appSpec,
+    oracleID,
+    version,
+  }: {
+    algodClient: AlgodClient;
+    creator: TransactionSignerAccount;
+    appID: number;
+    appAddress: string;
+    appSpec: ApplicationSpec;
+    oracleID: number;
+    version: string;
+  }) {
     this.algodClient = algodClient;
     this.creator = creator;
-    this.registryClient = registryClient;
-    this.appAddress = appReference.appAddress;
-    this.appId = Number(appReference.appId);
-    this.smaClient = smaClient;
+    this.appAddress = appAddress;
+    this.appID = appID;
+    this.appSpec = appSpec;
+    this.oracleID = oracleID;
     this.version = version;
   }
 
   public static async init(
     algodClient: AlgodClient,
     creator: TransactionSignerAccount,
-    smrId: number = SUBTOPIA_REGISTRY_APP_ID
+    chainType: ChainType
   ): Promise<SubtopiaRegistry> {
-    const registryClient = new SmrClient(
-      {
-        resolveBy: "id",
-        sender: creator,
-        id: smrId,
-      },
+    const registryID = SUBTOPIA_REGISTRY_ID(chainType);
+    const registryAddress = getApplicationAddress(registryID);
+    const registrySpec = await getAppById(registryID, algodClient);
+
+    const registryGlobalState = await getAppGlobalState(
+      registryID,
       algodClient
     );
+    const oracleID = registryGlobalState.oracle_id.value as number;
 
-    const state = (await registryClient.getGlobalState()).sma_id;
-
-    if (!state) {
-      throw new Error("SMR is not initialized");
-    }
-
-    const smaClient = new SmaClient(
-      {
-        resolveBy: "id",
-        sender: creator,
-        id: state.asNumber(),
-      },
-      algodClient
-    );
-
-    const versionAtc = await registryClient.compose().getVersion({}).atc();
+    const versionAtc = new AtomicTransactionComposer();
+    versionAtc.addMethodCall({
+      appID: registryID,
+      method: new ABIMethod({
+        name: "get_version",
+        args: [],
+        returns: { type: "string" },
+      }),
+      sender: creator.addr,
+      signer: creator.signer,
+      suggestedParams: await getParamsWithFeeCount(algodClient, 1),
+    });
     const response = await versionAtc.simulate(algodClient);
     const version = response.methodResults[0].returnValue as string;
-    const appReference =
-      (await registryClient.appClient.getAppReference()) as AppReference;
 
-    return new SubtopiaRegistry(
-      algodClient,
-      creator,
-      registryClient,
-      appReference,
-      smaClient,
-      version
-    );
-  }
-
-  public async getAddress(): Promise<string> {
-    const reference = await this.registryClient.appClient.getAppReference();
-    return reference.appAddress;
+    return new SubtopiaRegistry({
+      algodClient: algodClient,
+      creator: creator,
+      appID: registryID,
+      appAddress: registryAddress,
+      appSpec: {
+        approval: registrySpec.params.approvalProgram,
+        clear: registrySpec.params.clearStateProgram,
+        globalNumUint:
+          Number(registrySpec.params.globalStateSchema?.numUint) || 0,
+        globalNumByteSlice:
+          Number(registrySpec.params.globalStateSchema?.numByteSlice) || 0,
+        localNumUint:
+          Number(registrySpec.params.localStateSchema?.numUint) || 0,
+        localNumByteSlice:
+          Number(registrySpec.params.localStateSchema?.numByteSlice) || 0,
+      },
+      oracleID: oracleID,
+      version: version,
+    });
   }
 
   public async getInfrastructureCreationFee(coinID = 0): Promise<number> {
     return (
       algosToMicroalgos(MIN_APP_OPTIN_MBR) +
       algosToMicroalgos(MIN_APP_BALANCE_MBR) +
-      (await calculateSmiCreationMbr(this.algodClient)) +
+      (await calculateSmiCreationMbr(this.appSpec)) +
       (coinID > 0 ? algosToMicroalgos(MIN_ASA_OPTIN_MBR) : 0)
     );
   }
 
-  public async getInfrastructureCreationPlatformFee(): Promise<number> {
-    const currentPrice = (await this.smaClient.getGlobalState()).price;
-    if (!currentPrice) {
-      throw new Error("SMA is not initialized");
-    }
+  public async getInfrastructureCreationPlatformFee(
+    priceInCents: number
+  ): Promise<number> {
+    const computePlatformFeeAtc = new AtomicTransactionComposer();
+    computePlatformFeeAtc.addMethodCall({
+      appID: this.oracleID,
+      method: new ABIMethod({
+        name: "compute_platform_fee",
+        args: [
+          {
+            type: "uint64",
+            name: "whole_usd",
+            desc: "Amount of USD in whole numbers (CENTS)",
+          },
+        ],
+        returns: { type: "uint64" },
+      }),
+      methodArgs: [priceInCents],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
+    });
 
-    return convertCentsToAlgos(
-      SMI_CREATION_PLATFORM_FEE_CENTS,
-      currentPrice.asNumber()
-    );
+    const response = await computePlatformFeeAtc.simulate(this.algodClient);
+
+    return Number(response.methodResults[0].returnValue);
   }
 
   public async getLockerCreationFee(creatorAddress: string): Promise<number> {
     return (
       algosToMicroalgos(MIN_APP_OPTIN_MBR) +
-      (await calculateSmlCreationMbr(this.algodClient)) +
+      (await calculateSmlCreationMbr(this.appSpec)) +
       calculateRegistryLockerBoxCreateMbr(creatorAddress)
     );
   }
 
   public async createLocker({
     creator,
+    lockerType,
   }: {
     creator: TransactionSignerAccount;
+    lockerType: LockerType;
   }): Promise<{
-    txId: string;
-    lockerId: number;
+    txID: string;
+    lockerID: number;
   }> {
-    const feeAmount = await this.getLockerCreationFee(creator.addr);
+    const feeAmount = (await this.getLockerCreationFee(creator.addr)) + 10000;
 
-    const response = await this.registryClient
-      .compose()
-      .createSml(
+    const createLockerAtc = new AtomicTransactionComposer();
+    createLockerAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "create_locker",
+        args: [
+          {
+            name: "manager",
+            type: "address",
+          },
+          {
+            name: "locker_type",
+            type: "uint64",
+          },
+          {
+            name: "fee_txn",
+            type: "pay",
+          },
+        ],
+        returns: { type: "uint64" },
+      }),
+      methodArgs: [
+        creator.addr,
+        lockerType.valueOf(),
         {
-          manager: creator.addr,
-          fee_txn: makePaymentTxnWithSuggestedParamsFromObject({
+          txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: creator.addr,
             to: this.appAddress,
             amount: feeAmount,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
+          signer: creator.signer,
+        },
+      ],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: new Uint8Array([
+            ...Buffer.from("cl-"),
+            ...decodeAddress(creator.addr).publicKey,
+          ]),
         },
         {
-          sendParams: {
-            fee: transactionFees(4),
-          },
-          boxes: [
-            {
-              appIndex: this.appId,
-              name: decodeAddress(creator.addr).publicKey,
-            },
-            {
-              appIndex: this.appId,
-              name: encoder.encode(SML_APPROVAL_KEY),
-            },
-            {
-              appIndex: this.appId,
-              name: encoder.encode(SML_CLEAR_KEY),
-            },
-          ],
-        }
-      )
-      .execute();
+          appIndex: this.appID,
+          name: encoder.encode(SML_APPROVAL_KEY),
+        },
+        {
+          appIndex: this.appID,
+          name: encoder.encode(SML_CLEAR_KEY),
+        },
+      ],
+      sender: creator.addr,
+      signer: creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 4),
+    });
+
+    const response = await createLockerAtc.execute(this.algodClient, 10);
 
     return {
-      txId: response.txIds.pop() as string,
-      lockerId: Number(response.returns[0]),
+      txID: response.txIDs.pop() as string,
+      lockerID: Number(response.methodResults[0].returnValue),
     };
   }
 
-  public async getLocker(creatorAddress: string): Promise<number | undefined> {
-    const atc = await this.registryClient
-      .compose()
-      .getSml(
+  public static async getLocker({
+    registryID,
+    algodClient,
+    ownerAddress,
+  }: {
+    registryID: number;
+    algodClient: AlgodClient;
+    ownerAddress: string;
+  }): Promise<number | undefined> {
+    const boxValue = await algodClient
+      .getApplicationBoxByName(
+        registryID,
+        new Uint8Array([
+          ...Buffer.from("cl-"),
+          ...decodeAddress(ownerAddress).publicKey,
+        ])
+      )
+      .do()
+      .catch(() => undefined);
+
+    return boxValue ? decodeUint64(boxValue.value, "safe") : undefined;
+  }
+
+  public async transferInfrastructure({
+    infrastructureID,
+    newOwnerAddress,
+  }: {
+    infrastructureID: number;
+    newOwnerAddress: string;
+  }): Promise<{
+    txID: string;
+  }> {
+    const oldOwnerLockerId = await SubtopiaRegistry.getLocker({
+      registryID: this.appID,
+      algodClient: this.algodClient,
+      ownerAddress: this.creator.addr,
+    });
+    const newOwnerLockerId = await SubtopiaRegistry.getLocker({
+      registryID: this.appID,
+      algodClient: this.algodClient,
+      ownerAddress: newOwnerAddress,
+    });
+
+    if (!oldOwnerLockerId) {
+      throw new Error("Locker not found");
+    }
+
+    const boxes = [
+      {
+        appIndex: this.appID,
+        name: decodeAddress(this.creator.addr).publicKey,
+      },
+      {
+        appIndex: this.appID,
+        name: decodeAddress(newOwnerAddress).publicKey,
+      },
+    ];
+
+    if (!newOwnerLockerId) {
+      boxes.push.apply(boxes, [
         {
-          manager: creatorAddress,
+          appIndex: this.appID,
+          name: encoder.encode(SML_APPROVAL_KEY),
         },
         {
-          boxes: [
-            {
-              appIndex: this.appId,
-              name: decodeAddress(creatorAddress).publicKey,
-            },
-          ],
-        }
-      )
-      .atc();
+          appIndex: this.appID,
+          name: encoder.encode(SML_CLEAR_KEY),
+        },
+      ]);
+    }
 
-    const response = await atc.simulate(this.algodClient);
-    const lockerId = Number(response.methodResults[0].returnValue);
-    return lockerId > 0 ? lockerId : undefined;
+    const transferInfraAtc = new AtomicTransactionComposer();
+    transferInfraAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "transfer_infrastructure",
+        args: [
+          {
+            name: "infrastructure",
+            type: "uint64",
+          },
+          {
+            name: "old_locker",
+            type: "uint64",
+          },
+          {
+            name: "new_manager",
+            type: "address",
+          },
+          {
+            name: "transfer_fee_txn",
+            type: "pay",
+          },
+        ],
+        returns: { type: "uint64" },
+      }),
+      methodArgs: [
+        infrastructureID,
+        oldOwnerLockerId,
+        newOwnerAddress,
+        {
+          txn: makePaymentTxnWithSuggestedParamsFromObject({
+            from: this.creator.addr,
+            to: this.appAddress,
+            amount: algosToMicroalgos(newOwnerLockerId ? 0 : 0.4),
+            suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
+          }),
+          signer: this.creator.signer,
+        },
+      ],
+      boxes: boxes,
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 8),
+    });
+
+    const response = await transferInfraAtc.execute(this.algodClient, 10);
+
+    return {
+      txID: response.txIDs.pop() as string,
+    };
   }
 
   public async createInfrastructure({
-    name,
+    productName,
+    subscriptionName,
     price,
-    lockerId,
+    lockerID,
     subType = SubscriptionType.UNLIMITED,
     maxSubs = 0,
     coinID = 0,
     unitName = STP_UNIT_NAME,
     imageUrl = STP_IMAGE_URL,
   }: {
-    name: string;
+    productName: string;
+    subscriptionName: string;
     price: number;
-    lockerId: number;
+    lockerID: number;
     subType?: SubscriptionType;
     maxSubs?: number;
     coinID?: number;
     unitName?: string;
     imageUrl?: string;
   }): Promise<{
-    txId: string;
-    infrastructureId: number;
+    txID: string;
+    infrastructureID: number;
   }> {
     const asset = await getAssetByID(this.algodClient, coinID);
 
-    const smaID = (await this.registryClient.getGlobalState()).sma_id;
-    if (!smaID) {
+    if (!this.oracleID) {
       throw new Error("SMR is not initialized");
     }
-
+    const oracleAdminState = (
+      await getAppGlobalState(this.oracleID, this.algodClient)
+    ).admin;
     const adminAddress = encodeAddress(
-      (await this.smaClient.getGlobalState()).admin?.asByteArray() as Uint8Array
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      oracleAdminState.valueRaw
     );
     const feeAmount = await this.getInfrastructureCreationFee(coinID);
-    const platformFeeAmount = await this.getInfrastructureCreationPlatformFee();
+    const platformFeeAmount = await this.getInfrastructureCreationPlatformFee(
+      SMI_CREATION_PLATFORM_FEE_CENTS
+    );
 
-    const response = await this.registryClient
-      .compose()
-      .createSmi(
+    const createInfraAtc = new AtomicTransactionComposer();
+    createInfraAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "create_infrastructure",
+        args: [
+          {
+            type: "string",
+            name: "product_name",
+            desc: "The name of the product (subtopia, netflix, etc)",
+          },
+          {
+            type: "string",
+            name: "subscription_name",
+            desc: "The subscription name of the product (pro, etc)",
+          },
+          {
+            type: "uint64",
+            name: "sub_type",
+            desc: "The sub type of the INFRASTRUCTURE.",
+          },
+          {
+            type: "uint64",
+            name: "price",
+            desc: "The price of the INFRASTRUCTURE.",
+          },
+          {
+            type: "uint64",
+            name: "max_subs",
+            desc: "The maximum number of subscriptions.",
+          },
+          {
+            type: "asset",
+            name: "coin",
+            desc: "The coin of the INFRASTRUCTURE.",
+          },
+          {
+            type: "string",
+            name: "unit_name",
+            desc: "The unit name of the INFRASTRUCTURE.",
+          },
+          {
+            type: "string",
+            name: "image_url",
+            desc: "The image URL of the INFRASTRUCTURE.",
+          },
+          {
+            type: "address",
+            name: "manager",
+            desc: "The manager address.",
+          },
+          {
+            type: "application",
+            name: "locker",
+            desc: "The locker.",
+          },
+          {
+            type: "application",
+            name: "oracle",
+            desc: "The oracle.",
+          },
+          {
+            type: "pay",
+            name: "fee_txn",
+            desc: "The fee transaction.",
+          },
+          {
+            type: "pay",
+            name: "platform_fee_txn",
+            desc: "The platform fee transaction.",
+          },
+        ],
+        returns: { type: "uint64" },
+      }),
+      methodArgs: [
+        productName,
+        subscriptionName,
+        subType.valueOf(),
+        normalizePrice(
+          price,
+          asset.decimals,
+          PriceNormalizationType.RAW
+        ).valueOf(),
+        maxSubs,
+        asset.index,
+        unitName,
+        imageUrl,
+        this.creator.addr,
+        lockerID,
+        this.oracleID,
         {
-          name: name,
-          manager: this.creator.addr,
-          sub_type: Number(subType),
-          price: normalizePrice(
-            price,
-            asset.decimals,
-            PriceNormalizationType.RAW
-          ),
-          max_subs: maxSubs,
-          coin: coinID,
-          unit_name: unitName,
-          image_url: imageUrl,
-          fee_txn: makePaymentTxnWithSuggestedParamsFromObject({
+          txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: this.creator.addr,
             to: this.appAddress,
             amount: feeAmount,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
-          platform_fee_txn: makePaymentTxnWithSuggestedParamsFromObject({
+          signer: this.creator.signer,
+        },
+        {
+          txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: this.creator.addr,
             to: adminAddress,
             amount: platformFeeAmount,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
-          sma: smaID.asNumber(),
-          locker: lockerId,
+          signer: this.creator.signer,
+        },
+      ],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: new Uint8Array([
+            ...Buffer.from("cl-"),
+            ...decodeAddress(this.creator.addr).publicKey,
+          ]),
         },
         {
-          sendParams: {
-            fee: transactionFees(8),
-          },
-          boxes: [
-            {
-              appIndex: this.appId,
-              name: decodeAddress(this.creator.addr).publicKey,
-            },
-            {
-              appIndex: this.appId,
-              name: encoder.encode(SMI_APPROVAL_KEY),
-            },
-            {
-              appIndex: this.appId,
-              name: encoder.encode(SMI_APPROVAL_KEY),
-            },
-            {
-              appIndex: this.appId,
-              name: encoder.encode(SMI_APPROVAL_KEY),
-            },
-            {
-              appIndex: this.appId,
-              name: encoder.encode(SMI_CLEAR_KEY),
-            },
-          ],
-        }
-      )
-      .execute()
-      .catch((e) => {
-        console.log(e);
-        throw e;
-      });
+          appIndex: this.appID,
+          name: encoder.encode(SMI_APPROVAL_KEY),
+        },
+        {
+          appIndex: this.appID,
+          name: encoder.encode(SMI_APPROVAL_KEY),
+        },
+        {
+          appIndex: this.appID,
+          name: encoder.encode(SMI_APPROVAL_KEY),
+        },
+        {
+          appIndex: this.appID,
+          name: encoder.encode(SMI_CLEAR_KEY),
+        },
+      ],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 8),
+    });
+
+    const response = await createInfraAtc.execute(this.algodClient, 10);
 
     return {
-      txId: response.txIds.pop() as string,
-      infrastructureId: Number(response.returns[0]),
+      txID: response.txIDs.pop() as string,
+      infrastructureID: Number(response.methodResults[0].returnValue),
     };
   }
 }

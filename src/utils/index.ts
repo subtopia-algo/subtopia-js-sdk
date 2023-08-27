@@ -20,11 +20,9 @@ import algosdk, {
 } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import { StateValue, State, ApplicationClient } from "beaker-ts";
-import { APP_SPEC as SmiAppSpec } from "../contracts/SMI";
-import { APP_SPEC as SmlAppSpec } from "../contracts/SML";
 
-import { SML_TEAL } from "../contracts/sml_client";
 import {
+  ApplicationSpec,
   AssetMetadata,
   Locker,
   LockerRekeyParameters,
@@ -33,8 +31,6 @@ import {
 import { DEFAULT_AWAIT_ROUNDS, ALGO_ASSET } from "../constants";
 import { PriceNormalizationType, SubscriptionExpirationType } from "../enums";
 import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
-import { AppSpec } from "@algorandfoundation/algokit-utils/types/app-spec";
-import { algos } from "@algorandfoundation/algokit-utils";
 
 /* c8 ignore start */
 function strOrHex(v: Buffer): string {
@@ -121,7 +117,7 @@ export async function getLocker(
   registryAddress: string
 ): Promise<Locker> {
   // load sml.teal file into string
-  let sml = SML_TEAL;
+  let sml = "SML_TEAL";
 
   // replace TMPL_CREATOR_ADDRESS with decoded creator address
   sml = sml.replace(`TMPL_CREATOR_ADDRESS`, addressToHex(creatorAddress));
@@ -314,25 +310,10 @@ export function expirationTypeToMonths(
 // Price MBR calculations
 
 export async function calculateExtraPages(
-  approval: string,
-  clear: string,
-  algodClient: AlgodClient
+  approval: Uint8Array,
+  clear: Uint8Array
 ): Promise<number> {
-  const approvalCompiled = await algodClient
-    .compile(Buffer.from(approval, "base64").toString("utf-8"))
-    .do();
-  const approvalDecoded = new Uint8Array(
-    Buffer.from(approvalCompiled.result, "base64")
-  );
-  const clearCompiled = await algodClient
-    .compile(Buffer.from(clear, "base64").toString("utf-8"))
-    .do();
-  const clearDecoded = new Uint8Array(
-    Buffer.from(clearCompiled.result, "base64")
-  );
-  return Math.floor(
-    (approvalDecoded.length + clearDecoded.length) / APP_PAGE_MAX_SIZE
-  );
+  return Math.floor((approval.length + clear.length) / APP_PAGE_MAX_SIZE);
 }
 
 export function calculateBoxMbr(
@@ -369,6 +350,24 @@ export function calculateRegistryLockerBoxCreateMbr(
   );
 }
 
+export function calculateInfrastructureDiscountBoxCreateMbr(): number {
+  const uint64TypeByteLen = new ABIUintType(64).byteLen();
+  const discountTypeByteLen = uint64TypeByteLen * 6; // 6 Uint64s in Discount tuple
+  return calculateBoxMbr(uint64TypeByteLen, discountTypeByteLen, "create");
+}
+
+export function calculateInfrastructureSubscriptionBoxCreateMbr(
+  subscriberAddress: string
+): number {
+  const uint64TypeByteLen = new ABIUintType(64).byteLen();
+  const subscriptionTypeByteLen = uint64TypeByteLen * 5; // 5 Uint64s in Subscription tuple
+  return calculateBoxMbr(
+    decodeAddress(subscriberAddress).publicKey,
+    subscriptionTypeByteLen,
+    "create"
+  );
+}
+
 export function calculateCreationMbr(
   extraProgramPages: number,
   globalNumUint: number,
@@ -382,41 +381,29 @@ export function calculateCreationMbr(
 }
 
 export async function calculateSmiCreationMbr(
-  algodClient: AlgodClient
+  applicationSpec: ApplicationSpec
 ): Promise<number> {
   const extraPages = await calculateExtraPages(
-    SmiAppSpec.source.approval,
-    SmiAppSpec.source.clear,
-    algodClient
+    applicationSpec.approval,
+    applicationSpec.clear
   );
   return calculateCreationMbr(
     extraPages,
-    SmiAppSpec.state.global.num_uints,
-    SmiAppSpec.state.global.num_byte_slices
+    applicationSpec.globalNumUint,
+    applicationSpec.globalNumByteSlice
   );
 }
 
 export async function calculateSmlCreationMbr(
-  algodClient: AlgodClient
+  applicationSpec: ApplicationSpec
 ): Promise<number> {
   const extraPages = await calculateExtraPages(
-    SmlAppSpec.source.approval,
-    SmlAppSpec.source.clear,
-    algodClient
+    applicationSpec.approval,
+    applicationSpec.clear
   );
   return calculateCreationMbr(
     extraPages,
-    SmlAppSpec.state.global.num_uints,
-    SmlAppSpec.state.global.num_byte_slices
+    applicationSpec.globalNumUint,
+    applicationSpec.globalNumByteSlice
   );
-}
-
-export function convertCentsToAlgos(
-  totalCents: number,
-  priceOfAlgo: number
-): number {
-  const microAlgos = (totalCents * 10000 * Math.pow(10, 6)) / priceOfAlgo;
-  const algos = microAlgos / 10000;
-  const roundedAlgos = Math.floor(algos / 10000) * 10000;
-  return roundedAlgos < 100_000 ? 100_000 : roundedAlgos;
 }

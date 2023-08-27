@@ -3,8 +3,8 @@
 // Copyright (C) 2023 Altynbek Orumbayev
 // =============================================================================
 
-import { SubtopiaClient } from "./clients/SubtopiaClient";
-import { SubtopiaAdminClient } from "./clients/SubtopiaAdminClient";
+// import { SubtopiaClient } from "./clients/SubtopiaClient";
+// import { SubtopiaAdminClient } from "./clients/SubtopiaAdminClient";
 import {
   getLocker,
   loadApplicationState,
@@ -48,8 +48,8 @@ import {
 
 export {
   PriceNormalizationType,
-  SubtopiaAdminClient,
-  SubtopiaClient,
+  // SubtopiaAdminClient,
+  // SubtopiaClient,
   SubscriptionType,
   SubscriptionExpirationType,
   DiscountType,

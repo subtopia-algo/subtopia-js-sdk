@@ -26,8 +26,8 @@
     "release": "semantic-release"
   },
   "dependencies": {
-    "@algorandfoundation/algokit-utils": "^2.3.1",
-    "algosdk": "2.3.0",
+    "@algorandfoundation/algokit-utils": "^2.3.2",
+    "algosdk": "^2.5.0",
     "beaker-ts": "^0.1.2"
   },
   "devDependencies": {

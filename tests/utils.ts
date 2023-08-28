@@ -14,17 +14,6 @@ import { normalizePrice, optInAsset } from "../src/utils";
 import { AssetMetadata } from "./interfaces";
 import { SandboxAccount } from "beaker-ts/dist/types/sandbox/accounts";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function filterAsync(arr: any[], callback: (arg0: any) => any) {
-  const fail = Symbol();
-  return (
-    await Promise.all(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      arr.map(async (item: any) => ((await callback(item)) ? item : fail))
-    )
-  ).filter((i) => i !== fail);
-}
-
 export async function getRandomAccount(
   client: Algodv2,
   funderAddress: string,
@@ -47,14 +36,11 @@ export async function getRandomAccount(
   await atc.execute(client, DEFAULT_AWAIT_ROUNDS);
 
   if (asset) {
-    await optInAsset(
-      client,
-      {
-        address: randomAccount.addr,
-        signer: makeBasicAccountTransactionSigner(randomAccount),
-      },
-      asset.index
-    );
+    await optInAsset({
+      client: client,
+      account: { signer: funderSigner, addr: randomAccount.addr },
+      assetID: asset.index,
+    });
 
     atc = new AtomicTransactionComposer();
     atc.addTransaction({

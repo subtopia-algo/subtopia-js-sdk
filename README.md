@@ -56,7 +56,7 @@ Example snippets of using the Subtopia JS SDK.
 const response = await SubtopiaClient.subscribe(
   {
     subscriber: { address: {PUT_WALLET_ADDRESS}, signer: {PUT_WALLET_SIGNER} },
-    smiID: { PUT_SMI_ID_HERE }, // number - the ID of the SMI instance you want to subscribe to
+    smiID: { PUT_PRODUCT_ID_HERE }, // number - the ID of the SMI instance you want to subscribe to
     expirationType: { PUT_EXPIRATION_TYPE_HERE }, // pick duration from SubscriptionExpirationType enum. If there is a discount available for this duration, it will be auto applied.
   },
   { client: {PUT_ALGOD_INSTANCE_HERE} // object of type algosdk.Algodv2
@@ -74,7 +74,7 @@ console.log(response.returnValue) // response is of type ABIResult
 const subscriberBox = await SubtopiaClient.getSubscriptionRecordForAccount(
   client,
   { PUT_SUBSCRIBER_ADDRESS },
-  { PUT_SMI_ID_HERE }
+  { PUT_PRODUCT_ID_HERE }
 );
 
 // SubscriptionRecord (throws Error if not subscribed)
@@ -136,7 +136,7 @@ console.log(deleteResult.txID);
 const discount = await SubtopiaClient.createDiscount(
   {
     creator: { address: {PUT_WALLET_ADDRESS}, signer: {PUT_WALLET_SIGNER} },
-    smiID: { PUT_SMI_ID_HERE }, // number - the ID of the SMI instance you want to subscribe to
+    smiID: { PUT_PRODUCT_ID_HERE }, // number - the ID of the SMI instance you want to subscribe to
     discount: {
       expirationType: SubscriptionExpirationType // number - the type of expiration to apply. Also serves as static id for the discount.
       discountType: {PUT_DISCOUNT_TYPE_HERE} // number - the type of discount to apply. FIXED or PERCENTAGE
@@ -160,7 +160,7 @@ console.log(discount.returnValue) // response is of type ABIResult
 
 const discount = await SubtopiaClient.getDiscountRecordForType(
   client,
-  { PUT_SMI_ID_HERE }
+  { PUT_PRODUCT_ID_HERE }
   { PUT_EXPIRATION_TYPE_HERE },
 );
 

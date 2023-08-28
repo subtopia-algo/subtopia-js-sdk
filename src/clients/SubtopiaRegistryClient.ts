@@ -20,17 +20,18 @@ import {
   calculateSmiCreationMbr,
   calculateSmlCreationMbr,
   calculateRegistryLockerBoxCreateMbr,
+  getLockerBoxPrefix,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
-  SMI_APPROVAL_KEY,
-  SMI_CLEAR_KEY,
+  PRODUCT_APPROVAL_KEY,
+  PRODUCT_CLEAR_KEY,
   MIN_APP_OPTIN_MBR,
   MIN_APP_BALANCE_MBR,
   MIN_ASA_OPTIN_MBR,
-  SMI_CREATION_PLATFORM_FEE_CENTS,
-  SML_APPROVAL_KEY,
-  SML_CLEAR_KEY,
+  PRODUCTCREATION_PLATFORM_FEE_CENTS,
+  LOCKER_APPROVAL_KEY,
+  LOCKER_CLEAR_KEY,
   SUBTOPIA_REGISTRY_ID,
 } from "../constants";
 import {
@@ -52,7 +53,7 @@ const STP_IMAGE_URL =
 const STP_UNIT_NAME = "STP";
 const encoder = new TextEncoder();
 
-export class SubtopiaRegistry {
+export class SubtopiaRegistryClient {
   algodClient: algosdk.Algodv2;
   creator: TransactionSignerAccount;
   version: string;
@@ -91,7 +92,7 @@ export class SubtopiaRegistry {
     algodClient: AlgodClient,
     creator: TransactionSignerAccount,
     chainType: ChainType
-  ): Promise<SubtopiaRegistry> {
+  ): Promise<SubtopiaRegistryClient> {
     const registryID = SUBTOPIA_REGISTRY_ID(chainType);
     const registryAddress = getApplicationAddress(registryID);
     const registrySpec = await getAppById(registryID, algodClient);
@@ -117,7 +118,7 @@ export class SubtopiaRegistry {
     const response = await versionAtc.simulate(algodClient);
     const version = response.methodResults[0].returnValue as string;
 
-    return new SubtopiaRegistry({
+    return new SubtopiaRegistryClient({
       algodClient: algodClient,
       creator: creator,
       appID: registryID,
@@ -240,11 +241,11 @@ export class SubtopiaRegistry {
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(SML_APPROVAL_KEY),
+          name: encoder.encode(LOCKER_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(SML_CLEAR_KEY),
+          name: encoder.encode(LOCKER_CLEAR_KEY),
         },
       ],
       sender: creator.addr,
@@ -273,7 +274,7 @@ export class SubtopiaRegistry {
       .getApplicationBoxByName(
         registryID,
         new Uint8Array([
-          ...Buffer.from("cl-"),
+          ...getLockerBoxPrefix(LockerType.CREATOR),
           ...decodeAddress(ownerAddress).publicKey,
         ])
       )
@@ -292,12 +293,12 @@ export class SubtopiaRegistry {
   }): Promise<{
     txID: string;
   }> {
-    const oldOwnerLockerId = await SubtopiaRegistry.getLocker({
+    const oldOwnerLockerId = await SubtopiaRegistryClient.getLocker({
       registryID: this.appID,
       algodClient: this.algodClient,
       ownerAddress: this.creator.addr,
     });
-    const newOwnerLockerId = await SubtopiaRegistry.getLocker({
+    const newOwnerLockerId = await SubtopiaRegistryClient.getLocker({
       registryID: this.appID,
       algodClient: this.algodClient,
       ownerAddress: newOwnerAddress,
@@ -310,11 +311,17 @@ export class SubtopiaRegistry {
     const boxes = [
       {
         appIndex: this.appID,
-        name: decodeAddress(this.creator.addr).publicKey,
+        name: new Uint8Array([
+          ...getLockerBoxPrefix(LockerType.CREATOR),
+          ...decodeAddress(this.creator.addr).publicKey,
+        ]),
       },
       {
         appIndex: this.appID,
-        name: decodeAddress(newOwnerAddress).publicKey,
+        name: new Uint8Array([
+          ...getLockerBoxPrefix(LockerType.CREATOR),
+          ...decodeAddress(newOwnerAddress).publicKey,
+        ]),
       },
     ];
 
@@ -322,11 +329,11 @@ export class SubtopiaRegistry {
       boxes.push.apply(boxes, [
         {
           appIndex: this.appID,
-          name: encoder.encode(SML_APPROVAL_KEY),
+          name: encoder.encode(LOCKER_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(SML_CLEAR_KEY),
+          name: encoder.encode(LOCKER_CLEAR_KEY),
         },
       ]);
     }
@@ -338,23 +345,27 @@ export class SubtopiaRegistry {
         name: "transfer_infrastructure",
         args: [
           {
+            type: "application",
             name: "infrastructure",
-            type: "uint64",
+            desc: "The INFRASTRUCTURE.",
           },
           {
+            type: "application",
             name: "old_locker",
-            type: "uint64",
+            desc: "The old locker.",
           },
           {
-            name: "new_manager",
             type: "address",
+            name: "new_manager",
+            desc: "The new manager address.",
           },
           {
-            name: "transfer_fee_txn",
             type: "pay",
+            name: "transfer_fee_txn",
+            desc: "The transfer fee transaction.",
           },
         ],
-        returns: { type: "uint64" },
+        returns: { type: "void" },
       }),
       methodArgs: [
         infrastructureID,
@@ -364,7 +375,7 @@ export class SubtopiaRegistry {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: this.creator.addr,
             to: this.appAddress,
-            amount: algosToMicroalgos(newOwnerLockerId ? 0 : 0.4),
+            amount: algosToMicroalgos(newOwnerLockerId ? 1 : 0.5),
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
           signer: this.creator.signer,
@@ -373,7 +384,10 @@ export class SubtopiaRegistry {
       boxes: boxes,
       sender: this.creator.addr,
       signer: this.creator.signer,
-      suggestedParams: await getParamsWithFeeCount(this.algodClient, 8),
+      suggestedParams: await getParamsWithFeeCount(
+        this.algodClient,
+        newOwnerLockerId ? 10 : 11
+      ),
     });
 
     const response = await transferInfraAtc.execute(this.algodClient, 10);
@@ -422,7 +436,7 @@ export class SubtopiaRegistry {
     );
     const feeAmount = await this.getInfrastructureCreationFee(coinID);
     const platformFeeAmount = await this.getInfrastructureCreationPlatformFee(
-      SMI_CREATION_PLATFORM_FEE_CENTS
+      PRODUCTCREATION_PLATFORM_FEE_CENTS
     );
 
     const createInfraAtc = new AtomicTransactionComposer();
@@ -544,19 +558,19 @@ export class SubtopiaRegistry {
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(SMI_APPROVAL_KEY),
+          name: encoder.encode(PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(SMI_APPROVAL_KEY),
+          name: encoder.encode(PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(SMI_APPROVAL_KEY),
+          name: encoder.encode(PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(SMI_CLEAR_KEY),
+          name: encoder.encode(PRODUCT_CLEAR_KEY),
         },
       ],
       sender: this.creator.addr,

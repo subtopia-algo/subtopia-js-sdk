@@ -44,7 +44,7 @@ import {
   getAppGlobalState,
 } from "@algorandfoundation/algokit-utils";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
-import { SubtopiaRegistry } from "./SubtopiaRegistry";
+import { SubtopiaRegistryClient } from "./SubtopiaRegistryClient";
 import {
   ApplicationSpec,
   AssetMetadata,
@@ -54,7 +54,7 @@ import {
 
 const encoder = new TextEncoder();
 
-export class SubtopiaInfrastructure {
+export class SubtopiaClient {
   algodClient: algosdk.Algodv2;
   creator: TransactionSignerAccount;
   price: number;
@@ -101,7 +101,7 @@ export class SubtopiaInfrastructure {
     algodClient: AlgodClient,
     productID: number,
     creator: TransactionSignerAccount
-  ): Promise<SubtopiaInfrastructure> {
+  ): Promise<SubtopiaClient> {
     const productGlobalState = await getAppGlobalState(
       productID,
       algodClient
@@ -141,7 +141,7 @@ export class SubtopiaInfrastructure {
       productGlobalState.coin_id.value as number
     );
 
-    return new SubtopiaInfrastructure({
+    return new SubtopiaClient({
       algodClient,
       creator,
       appID: productID,
@@ -207,40 +207,6 @@ export class SubtopiaInfrastructure {
       (await calculateSmlCreationMbr(this.appSpec)) +
       calculateRegistryLockerBoxCreateMbr(creatorAddress)
     );
-  }
-
-  public async transferOwnership({
-    newOwnerAddress,
-  }: {
-    newOwnerAddress: string;
-  }): Promise<{
-    txId: string;
-  }> {
-    const updateManagerAtc = new AtomicTransactionComposer();
-    updateManagerAtc.addMethodCall({
-      appID: this.appID,
-      method: new ABIMethod({
-        name: "update_manager",
-        args: [
-          {
-            type: "address",
-            name: "new_manager_account",
-            desc: "The new manager account address.",
-          },
-        ],
-        returns: { type: "void" },
-      }),
-      methodArgs: [newOwnerAddress],
-      sender: this.creator.addr,
-      signer: this.creator.signer,
-      suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
-    });
-
-    const response = await updateManagerAtc.execute(this.algodClient, 10);
-
-    return {
-      txId: response.txIDs.pop() as string,
-    };
   }
 
   public async getDiscount({
@@ -374,7 +340,7 @@ export class SubtopiaInfrastructure {
     const platformFeeAmount = await this.getSubscriptionPlatformFee(
       SUBSCRIPTION_PLATFORM_FEE_CENTS
     );
-    const creatorLockerId = await SubtopiaRegistry.getLocker({
+    const creatorLockerId = await SubtopiaRegistryClient.getLocker({
       registryID: TESTNET_SUBTOPIA_REGISTRY_ID,
       algodClient: this.algodClient,
       ownerAddress: this.creator.addr,
@@ -509,6 +475,104 @@ export class SubtopiaInfrastructure {
     return {
       txId: response.txIDs.pop() as string,
       subscriptionId: Number(response.methodResults[0].returnValue),
+    };
+  }
+
+  public async transferSubscription({
+    oldSubscriber,
+    newSubscriberAddress,
+    subscriptionID,
+  }: {
+    oldSubscriber: TransactionSignerAccount;
+    newSubscriberAddress: string;
+    subscriptionID: number;
+  }): Promise<{
+    txId: string;
+  }> {
+    const transferSubscriptionAtc = new AtomicTransactionComposer();
+    transferSubscriptionAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "transfer_subscription",
+        args: [
+          {
+            type: "address",
+            name: "new_subscriber",
+            desc: "The new address to transfer the subscription to.",
+          },
+          {
+            type: "asset",
+            name: "subscription",
+            desc: "The subscription asset.",
+          },
+        ],
+        returns: { type: "void" },
+      }),
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(oldSubscriber.addr).publicKey,
+        },
+        {
+          appIndex: this.appID,
+          name: decodeAddress(newSubscriberAddress).publicKey,
+        },
+      ],
+      methodArgs: [newSubscriberAddress, subscriptionID],
+      sender: oldSubscriber.addr,
+      signer: oldSubscriber.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
+    });
+
+    const response = await transferSubscriptionAtc.execute(
+      this.algodClient,
+      10
+    );
+
+    return {
+      txId: response.txIDs.pop() as string,
+    };
+  }
+
+  public async claimSubscription({
+    subscriber,
+    subscriptionID,
+  }: {
+    subscriber: TransactionSignerAccount;
+    subscriptionID: number;
+  }): Promise<{
+    txId: string;
+  }> {
+    const claimSubscriptionAtc = new AtomicTransactionComposer();
+    claimSubscriptionAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "claim_subscription",
+        args: [
+          {
+            type: "asset",
+            name: "subscription",
+            desc: "The subscription ASA ID.",
+          },
+        ],
+        returns: { type: "void" },
+      }),
+      methodArgs: [subscriptionID],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(subscriber.addr).publicKey,
+        },
+      ],
+      sender: subscriber.addr,
+      signer: subscriber.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
+    });
+
+    const response = await claimSubscriptionAtc.execute(this.algodClient, 10);
+
+    return {
+      txId: response.txIDs.pop() as string,
     };
   }
 

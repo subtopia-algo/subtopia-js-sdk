@@ -5,13 +5,7 @@
 
 // import { SubtopiaClient } from "./clients/SubtopiaClient";
 // import { SubtopiaAdminClient } from "./clients/SubtopiaAdminClient";
-import {
-  getLocker,
-  loadApplicationState,
-  normalizePrice,
-  optInAsset,
-  optOutAsset,
-} from "./utils";
+import { normalizePrice, optInAsset, optOutAsset } from "./utils";
 import { SUBTOPIA_CONTRACTS_VERSION } from "./constants";
 import {
   PriceNormalizationType,
@@ -48,13 +42,9 @@ import {
 
 export {
   PriceNormalizationType,
-  // SubtopiaAdminClient,
-  // SubtopiaClient,
   SubscriptionType,
   SubscriptionExpirationType,
   DiscountType,
-  getLocker,
-  loadApplicationState,
   normalizePrice,
   SUBTOPIA_CONTRACTS_VERSION,
   SMILifecycle,

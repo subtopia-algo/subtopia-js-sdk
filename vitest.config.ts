@@ -6,5 +6,6 @@ export default defineConfig({
       provider: "c8",
       reporter: ["text", "json", "html"],
     },
+    hookTimeout: 10_000_000,
   },
 });

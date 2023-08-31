@@ -21,8 +21,8 @@ import {
   calculateSmiCreationMbr,
   calculateSmlCreationMbr,
   calculateRegistryLockerBoxCreateMbr,
-  calculateInfrastructureDiscountBoxCreateMbr,
-  calculateInfrastructureSubscriptionBoxCreateMbr,
+  calculateProductDiscountBoxCreateMbr,
+  calculateProductSubscriptionBoxCreateMbr,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
@@ -34,7 +34,7 @@ import {
 } from "../constants";
 import {
   PriceNormalizationType,
-  SubscriptionExpirationType,
+  DurationType,
   DiscountType,
   Duration,
 } from "../enums";
@@ -48,13 +48,13 @@ import { SubtopiaRegistryClient } from "./SubtopiaRegistryClient";
 import {
   ApplicationSpec,
   AssetMetadata,
-  RawDiscount,
+  DiscountRecord,
   SubscriptionRecord,
 } from "interfaces";
 
-const encoder = new TextEncoder();
-
 export class SubtopiaClient {
+  productName: string;
+  subscriptionName: string;
   algodClient: algosdk.Algodv2;
   creator: TransactionSignerAccount;
   price: number;
@@ -67,6 +67,8 @@ export class SubtopiaClient {
 
   private constructor({
     algodClient,
+    productName,
+    subscriptionName,
     creator,
     appID,
     appAddress,
@@ -77,6 +79,8 @@ export class SubtopiaClient {
     version,
   }: {
     algodClient: AlgodClient;
+    productName: string;
+    subscriptionName: string;
     creator: TransactionSignerAccount;
     appSpec: ApplicationSpec;
     appID: number;
@@ -87,6 +91,8 @@ export class SubtopiaClient {
     version: string;
   }) {
     this.algodClient = algodClient;
+    this.productName = productName;
+    this.subscriptionName = subscriptionName;
     this.creator = creator;
     this.appID = appID;
     this.appAddress = appAddress;
@@ -121,6 +127,8 @@ export class SubtopiaClient {
     const productAddress = getApplicationAddress(productID);
     const productPrice = productGlobalState.price.value as number;
     const productSpec = await getAppById(productID, algodClient);
+    const productName = String(productGlobalState.product_name.value);
+    const subscriptionName = String(productGlobalState.subscription_name.value);
 
     const versionAtc = new AtomicTransactionComposer();
     versionAtc.addMethodCall({
@@ -145,6 +153,8 @@ export class SubtopiaClient {
       algodClient,
       creator,
       appID: productID,
+      productName: productName,
+      subscriptionName: subscriptionName,
       appAddress: productAddress,
       appSpec: {
         approval: productSpec.params.approvalProgram,
@@ -210,10 +220,10 @@ export class SubtopiaClient {
   }
 
   public async getDiscount({
-    expirationType,
+    duration,
   }: {
-    expirationType: SubscriptionExpirationType;
-  }): Promise<RawDiscount> {
+    duration: DurationType;
+  }): Promise<DiscountRecord> {
     const getDiscountAtc = new AtomicTransactionComposer();
     getDiscountAtc.addMethodCall({
       appID: this.appID,
@@ -226,17 +236,37 @@ export class SubtopiaClient {
             desc: "The duration of the discount.",
           },
         ],
-        returns: { type: "uint64" },
+        returns: { type: "(uint64,uint64,uint64,uint64,uint64,uint64)" },
       }),
-      methodArgs: [expirationType.valueOf()],
+      methodArgs: [duration.valueOf()],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: encodeUint64(duration.valueOf()),
+        },
+      ],
       sender: this.creator.addr,
       signer: this.creator.signer,
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
     const response = await getDiscountAtc.simulate(this.algodClient);
+    const boxContent: Array<number> = (
+      response.methodResults[0].returnValue?.valueOf() as Array<number>
+    ).map((value) => Number(value));
 
-    return response.methodResults[0].returnValue?.valueOf() as RawDiscount;
+    if (boxContent.length !== 6) {
+      throw new Error("Invalid subscription record");
+    }
+
+    return {
+      duration: boxContent[0],
+      discountType: boxContent[1],
+      discountValue: boxContent[2],
+      expiresAt: boxContent[3] === 0 ? undefined : new Date(boxContent[3]),
+      createdAt: new Date(boxContent[4]),
+      totalClaims: boxContent[5],
+    };
   }
 
   public async createDiscount({
@@ -250,7 +280,7 @@ export class SubtopiaClient {
     discountValue: number;
     expiresIn: number;
   }): Promise<{
-    txId: string;
+    txID: string;
   }> {
     const createDiscountAtc = new AtomicTransactionComposer();
     createDiscountAtc.addMethodCall({
@@ -295,7 +325,7 @@ export class SubtopiaClient {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: this.creator.addr,
             to: this.appAddress,
-            amount: calculateInfrastructureDiscountBoxCreateMbr(),
+            amount: calculateProductDiscountBoxCreateMbr(),
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
           signer: this.creator.signer,
@@ -304,30 +334,70 @@ export class SubtopiaClient {
       boxes: [
         {
           appIndex: this.appID,
-          name: encoder.encode(duration.valueOf().toString()),
+          name: encodeUint64(duration.valueOf()),
         },
       ],
       sender: this.creator.addr,
       signer: this.creator.signer,
-      suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
     });
 
     const response = await createDiscountAtc.execute(this.algodClient, 10);
 
     return {
-      txId: response.txIDs.pop() as string,
+      txID: response.txIDs.pop() as string,
+    };
+  }
+
+  public async deleteDiscount({
+    duration,
+  }: {
+    duration: DurationType;
+  }): Promise<{
+    txID: string;
+  }> {
+    const deleteDiscountAtc = new AtomicTransactionComposer();
+    deleteDiscountAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "delete_discount",
+        args: [
+          {
+            type: "uint64",
+            name: "duration",
+            desc: "The duration of the discount.",
+          },
+        ],
+        returns: { type: "void" },
+      }),
+      methodArgs: [duration.valueOf()],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: encodeUint64(duration.valueOf()),
+        },
+      ],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
+    });
+
+    const response = await deleteDiscountAtc.execute(this.algodClient, 10);
+
+    return {
+      txID: response.txIDs.pop() as string,
     };
   }
 
   public async createSubscription({
     subscriber,
-    expirationType,
+    duration,
   }: {
     subscriber: TransactionSignerAccount;
-    expirationType: SubscriptionExpirationType;
+    duration: DurationType;
   }): Promise<{
-    txId: string;
-    subscriptionId: number;
+    txID: string;
+    subscriptionID: number;
   }> {
     const oracleAdminState = (
       await getAppGlobalState(this.oracleID, this.algodClient)
@@ -398,7 +468,7 @@ export class SubtopiaClient {
       }),
       methodArgs: [
         subscriber.addr,
-        expirationType.valueOf(),
+        duration.valueOf(),
         creatorLockerId,
         this.oracleID,
         {
@@ -406,7 +476,7 @@ export class SubtopiaClient {
             from: subscriber.addr,
             to: this.appAddress,
             amount:
-              calculateInfrastructureSubscriptionBoxCreateMbr(subscriber.addr) +
+              calculateProductSubscriptionBoxCreateMbr(subscriber.addr) +
               algosToMicroalgos(MIN_APP_OPTIN_MBR),
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
@@ -459,7 +529,7 @@ export class SubtopiaClient {
         },
         {
           appIndex: this.appID,
-          name: encodeUint64(expirationType.valueOf()),
+          name: encodeUint64(duration.valueOf()),
         },
       ],
       sender: subscriber.addr,
@@ -473,8 +543,8 @@ export class SubtopiaClient {
     const response = await createSubscriptionAtc.execute(this.algodClient, 10);
 
     return {
-      txId: response.txIDs.pop() as string,
-      subscriptionId: Number(response.methodResults[0].returnValue),
+      txID: response.txIDs.pop() as string,
+      subscriptionID: Number(response.methodResults[0].returnValue),
     };
   }
 
@@ -487,7 +557,7 @@ export class SubtopiaClient {
     newSubscriberAddress: string;
     subscriptionID: number;
   }): Promise<{
-    txId: string;
+    txID: string;
   }> {
     const transferSubscriptionAtc = new AtomicTransactionComposer();
     transferSubscriptionAtc.addMethodCall({
@@ -530,7 +600,7 @@ export class SubtopiaClient {
     );
 
     return {
-      txId: response.txIDs.pop() as string,
+      txID: response.txIDs.pop() as string,
     };
   }
 
@@ -541,7 +611,7 @@ export class SubtopiaClient {
     subscriber: TransactionSignerAccount;
     subscriptionID: number;
   }): Promise<{
-    txId: string;
+    txID: string;
   }> {
     const claimSubscriptionAtc = new AtomicTransactionComposer();
     claimSubscriptionAtc.addMethodCall({
@@ -572,7 +642,7 @@ export class SubtopiaClient {
     const response = await claimSubscriptionAtc.execute(this.algodClient, 10);
 
     return {
-      txId: response.txIDs.pop() as string,
+      txID: response.txIDs.pop() as string,
     };
   }
 
@@ -583,7 +653,7 @@ export class SubtopiaClient {
     subscriber: TransactionSignerAccount;
     subscriptionID: number;
   }): Promise<{
-    txId: string;
+    txID: string;
   }> {
     const deleteSubscriptionAtc = new AtomicTransactionComposer();
     deleteSubscriptionAtc.addMethodCall({
@@ -614,24 +684,20 @@ export class SubtopiaClient {
     const response = await deleteSubscriptionAtc.execute(this.algodClient, 10);
 
     return {
-      txId: response.txIDs.pop() as string,
+      txID: response.txIDs.pop() as string,
     };
   }
 
-  public async getSubscription({
-    algodClient,
-    productID,
+  public async isSubscriber({
     subscriberAddress,
   }: {
-    algodClient: AlgodClient;
-    productID: number;
     subscriberAddress: string;
-  }): Promise<SubscriptionRecord> {
-    const getSubscriptionAtc = new AtomicTransactionComposer();
-    getSubscriptionAtc.addMethodCall({
-      appID: productID,
+  }): Promise<boolean> {
+    const isSubscriberAtc = new AtomicTransactionComposer();
+    isSubscriberAtc.addMethodCall({
+      appID: this.appID,
       method: new ABIMethod({
-        name: "get_subscription",
+        name: "is_subscriber",
         args: [
           {
             type: "address",
@@ -642,13 +708,70 @@ export class SubtopiaClient {
         returns: { type: "uint64" },
       }),
       methodArgs: [subscriberAddress],
-      sender: subscriberAddress,
+      sender: this.creator.addr,
       signer: this.creator.signer,
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(subscriberAddress).publicKey,
+        },
+      ],
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
+    });
+
+    const response = await isSubscriberAtc.simulate(this.algodClient);
+
+    return Boolean(response.methodResults[0].returnValue);
+  }
+
+  public async getSubscription({
+    algodClient,
+    subscriberAddress,
+  }: {
+    algodClient: AlgodClient;
+    subscriberAddress: string;
+  }): Promise<SubscriptionRecord> {
+    const getSubscriptionAtc = new AtomicTransactionComposer();
+    getSubscriptionAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "get_subscription",
+        args: [
+          {
+            type: "address",
+            name: "subscriber",
+            desc: "The subscriber address.",
+          },
+        ],
+        returns: { type: "(uint64,uint64,uint64,uint64,uint64)" },
+      }),
+      methodArgs: [subscriberAddress],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(subscriberAddress).publicKey,
+        },
+      ],
       suggestedParams: await getParamsWithFeeCount(algodClient, 1),
     });
 
     const response = await getSubscriptionAtc.simulate(algodClient);
+    const boxContent: Array<number> = (
+      response.methodResults[0].returnValue?.valueOf() as Array<number>
+    ).map((value) => Number(value));
 
-    return response.methodResults[0].returnValue?.valueOf() as SubscriptionRecord;
+    if (boxContent.length !== 5) {
+      throw new Error("Invalid subscription record");
+    }
+
+    return {
+      subType: boxContent[0],
+      subID: boxContent[1],
+      createdAt: new Date(boxContent[2]),
+      expiresAt: boxContent[3] === 0 ? undefined : new Date(boxContent[3]),
+      duration: boxContent[4],
+    };
   }
 }

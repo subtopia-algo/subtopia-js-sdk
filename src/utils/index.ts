@@ -18,11 +18,7 @@ import algosdk, {
 
 import { ApplicationSpec, AssetMetadata } from "../interfaces";
 import { DEFAULT_AWAIT_ROUNDS, ALGO_ASSET } from "../constants";
-import {
-  LockerType,
-  PriceNormalizationType,
-  SubscriptionExpirationType,
-} from "../enums";
+import { LockerType, PriceNormalizationType, DurationType } from "../enums";
 import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 
@@ -140,16 +136,14 @@ export async function getParamsWithFeeCount(
   return params;
 }
 
-export function expirationTypeToMonths(
-  expirationType: SubscriptionExpirationType
-): number {
-  if (expirationType === SubscriptionExpirationType.MONTHLY) {
+export function durationToMonths(duration: DurationType): number {
+  if (duration === DurationType.MONTHLY) {
     return 1;
-  } else if (expirationType === SubscriptionExpirationType.QUARTERLY) {
+  } else if (duration === DurationType.QUARTERLY) {
     return 3;
-  } else if (expirationType === SubscriptionExpirationType.SEMI_ANNUAL) {
+  } else if (duration === DurationType.SEMI_ANNUAL) {
     return 6;
-  } else if (expirationType === SubscriptionExpirationType.ANNUAL) {
+  } else if (duration === DurationType.ANNUAL) {
     return 12;
   } else {
     return 1;
@@ -199,13 +193,13 @@ export function calculateRegistryLockerBoxCreateMbr(
   );
 }
 
-export function calculateInfrastructureDiscountBoxCreateMbr(): number {
+export function calculateProductDiscountBoxCreateMbr(): number {
   const uint64TypeByteLen = new ABIUintType(64).byteLen();
   const discountTypeByteLen = uint64TypeByteLen * 6; // 6 Uint64s in Discount tuple
   return calculateBoxMbr(uint64TypeByteLen, discountTypeByteLen, "create");
 }
 
-export function calculateInfrastructureSubscriptionBoxCreateMbr(
+export function calculateProductSubscriptionBoxCreateMbr(
   subscriberAddress: string
 ): number {
   const uint64TypeByteLen = new ABIUintType(64).byteLen();

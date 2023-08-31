@@ -8,7 +8,7 @@ export enum SubscriptionType {
   TIME_BASED = 1,
 }
 
-export enum SubscriptionExpirationType {
+export enum DurationType {
   UNLIMITED = 0,
   MONTHLY = 1,
   QUARTERLY = 2,
@@ -27,11 +27,6 @@ export enum Duration {
 export enum PriceNormalizationType {
   RAW = 0,
   PRETTY = 1,
-}
-
-export enum SMILifecycle {
-  ACTIVE = 0,
-  DELETING = 1,
 }
 
 export enum DiscountType {

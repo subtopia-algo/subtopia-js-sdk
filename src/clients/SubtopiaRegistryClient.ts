@@ -140,7 +140,7 @@ export class SubtopiaRegistryClient {
     });
   }
 
-  public async getInfrastructureCreationFee(coinID = 0): Promise<number> {
+  public async getProductCreationFee(coinID = 0): Promise<number> {
     return (
       algosToMicroalgos(MIN_APP_OPTIN_MBR) +
       algosToMicroalgos(MIN_APP_BALANCE_MBR) +
@@ -149,7 +149,7 @@ export class SubtopiaRegistryClient {
     );
   }
 
-  public async getInfrastructureCreationPlatformFee(
+  public async getProductCreationPlatformFee(
     priceInCents: number
   ): Promise<number> {
     const computePlatformFeeAtc = new AtomicTransactionComposer();
@@ -384,6 +384,7 @@ export class SubtopiaRegistryClient {
       boxes: boxes,
       sender: this.creator.addr,
       signer: this.creator.signer,
+      appForeignApps: newOwnerLockerId ? [newOwnerLockerId] : undefined,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,
         newOwnerLockerId ? 10 : 11
@@ -434,8 +435,8 @@ export class SubtopiaRegistryClient {
       // @ts-ignore
       oracleAdminState.valueRaw
     );
-    const feeAmount = await this.getInfrastructureCreationFee(coinID);
-    const platformFeeAmount = await this.getInfrastructureCreationPlatformFee(
+    const feeAmount = await this.getProductCreationFee(coinID);
+    const platformFeeAmount = await this.getProductCreationPlatformFee(
       PRODUCTCREATION_PLATFORM_FEE_CENTS
     );
 

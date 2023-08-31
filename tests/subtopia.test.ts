@@ -4,7 +4,7 @@ import {
   Account,
 } from "algosdk";
 import "dotenv/config";
-import { SubscriptionType, optInAsset, optOutAsset } from "../src/index";
+import { enums, optInAsset, optOutAsset } from "../src/index";
 import { it, describe, expect, beforeAll, afterAll } from "vitest";
 
 import { SubtopiaRegistryClient } from "../src/clients/SubtopiaRegistryClient";
@@ -12,7 +12,9 @@ import { SubtopiaClient } from "../src/clients/SubtopiaClient";
 import {
   ChainType,
   LockerType,
-  SubscriptionExpirationType,
+  DurationType,
+  Duration,
+  DiscountType,
 } from "../src/enums";
 import {
   algos,
@@ -100,7 +102,7 @@ describe("subtopia", () => {
   });
 
   it(
-    "should correctly add infra, create subscription, delete subscription and delete infra",
+    "should correctly add product, create subscription, delete subscription and delete product",
     async () => {
       // Setup
       const subtopiaRegistryClient = await SubtopiaRegistryClient.init(
@@ -127,7 +129,7 @@ describe("subtopia", () => {
         productName: "Notflix",
         subscriptionName: "Premium",
         price: 1,
-        subType: SubscriptionType.UNLIMITED,
+        subType: enums.SubscriptionType.UNLIMITED,
         maxSubs: 0,
         coinID: 0,
         lockerID: lockerID,
@@ -149,34 +151,49 @@ describe("subtopia", () => {
 
       const subscribeResponse = await productClient.createSubscription({
         subscriber: subscriberSigner,
-        expirationType: SubscriptionExpirationType.UNLIMITED,
+        duration: DurationType.UNLIMITED,
       });
 
-      expect(subscribeResponse.subscriptionId).toBeGreaterThan(0);
+      expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
+
+      const getSubscriptionResponse = await productClient.getSubscription({
+        subscriberAddress: subscriberSigner.addr,
+        algodClient: algodClient,
+      });
+
+      expect(getSubscriptionResponse.subID).toBe(
+        subscribeResponse.subscriptionID
+      );
+
+      const isSubscriberResponse = await productClient.isSubscriber({
+        subscriberAddress: subscriberSigner.addr,
+      });
+
+      expect(isSubscriberResponse).toBe(true);
 
       await optInAsset({
         client: algodClient,
         account: subscriberSigner,
-        assetID: subscribeResponse.subscriptionId,
+        assetID: subscribeResponse.subscriptionID,
       });
 
       const claimResponse = await productClient.claimSubscription({
         subscriber: subscriberSigner,
-        subscriptionID: subscribeResponse.subscriptionId,
+        subscriptionID: subscribeResponse.subscriptionID,
       });
 
-      expect(claimResponse.txId).toBeDefined();
+      expect(claimResponse.txID).toBeDefined();
 
       const transferTxnId = await productClient.transferSubscription({
         oldSubscriber: subscriberSigner,
         newSubscriberAddress: creatorSignerAccount.addr,
-        subscriptionID: subscribeResponse.subscriptionId,
+        subscriptionID: subscribeResponse.subscriptionID,
       });
 
       await optOutAsset({
         client: algodClient,
         account: subscriberSigner,
-        assetID: subscribeResponse.subscriptionId,
+        assetID: subscribeResponse.subscriptionID,
       });
 
       expect(transferTxnId).toBeDefined();
@@ -184,11 +201,11 @@ describe("subtopia", () => {
       const deleteSubscriptionResponse = await productClient.deleteSubscription(
         {
           subscriber: creatorSignerAccount,
-          subscriptionID: subscribeResponse.subscriptionId,
+          subscriptionID: subscribeResponse.subscriptionID,
         }
       );
 
-      expect(deleteSubscriptionResponse.txId).toBeDefined();
+      expect(deleteSubscriptionResponse.txID).toBeDefined();
 
       const content = await getAppGlobalState(
         response.infrastructureID,
@@ -202,7 +219,7 @@ describe("subtopia", () => {
   );
 
   it(
-    "should correctly add and transfer infrastructure",
+    "should correctly add product, create discount, transfer product and delete discount",
     async () => {
       const subtopiaRegistryClient = await SubtopiaRegistryClient.init(
         algodClient,
@@ -230,13 +247,33 @@ describe("subtopia", () => {
         productName: "Hooli",
         subscriptionName: "Pro",
         price: 1,
-        subType: SubscriptionType.TIME_BASED,
+        subType: enums.SubscriptionType.TIME_BASED,
         maxSubs: 0,
         coinID: 0,
         lockerID: lockerID,
       });
 
       expect(response.infrastructureID).toBeGreaterThan(0);
+
+      const productClient = await SubtopiaClient.init(
+        algodClient,
+        response.infrastructureID,
+        creatorSignerAccount
+      );
+      const createDiscountResponse = await productClient.createDiscount({
+        duration: Duration.MONTH.valueOf(),
+        discountType: DiscountType.FIXED,
+        discountValue: 1e6,
+        expiresIn: 0,
+      });
+
+      expect(createDiscountResponse.txID).toBeDefined();
+
+      const getDiscountResponse = await productClient.getDiscount({
+        duration: Duration.MONTH.valueOf(),
+      });
+
+      expect(getDiscountResponse.discountValue).toBe(1e6);
 
       const transferResponse =
         await subtopiaRegistryClient.transferInfrastructure({
@@ -245,6 +282,23 @@ describe("subtopia", () => {
         });
 
       expect(transferResponse.txID).toBeDefined();
+
+      const newOwnerProductClient = await SubtopiaClient.init(
+        algodClient,
+        response.infrastructureID,
+        transactionSignerAccount(
+          makeBasicAccountTransactionSigner(newOwner),
+          newOwner.addr
+        )
+      );
+
+      const deleteDiscountResponse = await newOwnerProductClient.deleteDiscount(
+        {
+          duration: Duration.MONTH.valueOf(),
+        }
+      );
+
+      expect(deleteDiscountResponse.txID).toBeDefined();
     },
     {
       timeout: 10e6,

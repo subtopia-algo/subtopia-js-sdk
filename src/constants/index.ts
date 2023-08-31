@@ -7,7 +7,6 @@ import { ChainType } from "../enums";
 import { AssetMetadata } from "../interfaces";
 
 export const DEFAULT_AWAIT_ROUNDS = 10;
-export const SUBTOPIA_CONTRACTS_VERSION = "0.3.0";
 export const TESTNET_SUBTOPIA_REGISTRY_ID = 269954941;
 export const MAINNET_SUBTOPIA_REGISTRY_ID = 269954941;
 export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {

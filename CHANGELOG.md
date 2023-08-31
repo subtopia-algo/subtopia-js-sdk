@@ -1,3 +1,17 @@
+# [3.0.0-beta.1](https://github.com/subtopia-algo/subtopia-js/compare/v2.0.1...v3.0.0-beta.1) (2023-08-31)
+
+
+### Features
+
+* refactoring to support latest iteration of contracts ([#18](https://github.com/subtopia-algo/subtopia-js/issues/18)) ([452f2db](https://github.com/subtopia-algo/subtopia-js/commit/452f2dbf2c598dafa017f5eb88098799d4f760b2))
+
+
+### BREAKING CHANGES
+
+* new interface
+
+* chore: testing ci
+
 ## [2.0.1](https://github.com/subtopia-algo/subtopia-js/compare/v2.0.0...v2.0.1) (2023-05-14)
 
 ### Bug Fixes

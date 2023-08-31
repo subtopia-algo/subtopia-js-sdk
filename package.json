@@ -27,9 +27,10 @@
     "pre-commit": "npm run lint:scripts && npm run format:scripts && npm run test:integration"
   },
   "dependencies": {
-    "@algorandfoundation/algokit-utils": "^2.3.2",
-    "algosdk": "^2.5.0",
-    "beaker-ts": "^0.1.2"
+    "@algorandfoundation/algokit-utils": "^2.3.2"
+  },
+  "peerDependencies": {
+    "algosdk": "^2.5.0"
   },
   "devDependencies": {
     "@feki.de/semantic-release-yarn": "1.0.1",
@@ -54,6 +55,7 @@
     "stylelint": "^14.16.0",
     "stylelint-config-recommended": "^9.0.0",
     "stylelint-config-sass-guidelines": "^9.0.1",
+    "conventional-changelog-conventionalcommits": "^6.0.0",
     "ts-node": "^10.9.1",
     "tslib": "^2.4.1",
     "typescript": "^4.9.4",
@@ -67,7 +69,22 @@
   },
   "release": {
     "plugins": [
-      "@semantic-release/commit-analyzer",
+      [
+        "@semantic-release/commit-analyzer",
+        {
+          "preset": "conventionalcommits",
+          "releaseRules": [
+            {
+              "type": "build",
+              "release": "patch"
+            },
+            {
+              "type": "chore",
+              "release": "patch"
+            }
+          ]
+        }
+      ],
       "@semantic-release/release-notes-generator",
       "@feki.de/semantic-release-yarn",
       "@semantic-release/github"

@@ -5,8 +5,6 @@
 
 import { normalizePrice, optInAsset, optOutAsset } from "./utils";
 import { SubtopiaClient, SubtopiaRegistryClient } from "./clients";
-import * as interfaces from "./interfaces";
-import * as enums from "./enums";
 
 export {
   SubtopiaClient,
@@ -14,6 +12,7 @@ export {
   normalizePrice,
   optInAsset,
   optOutAsset,
-  enums,
-  interfaces,
 };
+
+export * from "./interfaces";
+export * from "./enums";

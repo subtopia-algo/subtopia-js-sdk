@@ -4,7 +4,7 @@ import {
   Account,
 } from "algosdk";
 import "dotenv/config";
-import { enums, optInAsset, optOutAsset } from "../src/index";
+import { optInAsset, optOutAsset } from "../src/index";
 import { it, describe, expect, beforeAll, afterAll } from "vitest";
 
 import { SubtopiaRegistryClient } from "../src/clients/SubtopiaRegistryClient";
@@ -15,6 +15,7 @@ import {
   DurationType,
   Duration,
   DiscountType,
+  SubscriptionType,
 } from "../src/enums";
 import {
   algos,
@@ -129,7 +130,7 @@ describe("subtopia", () => {
         productName: "Notflix",
         subscriptionName: "Premium",
         price: 1,
-        subType: enums.SubscriptionType.UNLIMITED,
+        subType: SubscriptionType.UNLIMITED,
         maxSubs: 0,
         coinID: 0,
         lockerID: lockerID,
@@ -247,7 +248,7 @@ describe("subtopia", () => {
         productName: "Hooli",
         subscriptionName: "Pro",
         price: 1,
-        subType: enums.SubscriptionType.TIME_BASED,
+        subType: SubscriptionType.TIME_BASED,
         maxSubs: 0,
         coinID: 0,
         lockerID: lockerID,

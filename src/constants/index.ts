@@ -38,7 +38,7 @@ export const MIN_ASA_CREATE_MBR = 0.1; // ALGO
 
 // Platform fees
 export const SUBSCRIPTION_PLATFORM_FEE_CENTS = 10;
-export const PRODUCTCREATION_PLATFORM_FEE_CENTS = 500;
+export const PRODUCT_CREATION_PLATFORM_FEE_CENTS = 500;
 
 // Algorand minimum transaction fee
 export const REGISTRY_VERSION = "1.0";

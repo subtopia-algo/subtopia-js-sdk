@@ -1,0 +1,95 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+      - release
+  workflow_dispatch:
+
+concurrency: release
+
+permissions:
+  contents: write
+
+jobs:
+  ci:
+    name: Continuous Integration
+    uses: makerxstudio/shared-config/.github/workflows/node-ci.yml@main
+    with:
+      working-directory: ./
+      run-commit-lint: true
+      run-build: true
+      node-version: 18.x
+      lint-script: npm run lint:scripts
+      test-script: |
+        npm run test:integration
+
+        curl -Os https://uploader.codecov.io/latest/linux/codecov
+        chmod +x codecov
+        ./codecov -t ${{ secrets.CODECOV_TOKEN }}
+
+      pre-test-script: |
+        pipx install algokit
+        algokit localnet start
+        npx --yes wait-on tcp:4001 -t 30000
+
+  deploy-docs:
+    permissions: write-all
+    name: Deploy docs
+    needs: [ci]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@makerxstudio"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build docs
+        run: npm run docs
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          commit-message: Refreshing documentation 🚀
+          folder: docs # The folder the action should deploy.
+
+  release:
+    permissions: write-all
+    name: Release
+    needs: [deploy-docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          persist-credentials: false # <--- override default gh token
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run build
+        run: npm run build
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm run release

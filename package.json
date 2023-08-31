@@ -73,10 +73,12 @@
       "@semantic-release/github"
     ],
     "branches": [
-      "main",
       {
-        "name": "next",
-        "prerelease": "rc"
+        "name": "main",
+        "prerelease": "beta"
+      },
+      {
+        "name": "release"
       }
     ],
     "verifyConditions": [

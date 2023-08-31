@@ -29,7 +29,7 @@ import {
   MIN_APP_OPTIN_MBR,
   MIN_APP_BALANCE_MBR,
   MIN_ASA_OPTIN_MBR,
-  PRODUCTCREATION_PLATFORM_FEE_CENTS,
+  PRODUCT_CREATION_PLATFORM_FEE_CENTS,
   LOCKER_APPROVAL_KEY,
   LOCKER_CLEAR_KEY,
   SUBTOPIA_REGISTRY_ID,
@@ -437,7 +437,7 @@ export class SubtopiaRegistryClient {
     );
     const feeAmount = await this.getProductCreationFee(coinID);
     const platformFeeAmount = await this.getProductCreationPlatformFee(
-      PRODUCTCREATION_PLATFORM_FEE_CENTS
+      PRODUCT_CREATION_PLATFORM_FEE_CENTS
     );
 
     const createInfraAtc = new AtomicTransactionComposer();

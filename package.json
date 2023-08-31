@@ -1,6 +1,6 @@
 {
   "name": "subtopia-js",
-  "version": "3.0.0-beta.1",
+  "version": "3.0.0-beta.2",
   "description": "Subtopia SDK for JavaScript",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -44,6 +44,7 @@
     "@vitejs/plugin-react": "^4.0.0",
     "@vitest/coverage-c8": "^0.31.0",
     "commitizen": "4.3.0",
+    "conventional-changelog-conventionalcommits": "^6.0.0",
     "cz-conventional-changelog": "3.3.0",
     "dotenv": "^16.3.1",
     "dts-bundle-generator": "^8.0.0",
@@ -55,7 +56,6 @@
     "stylelint": "^14.16.0",
     "stylelint-config-recommended": "^9.0.0",
     "stylelint-config-sass-guidelines": "^9.0.1",
-    "conventional-changelog-conventionalcommits": "^6.0.0",
     "ts-node": "^10.9.1",
     "tslib": "^2.4.1",
     "typescript": "^4.9.4",

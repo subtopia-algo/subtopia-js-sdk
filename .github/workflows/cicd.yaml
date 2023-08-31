@@ -1,0 +1,165 @@
+name: CI / CD
+
+on:
+  push:
+    branches:
+      - main
+  merge_group:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run build
+        run: npm run build
+
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint:scripts
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node: [18, 19]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - uses: docker-practice/actions-setup-docker@master
+        if: runner.os == 'macOS'
+        timeout-minutes: 12
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run sandbox
+        run: npm run localnet:start
+
+      - name: Run tests
+        env:
+          TESTNET_SUBTOPIA_DISPENSER_MNEMONIC: ${{ secrets.TESTNET_SUBTOPIA_DISPENSER_MNEMONIC }}
+          TESTNET_SUBTOPIA_CREATOR_MNEMONIC: ${{ secrets.TESTNET_SUBTOPIA_CREATOR_MNEMONIC }}
+          TESTNET_SUBTOPIA_BOB_MNEMONIC: ${{ secrets.TESTNET_SUBTOPIA_BOB_MNEMONIC }}
+        run: npm run test:integration
+
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v3
+        if: runner.os == 'Linux' && matrix.node == '18'
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  deploy-docs:
+    if: github.ref == 'refs/heads/main'
+    permissions: write-all
+    name: Deploy docs
+    needs: [build, lint, unit-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build docs
+        run: npm run docs
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          commit-message: Refreshing documentation 🚀
+          folder: docs # The folder the action should deploy.
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    permissions: write-all
+    name: Release
+    needs: [build, lint, unit-tests, deploy-docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          persist-credentials: false # <--- override default gh token
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run build
+        run: npm run build
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm run release

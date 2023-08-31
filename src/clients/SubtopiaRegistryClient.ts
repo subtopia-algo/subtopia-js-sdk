@@ -62,7 +62,7 @@ export class SubtopiaRegistryClient {
   appSpec: ApplicationSpec;
   oracleID: number;
 
-  private constructor({
+  protected constructor({
     algodClient,
     creator,
     appID,

@@ -65,7 +65,7 @@ export class SubtopiaClient {
   appAddress: string;
   appSpec: ApplicationSpec;
 
-  private constructor({
+  protected constructor({
     algodClient,
     productName,
     subscriptionName,

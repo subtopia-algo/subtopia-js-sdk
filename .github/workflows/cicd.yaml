@@ -63,7 +63,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node: [18, 19]
+        node: [18]
     steps:
       - name: Check out repository
         uses: actions/checkout@v3

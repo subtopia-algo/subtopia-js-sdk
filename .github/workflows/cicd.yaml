@@ -4,16 +4,11 @@ on:
   push:
     branches:
       - main
+      - release
   merge_group:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      production_release:
-        description: "Production release?"
-        required: true
-        default: "true"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

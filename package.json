@@ -23,10 +23,12 @@
     "format:styles": "stylelint ./**/*.{css,scss} --fix",
     "docs": "npx typedoc src/index.ts --excludePrivate --excludeExternals --exclude '**/adminClient.ts'",
     "commit": "cz",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "pre-commit": "npm run lint:scripts && npm run format:scripts && npm run test:integration"
   },
   "dependencies": {
-    "algosdk": "2.3.0",
+    "@algorandfoundation/algokit-utils": "^2.3.2",
+    "algosdk": "^2.5.0",
     "beaker-ts": "^0.1.2"
   },
   "devDependencies": {
@@ -42,6 +44,7 @@
     "@vitest/coverage-c8": "^0.31.0",
     "commitizen": "4.3.0",
     "cz-conventional-changelog": "3.3.0",
+    "dotenv": "^16.3.1",
     "dts-bundle-generator": "^8.0.0",
     "eslint": "^8.29.0",
     "eslint-config-prettier": "^8.5.0",
@@ -70,10 +73,12 @@
       "@semantic-release/github"
     ],
     "branches": [
-      "main",
       {
-        "name": "next",
-        "prerelease": "rc"
+        "name": "main",
+        "prerelease": "beta"
+      },
+      {
+        "name": "release"
       }
     ],
     "verifyConditions": [

@@ -4,748 +4,774 @@
 // =============================================================================
 
 import algosdk, {
+  ABIMethod,
   AtomicTransactionComposer,
+  algosToMicroalgos,
   decodeAddress,
   encodeAddress,
   encodeUint64,
+  getApplicationAddress,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   makePaymentTxnWithSuggestedParamsFromObject,
 } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
-import { ABIResult } from "beaker-ts";
 import {
-  loadApplicationState,
-  getLocker,
   normalizePrice,
-  optInAsset,
   getParamsWithFeeCount,
-  rekeyLocker,
-  expirationTypeToMonths,
+  calculateSmiCreationMbr,
+  calculateSmlCreationMbr,
+  calculateRegistryLockerBoxCreateMbr,
+  calculateProductDiscountBoxCreateMbr,
+  calculateProductSubscriptionBoxCreateMbr,
 } from "../utils";
-import { Discount, SMI, Subscription } from "../contracts/smi_client";
-import { SMR } from "../contracts/smr_client";
 import { getAssetByID } from "../utils";
-import { SUBTOPIA_REGISTRY_APP_ID, DEFAULT_AWAIT_ROUNDS } from "../constants";
 import {
-  SubscriptionType,
-  SubscriptionExpirationType,
+  MIN_APP_OPTIN_MBR,
+  MIN_APP_BALANCE_MBR,
+  MIN_ASA_OPTIN_MBR,
+  SUBSCRIPTION_PLATFORM_FEE_CENTS,
+  TESTNET_SUBTOPIA_REGISTRY_ID,
+} from "../constants";
+import {
   PriceNormalizationType,
+  DurationType,
   DiscountType,
+  Duration,
 } from "../enums";
+
 import {
-  SMIState,
-  SubscriptionRecord,
+  getAppById,
+  getAppGlobalState,
+} from "@algorandfoundation/algokit-utils";
+import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
+import { SubtopiaRegistryClient } from "./SubtopiaRegistryClient";
+import {
+  ApplicationSpec,
+  AssetMetadata,
   DiscountRecord,
-  SMISubscribeParams,
-  ChainMethodParams,
-  SMIUnsubscribeParams,
-  SMIClaimSubscriptionParams,
-  SMIClaimRevenueParams,
-  SMITransferSubscriptionParams,
-  SMIMarkForDeletionParams,
-  SMIDeleteSubscriptionParams,
-  SMICreateDiscountParams,
-  SMIDeleteDiscountParams,
-} from "../interfaces";
+  SubscriptionRecord,
+} from "interfaces";
 
 export class SubtopiaClient {
-  static async getInfrastructureState(
-    client: AlgodClient,
-    smiID: number,
-    withPriceNormalization = true
-  ) {
-    const state = await loadApplicationState(client, smiID);
-    const asset = await getAssetByID(client, Number(state["coin_id"]));
+  productName: string;
+  subscriptionName: string;
+  algodClient: algosdk.Algodv2;
+  creator: TransactionSignerAccount;
+  price: number;
+  coin: AssetMetadata;
+  oracleID: number;
+  version: string;
+  appID: number;
+  appAddress: string;
+  appSpec: ApplicationSpec;
 
-    const expirationTypes = [];
-    if (state["sub_type"] === SubscriptionType.UNLIMITED) {
-      expirationTypes.push(SubscriptionExpirationType.UNLIMITED);
-    } else {
-      expirationTypes.push(
-        SubscriptionExpirationType.MONTHLY,
-        SubscriptionExpirationType.QUARTERLY,
-        SubscriptionExpirationType.SEMI_ANNUAL,
-        SubscriptionExpirationType.ANNUAL
-      );
+  private constructor({
+    algodClient,
+    productName,
+    subscriptionName,
+    creator,
+    appID,
+    appAddress,
+    appSpec,
+    oracleID,
+    price,
+    coin,
+    version,
+  }: {
+    algodClient: AlgodClient;
+    productName: string;
+    subscriptionName: string;
+    creator: TransactionSignerAccount;
+    appSpec: ApplicationSpec;
+    appID: number;
+    appAddress: string;
+    oracleID: number;
+    price: number;
+    coin: AssetMetadata;
+    version: string;
+  }) {
+    this.algodClient = algodClient;
+    this.productName = productName;
+    this.subscriptionName = subscriptionName;
+    this.creator = creator;
+    this.appID = appID;
+    this.appAddress = appAddress;
+    this.appSpec = appSpec;
+    this.oracleID = oracleID;
+    this.price = price;
+    this.coin = coin;
+    this.version = version;
+  }
+
+  public static async init(
+    algodClient: AlgodClient,
+    productID: number,
+    creator: TransactionSignerAccount
+  ): Promise<SubtopiaClient> {
+    const productGlobalState = await getAppGlobalState(
+      productID,
+      algodClient
+    ).catch((error) => {
+      throw new Error(error);
+    });
+
+    if (
+      !productGlobalState.price ||
+      !productGlobalState.oracle_id ||
+      !productGlobalState.coin_id
+    ) {
+      throw new Error("SMR is not initialized");
     }
 
-    const discounts = [];
-    for (const expirationType of expirationTypes) {
-      try {
-        const discount = await SubtopiaClient.getDiscountRecordForType(
-          client,
-          smiID,
-          expirationType
-        );
-        discounts.push(discount);
-      } catch (e) {
-        /* empty */
-      }
+    const oracleID = productGlobalState.oracle_id.value as number;
+    const productAddress = getApplicationAddress(productID);
+    const productPrice = productGlobalState.price.value as number;
+    const productSpec = await getAppById(productID, algodClient);
+    const productName = String(productGlobalState.product_name.value);
+    const subscriptionName = String(productGlobalState.subscription_name.value);
+
+    const versionAtc = new AtomicTransactionComposer();
+    versionAtc.addMethodCall({
+      appID: productID,
+      method: new ABIMethod({
+        name: "get_version",
+        args: [],
+        returns: { type: "string" },
+      }),
+      sender: creator.addr,
+      signer: creator.signer,
+      suggestedParams: await getParamsWithFeeCount(algodClient, 1),
+    });
+    const response = await versionAtc.simulate(algodClient);
+    const version = response.methodResults[0].returnValue as string;
+    const coin = await getAssetByID(
+      algodClient,
+      productGlobalState.coin_id.value as number
+    );
+
+    return new SubtopiaClient({
+      algodClient,
+      creator,
+      appID: productID,
+      productName: productName,
+      subscriptionName: subscriptionName,
+      appAddress: productAddress,
+      appSpec: {
+        approval: productSpec.params.approvalProgram,
+        clear: productSpec.params.clearStateProgram,
+        globalNumUint:
+          Number(productSpec.params.globalStateSchema?.numUint) || 0,
+        globalNumByteSlice:
+          Number(productSpec.params.globalStateSchema?.numByteSlice) || 0,
+        localNumUint: Number(productSpec.params.localStateSchema?.numUint) || 0,
+        localNumByteSlice:
+          Number(productSpec.params.localStateSchema?.numByteSlice) || 0,
+      },
+      oracleID,
+      price: productPrice,
+      coin,
+      version,
+    });
+  }
+
+  public async getSubscriptionPrice(coinID = 0): Promise<number> {
+    return (
+      algosToMicroalgos(MIN_APP_OPTIN_MBR) +
+      algosToMicroalgos(MIN_APP_BALANCE_MBR) +
+      (await calculateSmiCreationMbr(this.appSpec)) +
+      (coinID > 0 ? algosToMicroalgos(MIN_ASA_OPTIN_MBR) : 0)
+    );
+  }
+
+  public async getSubscriptionPlatformFee(
+    priceInCents: number
+  ): Promise<number> {
+    const computePlatformFeeAtc = new AtomicTransactionComposer();
+    computePlatformFeeAtc.addMethodCall({
+      appID: this.oracleID,
+      method: new ABIMethod({
+        name: "compute_platform_fee",
+        args: [
+          {
+            type: "uint64",
+            name: "whole_usd",
+            desc: "Amount of USD in whole numbers (CENTS)",
+          },
+        ],
+        returns: { type: "uint64" },
+      }),
+      methodArgs: [priceInCents],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
+    });
+
+    const response = await computePlatformFeeAtc.simulate(this.algodClient);
+
+    return Number(response.methodResults[0].returnValue);
+  }
+
+  public async getLockerCreationFee(creatorAddress: string): Promise<number> {
+    return (
+      algosToMicroalgos(MIN_APP_OPTIN_MBR) +
+      (await calculateSmlCreationMbr(this.appSpec)) +
+      calculateRegistryLockerBoxCreateMbr(creatorAddress)
+    );
+  }
+
+  public async getDiscount({
+    duration,
+  }: {
+    duration: DurationType;
+  }): Promise<DiscountRecord> {
+    const getDiscountAtc = new AtomicTransactionComposer();
+    getDiscountAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "get_discount",
+        args: [
+          {
+            type: "uint64",
+            name: "duration",
+            desc: "The duration of the discount.",
+          },
+        ],
+        returns: { type: "(uint64,uint64,uint64,uint64,uint64,uint64)" },
+      }),
+      methodArgs: [duration.valueOf()],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: encodeUint64(duration.valueOf()),
+        },
+      ],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
+    });
+
+    const response = await getDiscountAtc.simulate(this.algodClient);
+    const boxContent: Array<number> = (
+      response.methodResults[0].returnValue?.valueOf() as Array<number>
+    ).map((value) => Number(value));
+
+    if (boxContent.length !== 6) {
+      throw new Error("Invalid subscription record");
     }
 
-    /* eslint-disable prettier/prettier */
     return {
-      smiID: smiID,
-      manager: state["manager"],
-      name: state["name"],
-      price: withPriceNormalization
-        ? normalizePrice(
-            Number(state["price"]),
-            asset.decimals,
-            PriceNormalizationType.PRETTY
-          )
-        : Number(state["price"]),
-      subType: state["sub_type"],
-      maxSubs: state["max_subs"],
-      activeSubs: state["active_subs"],
-      lifecycle: state["lifecycle"],
-      totalSubs: state["total_subs"],
-      coinID: state["coin_id"],
-      expiresIn: state["expires_in"],
-      createdAt: new Date(Number(state["created_at"]) * 1000),
-      discounts: discounts,
-    } as SMIState;
-    /* eslint-enable prettier/prettier */
-  }
-
-  static async getSubscriptionRecordForAccount(
-    client: AlgodClient,
-    subscriberAddress: string,
-    smiID = 0
-  ): Promise<SubscriptionRecord> {
-    const boxName = decodeAddress(subscriberAddress).publicKey;
-
-    const response = await client.getApplicationBoxByName(smiID, boxName).do();
-    const decoded = Subscription.decodeBytes(response.value);
-
-    const expiresAt =
-      Number(decoded["expires_at"]) === 0
-        ? undefined
-        : new Date(Number(decoded["expires_at"]) * 1000);
-
-    const subscriptionRecord = {
-      subID: Number(decoded["sub_id"]),
-      subType: Number(decoded["sub_type"]),
-      expiresAt: expiresAt,
-      expirationType: Number(
-        decoded["expiration_type"]
-      ) as SubscriptionExpirationType,
-      createdAt: new Date(Number(decoded["created_at"]) * 1000),
-    } as SubscriptionRecord;
-
-    return subscriptionRecord;
-  }
-
-  static async getDiscountRecordForType(
-    client: AlgodClient,
-    smiID: number,
-    expirationType: SubscriptionExpirationType
-  ): Promise<DiscountRecord> {
-    const response = await client
-      .getApplicationBoxByName(smiID, encodeUint64(expirationType))
-      .do();
-    const decoded = Discount.decodeBytes(response.value);
-
-    const expiresAt =
-      Number(decoded["expires_at"]) === 0
-        ? undefined
-        : new Date(Number(decoded["expires_at"]) * 1000);
-
-    const discountRecord = {
-      discountType: Number(decoded["discount_type"]),
-      discountValue: Number(decoded["discount_value"]),
-      expirationType: Number(decoded["expiration_type"]),
-      expiresAt: expiresAt,
-      createdAt: new Date(Number(decoded["created_at"]) * 1000),
-      totalClaims: Number(decoded["total_claims"]),
-    } as DiscountRecord;
-
-    return discountRecord;
-  }
-
-  static async subscribe(
-    {
-      subscriber,
-      smiID,
-      smrID = SUBTOPIA_REGISTRY_APP_ID,
-      expirationType = SubscriptionExpirationType.UNLIMITED,
-    }: SMISubscribeParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smi = new SMI({
-      client: client,
-      sender: sender ?? subscriber.address,
-      signer: signer ?? subscriber.signer,
-      appId: smiID,
-    });
-
-    const smr = new SMR({
-      client: client,
-      sender: sender ?? subscriber.address,
-      signer: signer ?? subscriber.signer,
-      appId: smrID,
-    });
-
-    const smiState = await SubtopiaClient.getInfrastructureState(
-      client,
-      smi.appId,
-      false
-    );
-
-    const managerLocker = await getLocker(
-      client,
-      smiState.manager,
-      smr.appAddress
-    );
-
-    const feeTxn = {
-      txn: makePaymentTxnWithSuggestedParamsFromObject({
-        from: subscriber.address,
-        to: smi.appAddress,
-        amount: Number(
-          120_000 + 100_000 + 11_300 + (smiState.coinID > 0 ? 100 : 0)
-        ),
-        suggestedParams: await getParamsWithFeeCount(client, 5),
-      }),
-      signer: subscriber.signer,
+      duration: boxContent[0],
+      discountType: boxContent[1],
+      discountValue: boxContent[2],
+      expiresAt: boxContent[3] === 0 ? undefined : new Date(boxContent[3]),
+      createdAt: new Date(boxContent[4]),
+      totalClaims: boxContent[5],
     };
+  }
 
-    let price = smiState.price * expirationTypeToMonths(expirationType);
-
-    const discount: DiscountRecord | undefined = smiState.discounts.find(
-      (d) => d.expirationType === expirationType
-    );
-
-    if (discount) {
-      price =
-        discount.discountType === DiscountType.FIXED
-          ? price - discount.discountValue
-          : price - (price * discount.discountValue) / 100;
-    }
-
-    /* eslint-disable prettier/prettier */
-    const subscribePayTxn = {
-      txn:
-        smiState.coinID === 0
-          ? makePaymentTxnWithSuggestedParamsFromObject({
-              from: subscriber.address,
-              to: managerLocker.lsig.address(),
-              amount: price,
-              suggestedParams: await getParamsWithFeeCount(client, 0),
-            })
-          : makeAssetTransferTxnWithSuggestedParamsFromObject({
-              from: subscriber.address,
-              to: managerLocker.lsig.address(),
-              amount: price,
-              assetIndex: smiState.coinID,
-              suggestedParams: await getParamsWithFeeCount(client, 0),
-            }),
-      signer: subscriber.signer,
-    };
-
-    const result = await smi.subscribe(
-      {
-        fee_txn: feeTxn,
-        subscribe_pay_txn: subscribePayTxn,
-        subscriber_account: subscriber.address,
-        expiration_type: BigInt(expirationType),
-      },
-      {
-        boxes: [
+  public async createDiscount({
+    duration,
+    discountType,
+    discountValue,
+    expiresIn,
+  }: {
+    duration: Duration;
+    discountType: DiscountType;
+    discountValue: number;
+    expiresIn: number;
+  }): Promise<{
+    txID: string;
+  }> {
+    const createDiscountAtc = new AtomicTransactionComposer();
+    createDiscountAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "create_discount",
+        args: [
           {
-            appIndex: smi.appId,
-            name: encodeUint64(expirationType),
+            type: "uint64",
+            name: "duration",
+            desc: "The duration of the discount.",
           },
           {
-            appIndex: smi.appId,
-            name: decodeAddress(subscriber.address).publicKey,
+            type: "uint64",
+            name: "discount_type",
+            desc: "The type of discount (percentage or amount).",
+          },
+          {
+            type: "uint64",
+            name: "discount_value",
+            desc: "The discount value in micro ALGOs.",
+          },
+          {
+            type: "uint64",
+            name: "expires_in",
+            desc: "The number of seconds to append to creation date",
+          },
+          {
+            type: "pay",
+            name: "fee_txn",
+            desc: "The transaction fee.",
           },
         ],
-      }
-    );
-
-    return new ABIResult<void>(result);
-  }
-
-  static async unsubscribe(
-    { subscriber, smiID }: SMIUnsubscribeParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smi = new SMI({
-      client: client,
-      sender: sender ?? subscriber.address,
-      signer: signer ?? subscriber.signer,
-      appId: smiID,
-    });
-
-    if (!smi) {
-      throw new Error("SMI not initialized");
-    }
-
-    const subscriptionRecord =
-      await SubtopiaClient.getSubscriptionRecordForAccount(
-        client,
-        subscriber.address,
-        smiID
-      );
-
-    const isOptedToPassId = await client
-      .accountAssetInformation(subscriber.address, subscriptionRecord.subID)
-      .do()
-      .then(() => true)
-      .catch(() => false);
-    const sp = await getParamsWithFeeCount(client, isOptedToPassId ? 3 : 2);
-
-    const result = await smi.unsubscribe(
-      { sub_id: BigInt(subscriptionRecord.subID) },
-      {
-        appAccounts: [subscriber.address],
-        boxes: [
-          {
-            appIndex: smiID,
-            name: decodeAddress(subscriber.address).publicKey,
-          },
-        ],
-        suggestedParams: sp,
-      }
-    );
-
-    return new ABIResult<void>(result);
-  }
-
-  static async claimSubscriptionPass(
-    { smiID, subID, subscriber }: SMIClaimSubscriptionParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smi = new SMI({
-      client: client,
-      sender: sender ?? subscriber.address,
-      signer: signer ?? subscriber.signer,
-      appId: smiID,
-    });
-
-    if (!smi) {
-      throw new Error("SMI not initialized");
-    }
-    const isOptedToPassId = await client
-      .accountAssetInformation(subscriber.address, subID)
-      .do()
-      .then(() => true)
-      .catch(() => false);
-
-    if (!isOptedToPassId) {
-      await optInAsset(client, subscriber, subID);
-    }
-
-    const sp = await getParamsWithFeeCount(client, 3);
-
-    const result = await smi.claim_subscription(
-      {
-        subscription_id: BigInt(subID),
-      },
-      { suggestedParams: sp, appForeignAssets: [subID] }
-    );
-
-    return new ABIResult<void>(result);
-  }
-
-  static async claimRevenue(
-    {
-      smrID = SUBTOPIA_REGISTRY_APP_ID,
-      user,
-      coinID = 0,
-    }: SMIClaimRevenueParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smr = new SMR({
-      client: client,
-      sender: sender ?? user.address,
-      signer: signer ?? user.signer,
-      appId: smrID,
-    });
-
-    if (!smr) {
-      throw new Error("SMI not initialized");
-    }
-
-    const locker = await getLocker(client, user.address, smr.appAddress);
-
-    const atc = new AtomicTransactionComposer();
-
-    const sp = await getParamsWithFeeCount(client, 2);
-
-    atc.addTransaction({
-      txn: makePaymentTxnWithSuggestedParamsFromObject({
-        from: user.address,
-        suggestedParams: sp,
-        to: locker.lsig.address(),
-        amount: 0,
+        returns: { type: "void" },
       }),
-      signer: user.signer,
-    });
-
-    const app_sp = await getParamsWithFeeCount(client, 0);
-    const lockerInfo = await client
-      .accountInformation(locker.lsig.address())
-      .do();
-
-    let withdrawalAmount =
-      lockerInfo["amount"] - lockerInfo["min-balance"] - 1000;
-    withdrawalAmount = withdrawalAmount < 0 ? 0 : withdrawalAmount;
-
-    if (coinID > 0) {
-      const isOptedToCoinID = await client
-        .accountAssetInformation(user.address, coinID)
-        .do()
-        .then(() => true)
-        .catch(() => false);
-      if (!isOptedToCoinID) {
-        await optInAsset(client, user, coinID);
-      }
-
-      withdrawalAmount =
-        lockerInfo["assets"].find(
-          (asset: { [x: string]: number }) => asset["asset-id"] === coinID
-        )?.amount ?? 0;
-
-      atc.addTransaction({
-        txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
-          from: locker.lsig.address(),
-          suggestedParams: app_sp,
-          to: user.address,
-          amount: withdrawalAmount,
-          assetIndex: coinID,
-        }),
-        signer: locker.signer,
-      });
-    } else {
-      atc.addTransaction({
-        txn: makePaymentTxnWithSuggestedParamsFromObject({
-          from: locker.lsig.address(),
-          suggestedParams: app_sp,
-          to: user.address,
-          amount: withdrawalAmount,
-        }),
-        signer: locker.signer,
-      });
-    }
-
-    const response = await atc.execute(client, 4);
-
-    return response.txIDs;
-  }
-
-  static async transferSubscriptionPass(
-    { newOwnerAddress, oldOwner, subID, smiID }: SMITransferSubscriptionParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smi = new SMI({
-      client: client,
-      sender: sender ?? oldOwner.address,
-      signer: signer ?? oldOwner.signer,
-      appId: smiID,
-    });
-
-    if (!smi) {
-      throw new Error("SMI not initialized");
-    }
-
-    const result = await smi.transfer_subscription(
-      {
-        new_address: newOwnerAddress,
-        subscription_id: BigInt(subID),
-      },
-      {
-        appAccounts: [newOwnerAddress],
-        appForeignAssets: [subID],
-        suggestedParams: await getParamsWithFeeCount(client, 2),
-        boxes: [
-          {
-            appIndex: smi.appId,
-            name: decodeAddress(oldOwner.address).publicKey,
-          },
-
-          {
-            appIndex: smi.appId,
-            name: decodeAddress(newOwnerAddress).publicKey,
-          },
-        ],
-      }
-    );
-
-    return new ABIResult<void>(result);
-  }
-
-  static async markForDeletion(
-    { smiID, user, smrID = SUBTOPIA_REGISTRY_APP_ID }: SMIMarkForDeletionParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smi = new SMI({
-      client: client,
-      sender: sender ?? user.address,
-      signer: signer ?? user.signer,
-      appId: smiID,
-    });
-
-    const smr = new SMR({
-      client: client,
-      sender: sender ?? user.address,
-      signer: signer ?? user.signer,
-      appId: smrID,
-    });
-
-    if (!smi) {
-      throw new Error("SMI not initialized");
-    }
-
-    const smiState = await SubtopiaClient.getInfrastructureState(
-      client,
-      smi.appId,
-      false
-    );
-
-    const sp = await getParamsWithFeeCount(client, 3);
-    const userLocker = await getLocker(client, user.address, smr.appAddress);
-
-    const result = await smi.mark_for_deletion(
-      {
-        locker_fund_txn: {
-          txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: user.address,
-            to: userLocker.lsig.address(),
-            amount: (
-              await getParamsWithFeeCount(client, 3 * smiState.activeSubs)
-            ).fee,
-            suggestedParams: await getParamsWithFeeCount(client, 2),
-          }),
-          signer: user.signer,
-        },
-      },
-      {
-        suggestedParams: sp,
-      }
-    );
-
-    return new ABIResult<void>(result);
-  }
-
-  static async deleteSubscription(
-    {
-      smiID,
-      user,
-      smrID = SUBTOPIA_REGISTRY_APP_ID,
-    }: SMIDeleteSubscriptionParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smi = new SMI({
-      client: client,
-      sender: sender ?? user.address,
-      signer: signer ?? user.signer,
-      appId: smiID,
-    });
-
-    const smr = new SMR({
-      client: client,
-      sender: sender ?? user.address,
-      signer: signer ?? user.signer,
-      appId: smrID,
-    });
-
-    if (!smi) {
-      throw new Error("SMI not initialized");
-    }
-
-    const smiState = await SubtopiaClient.getInfrastructureState(
-      client,
-      smi.appId,
-      false
-    );
-
-    // True if the subscription is marked for deletion, value 1
-    if (!smiState.lifecycle) {
-      await SubtopiaClient.markForDeletion(
+      methodArgs: [
+        duration.valueOf(),
+        discountType.valueOf(),
+        discountValue,
+        expiresIn,
         {
-          smiID: smiID,
-          smrID: smrID,
-          user: user,
+          txn: makePaymentTxnWithSuggestedParamsFromObject({
+            from: this.creator.addr,
+            to: this.appAddress,
+            amount: calculateProductDiscountBoxCreateMbr(),
+            suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
+          }),
+          signer: this.creator.signer,
+        },
+      ],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: encodeUint64(duration.valueOf()),
+        },
+      ],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
+    });
+
+    const response = await createDiscountAtc.execute(this.algodClient, 10);
+
+    return {
+      txID: response.txIDs.pop() as string,
+    };
+  }
+
+  public async deleteDiscount({
+    duration,
+  }: {
+    duration: DurationType;
+  }): Promise<{
+    txID: string;
+  }> {
+    const deleteDiscountAtc = new AtomicTransactionComposer();
+    deleteDiscountAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "delete_discount",
+        args: [
+          {
+            type: "uint64",
+            name: "duration",
+            desc: "The duration of the discount.",
+          },
+        ],
+        returns: { type: "void" },
+      }),
+      methodArgs: [duration.valueOf()],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: encodeUint64(duration.valueOf()),
+        },
+      ],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
+    });
+
+    const response = await deleteDiscountAtc.execute(this.algodClient, 10);
+
+    return {
+      txID: response.txIDs.pop() as string,
+    };
+  }
+
+  public async createSubscription({
+    subscriber,
+    duration,
+  }: {
+    subscriber: TransactionSignerAccount;
+    duration: DurationType;
+  }): Promise<{
+    txID: string;
+    subscriptionID: number;
+  }> {
+    const oracleAdminState = (
+      await getAppGlobalState(this.oracleID, this.algodClient)
+    ).admin;
+    const adminAddress = encodeAddress(
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      oracleAdminState.valueRaw
+    );
+    const platformFeeAmount = await this.getSubscriptionPlatformFee(
+      SUBSCRIPTION_PLATFORM_FEE_CENTS
+    );
+    const creatorLockerId = await SubtopiaRegistryClient.getLocker({
+      registryID: TESTNET_SUBTOPIA_REGISTRY_ID,
+      algodClient: this.algodClient,
+      ownerAddress: this.creator.addr,
+    });
+
+    if (!creatorLockerId) {
+      throw new Error("Creator locker is not initialized");
+    }
+
+    const lockerAddress = getApplicationAddress(creatorLockerId);
+
+    const createSubscriptionAtc = new AtomicTransactionComposer();
+    createSubscriptionAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "create_subscription",
+        args: [
+          {
+            type: "address",
+            name: "subscriber",
+            desc: "The subscriber's address.",
+          },
+          {
+            type: "uint64",
+            name: "duration",
+            desc: "The duration of the subscription.",
+          },
+          {
+            type: "application",
+            name: "creator_locker",
+            desc: "The locker of creator",
+          },
+          {
+            type: "application",
+            name: "oracle_id",
+            desc: "The oracle app used.",
+          },
+          {
+            type: "pay",
+            name: "fee_txn",
+            desc: "The transaction fee paid to the app.",
+          },
+          {
+            type: "pay",
+            name: "platform_fee_txn",
+            desc: "The platform fee paid.",
+          },
+          {
+            type: "txn",
+            name: "pay_txn",
+            desc: "The payment transaction to fund the subscription.",
+          },
+        ],
+        returns: { type: "uint64" },
+      }),
+      methodArgs: [
+        subscriber.addr,
+        duration.valueOf(),
+        creatorLockerId,
+        this.oracleID,
+        {
+          txn: makePaymentTxnWithSuggestedParamsFromObject({
+            from: subscriber.addr,
+            to: this.appAddress,
+            amount:
+              calculateProductSubscriptionBoxCreateMbr(subscriber.addr) +
+              algosToMicroalgos(MIN_APP_OPTIN_MBR),
+            suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
+          }),
+          signer: subscriber.signer,
         },
         {
-          client: client,
-        }
-      );
-    }
-
-    const maxTxnsPerGroup = 16;
-    const userLocker = await getLocker(client, user.address, smr.appAddress);
-    const subscribersFromBoxes: string[] = (
-      await client.getApplicationBoxes(smiID).do()
-    )["boxes"].map((item) => {
-      return encodeAddress(item.name);
-    });
-
-    for (let i = 0; i < subscribersFromBoxes.length; i += maxTxnsPerGroup) {
-      const subscribesSubsetFromBoxes = subscribersFromBoxes.slice(
-        i,
-        i + maxTxnsPerGroup
-      );
-      const atc = new AtomicTransactionComposer();
-
-      const methodCalls = subscribesSubsetFromBoxes.map(
-        async (subscriber: string, j: number) => {
-          const subscriberBox =
-            await SubtopiaClient.getSubscriptionRecordForAccount(
-              client,
-              subscriber,
-              smiID
-            );
-          atc.addMethodCall({
-            sender: userLocker.authAddress,
-            signer: userLocker.signer,
-            appID: smiID,
-            method: algosdk.getMethodByName(smi.methods, "delete_subscription"),
-            methodArgs: [subscriber, subscriberBox.subID],
-            appForeignAssets: [subscriberBox.subID],
-            appAccounts: [subscriber],
-            boxes: [
-              {
-                appIndex: smi.appId,
-                name: decodeAddress(subscriber).publicKey,
-              },
-            ],
-            suggestedParams:
-              j === 0
-                ? await getParamsWithFeeCount(
-                    client,
-                    3 * subscribesSubsetFromBoxes.length
-                  )
-                : await getParamsWithFeeCount(client, 0),
-          });
-        }
-      );
-
-      await Promise.all(methodCalls);
-
-      await atc.execute(client, DEFAULT_AWAIT_ROUNDS);
-    }
-
-    if (userLocker.authAddress !== smr.appAddress) {
-      const response = await rekeyLocker({
-        client: client,
-        locker: userLocker.lsig,
-        creatorAddress: user.address,
-        creatorSigner: user.signer,
-        registryAddress: smr.appAddress,
-        registrySigner: smr.signer,
-        rekeyToAddress: smr.appAddress,
-      });
-      console.log("Rekeyed locker", response);
-    }
-
-    const response = await smr.delete_smi(
-      {
-        smi_id: BigInt(smiID),
-      },
-      {
-        appForeignApps: [smiID],
-        appAccounts: [userLocker.lsig.address()],
-        suggestedParams: await getParamsWithFeeCount(client, 4),
-      }
-    );
-
-    return response;
-  }
-
-  static async createDiscount(
-    { smiID, creator, discount }: SMICreateDiscountParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smi = new SMI({
-      client: client,
-      sender: sender ?? creator.address,
-      signer: signer ?? creator.signer,
-      appId: smiID,
-    });
-
-    if (!smi) {
-      throw new Error("SMI not initialized");
-    }
-
-    const smiState = await SubtopiaClient.getInfrastructureState(
-      client,
-      smi.appId,
-      false
-    );
-    const asset = await getAssetByID(client, smiState.coinID);
-
-    const result = await smi.create_discount(
-      {
-        expiration_type: BigInt(discount.expirationType),
-        discount_value: BigInt(
-          discount.discountType === DiscountType.FIXED
-            ? normalizePrice(
-                discount.discountValue,
-                asset.decimals,
-                PriceNormalizationType.RAW
-              )
-            : discount.discountValue
-        ),
-        discount_type: BigInt(discount.discountType),
-        expires_in: BigInt(discount.expiresIn ?? 0),
-        fee_txn: {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: creator.address,
-            to: smi.appAddress,
-            amount: 100_000 + 24900,
-            suggestedParams: await getParamsWithFeeCount(client, 0),
+            from: subscriber.addr,
+            to: adminAddress,
+            amount: platformFeeAmount,
+            suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
-          signer: creator.signer,
+          signer: subscriber.signer,
         },
-      },
-      {
-        suggestedParams: await getParamsWithFeeCount(client, 2),
-        boxes: [
-          {
-            appIndex: smi.appId,
-            name: encodeUint64(discount.expirationType),
-          },
-        ],
-      }
-    );
-
-    return new ABIResult<void>(result);
-  }
-
-  static async deleteDiscount(
-    { smiID, creator, expirationType }: SMIDeleteDiscountParams,
-    { client, sender, signer }: ChainMethodParams
-  ) {
-    const smi = new SMI({
-      client: client,
-      sender: sender ?? creator.address,
-      signer: signer ?? creator.signer,
-      appId: smiID,
+        this.coin.index === 0
+          ? {
+              txn: makePaymentTxnWithSuggestedParamsFromObject({
+                from: subscriber.addr,
+                to: lockerAddress,
+                amount: this.price,
+                suggestedParams: await getParamsWithFeeCount(
+                  this.algodClient,
+                  0
+                ),
+              }),
+              signer: subscriber.signer,
+            }
+          : {
+              txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
+                from: subscriber.addr,
+                to: lockerAddress,
+                amount: normalizePrice(
+                  this.price,
+                  this.coin.decimals,
+                  PriceNormalizationType.RAW
+                ),
+                assetIndex: this.coin.index,
+                suggestedParams: await getParamsWithFeeCount(
+                  this.algodClient,
+                  0
+                ),
+              }),
+              signer: subscriber.signer,
+            },
+      ],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(subscriber.addr).publicKey,
+        },
+        {
+          appIndex: this.appID,
+          name: encodeUint64(duration.valueOf()),
+        },
+      ],
+      sender: subscriber.addr,
+      signer: subscriber.signer,
+      suggestedParams: await getParamsWithFeeCount(
+        this.algodClient,
+        this.coin.index > 0 ? 6 : 5
+      ),
     });
 
-    if (!smi) {
-      throw new Error("SMI not initialized");
-    }
+    const response = await createSubscriptionAtc.execute(this.algodClient, 10);
 
-    const result = await smi.delete_discount(
-      {
-        expiration_type: BigInt(expirationType),
-      },
-      {
-        signer: creator.signer,
-        suggestedParams: await getParamsWithFeeCount(client, 2),
-        boxes: [
+    return {
+      txID: response.txIDs.pop() as string,
+      subscriptionID: Number(response.methodResults[0].returnValue),
+    };
+  }
+
+  public async transferSubscription({
+    oldSubscriber,
+    newSubscriberAddress,
+    subscriptionID,
+  }: {
+    oldSubscriber: TransactionSignerAccount;
+    newSubscriberAddress: string;
+    subscriptionID: number;
+  }): Promise<{
+    txID: string;
+  }> {
+    const transferSubscriptionAtc = new AtomicTransactionComposer();
+    transferSubscriptionAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "transfer_subscription",
+        args: [
           {
-            appIndex: smi.appId,
-            name: encodeUint64(expirationType),
+            type: "address",
+            name: "new_subscriber",
+            desc: "The new address to transfer the subscription to.",
+          },
+          {
+            type: "asset",
+            name: "subscription",
+            desc: "The subscription asset.",
           },
         ],
-      }
+        returns: { type: "void" },
+      }),
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(oldSubscriber.addr).publicKey,
+        },
+        {
+          appIndex: this.appID,
+          name: decodeAddress(newSubscriberAddress).publicKey,
+        },
+      ],
+      methodArgs: [newSubscriberAddress, subscriptionID],
+      sender: oldSubscriber.addr,
+      signer: oldSubscriber.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
+    });
+
+    const response = await transferSubscriptionAtc.execute(
+      this.algodClient,
+      10
     );
 
-    return new ABIResult<void>(result);
+    return {
+      txID: response.txIDs.pop() as string,
+    };
+  }
+
+  public async claimSubscription({
+    subscriber,
+    subscriptionID,
+  }: {
+    subscriber: TransactionSignerAccount;
+    subscriptionID: number;
+  }): Promise<{
+    txID: string;
+  }> {
+    const claimSubscriptionAtc = new AtomicTransactionComposer();
+    claimSubscriptionAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "claim_subscription",
+        args: [
+          {
+            type: "asset",
+            name: "subscription",
+            desc: "The subscription ASA ID.",
+          },
+        ],
+        returns: { type: "void" },
+      }),
+      methodArgs: [subscriptionID],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(subscriber.addr).publicKey,
+        },
+      ],
+      sender: subscriber.addr,
+      signer: subscriber.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
+    });
+
+    const response = await claimSubscriptionAtc.execute(this.algodClient, 10);
+
+    return {
+      txID: response.txIDs.pop() as string,
+    };
+  }
+
+  public async deleteSubscription({
+    subscriber,
+    subscriptionID,
+  }: {
+    subscriber: TransactionSignerAccount;
+    subscriptionID: number;
+  }): Promise<{
+    txID: string;
+  }> {
+    const deleteSubscriptionAtc = new AtomicTransactionComposer();
+    deleteSubscriptionAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "delete_subscription",
+        args: [
+          {
+            type: "asset",
+            name: "subscription",
+            desc: "The subscription ASA ID.",
+          },
+        ],
+        returns: { type: "uint64" },
+      }),
+      methodArgs: [subscriptionID],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(subscriber.addr).publicKey,
+        },
+      ],
+      sender: subscriber.addr,
+      signer: subscriber.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 3),
+    });
+
+    const response = await deleteSubscriptionAtc.execute(this.algodClient, 10);
+
+    return {
+      txID: response.txIDs.pop() as string,
+    };
+  }
+
+  public async isSubscriber({
+    subscriberAddress,
+  }: {
+    subscriberAddress: string;
+  }): Promise<boolean> {
+    const isSubscriberAtc = new AtomicTransactionComposer();
+    isSubscriberAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "is_subscriber",
+        args: [
+          {
+            type: "address",
+            name: "subscriber",
+            desc: "The subscriber address.",
+          },
+        ],
+        returns: { type: "uint64" },
+      }),
+      methodArgs: [subscriberAddress],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(subscriberAddress).publicKey,
+        },
+      ],
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
+    });
+
+    const response = await isSubscriberAtc.simulate(this.algodClient);
+
+    return Boolean(response.methodResults[0].returnValue);
+  }
+
+  public async getSubscription({
+    algodClient,
+    subscriberAddress,
+  }: {
+    algodClient: AlgodClient;
+    subscriberAddress: string;
+  }): Promise<SubscriptionRecord> {
+    const getSubscriptionAtc = new AtomicTransactionComposer();
+    getSubscriptionAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "get_subscription",
+        args: [
+          {
+            type: "address",
+            name: "subscriber",
+            desc: "The subscriber address.",
+          },
+        ],
+        returns: { type: "(uint64,uint64,uint64,uint64,uint64)" },
+      }),
+      methodArgs: [subscriberAddress],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: decodeAddress(subscriberAddress).publicKey,
+        },
+      ],
+      suggestedParams: await getParamsWithFeeCount(algodClient, 1),
+    });
+
+    const response = await getSubscriptionAtc.simulate(algodClient);
+    const boxContent: Array<number> = (
+      response.methodResults[0].returnValue?.valueOf() as Array<number>
+    ).map((value) => Number(value));
+
+    if (boxContent.length !== 5) {
+      throw new Error("Invalid subscription record");
+    }
+
+    return {
+      subType: boxContent[0],
+      subID: boxContent[1],
+      createdAt: new Date(boxContent[2]),
+      expiresAt: boxContent[3] === 0 ? undefined : new Date(boxContent[3]),
+      duration: boxContent[4],
+    };
   }
 }

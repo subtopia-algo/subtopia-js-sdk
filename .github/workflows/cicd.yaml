@@ -9,6 +9,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      production_release:
+        description: "Production release?"
+        required: true
+        default: "true"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -158,7 +163,7 @@ jobs:
       - name: Run build
         run: npm run build
 
-      - name: Release
+      - name: release
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

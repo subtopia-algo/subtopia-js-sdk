@@ -11,15 +11,5 @@ export default defineConfig({
       formats: ["es", "cjs", "umd", "iife"],
       fileName: (format) => `index.${format}.js`,
     },
-    rollupOptions: {
-      external: ["algosdk", "beaker-ts"],
-      output: {
-        sourcemap: true,
-        globals: {
-          algosdk: "algosdk",
-          "beaker-ts": "beaker-ts",
-        },
-      },
-    },
   },
 });

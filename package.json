@@ -26,10 +26,8 @@
     "release": "semantic-release",
     "pre-commit": "npm run lint:scripts && npm run format:scripts && npm run test:integration"
   },
-  "dependencies": {
-    "@algorandfoundation/algokit-utils": "^2.3.2"
-  },
   "peerDependencies": {
+    "@algorandfoundation/algokit-utils": "^2.3.2",
     "algosdk": "^2.5.0"
   },
   "devDependencies": {

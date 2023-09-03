@@ -48,3 +48,19 @@ export interface AssetMetadata {
 export interface DiscountMetadata extends BaseDiscountRecord {
   expiresIn?: number;
 }
+
+export interface ProductGlobalState {
+  productName: string;
+  subscriptionName: string;
+  manager: string;
+  price: number;
+  totalSubs: number;
+  maxSubs: number;
+  coinID: number;
+  subType: SubscriptionType;
+  lifecycle: number;
+  createdAt: number;
+  oracleID: number;
+  unitName: string;
+  imageURL: string;
+}

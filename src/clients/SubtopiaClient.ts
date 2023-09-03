@@ -49,6 +49,7 @@ import {
   ApplicationSpec,
   AssetMetadata,
   DiscountRecord,
+  ProductGlobalState,
   SubscriptionRecord,
 } from "interfaces";
 
@@ -172,6 +173,43 @@ export class SubtopiaClient {
       coin,
       version,
     });
+  }
+
+  public async getGlobalState(
+    withPriceNormalization = true
+  ): Promise<ProductGlobalState> {
+    const globalState = await getAppGlobalState(
+      this.appID,
+      this.algodClient
+    ).catch((error) => {
+      throw new Error(error);
+    });
+
+    return {
+      productName: String(globalState.product_name.value),
+      subscriptionName: String(globalState.subscription_name.value),
+      manager: encodeAddress(
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        globalState.manager.valueRaw
+      ),
+      price: withPriceNormalization
+        ? normalizePrice(
+            Number(globalState.price.value),
+            this.coin.decimals,
+            PriceNormalizationType.RAW
+          )
+        : Number(globalState.price.value),
+      totalSubs: Number(globalState.total_subs.value),
+      maxSubs: Number(globalState.max_subs.value),
+      coinID: Number(globalState.coin_id.value),
+      subType: Number(globalState.sub_type.value),
+      lifecycle: Number(globalState.lifecycle.value),
+      createdAt: Number(globalState.created_at.value),
+      oracleID: Number(globalState.oracle_id.value),
+      unitName: String(globalState.unit_name.value),
+      imageURL: String(globalState.image_url.value),
+    };
   }
 
   public async getSubscriptionPrice(coinID = 0): Promise<number> {

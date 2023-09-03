@@ -155,6 +155,9 @@ describe("subtopia", () => {
         duration: DurationType.UNLIMITED,
       });
 
+      const productClientGlobalState = await productClient.getGlobalState();
+      expect(productClientGlobalState.totalSubs).toBe(1);
+
       expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
 
       const getSubscriptionResponse = await productClient.getSubscription({

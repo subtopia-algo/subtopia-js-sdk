@@ -155,7 +155,7 @@ describe("subtopia", () => {
         duration: DurationType.UNLIMITED,
       });
 
-      const productClientGlobalState = await productClient.getGlobalState();
+      const productClientGlobalState = await productClient.getAppState();
       expect(productClientGlobalState.totalSubs).toBe(1);
 
       expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
@@ -272,6 +272,11 @@ describe("subtopia", () => {
       });
 
       expect(createDiscountResponse.txID).toBeDefined();
+
+      const productState = await productClient.getAppState();
+
+      expect(productState.discounts.length).toBe(1);
+      expect(productState.discounts[0].duration).toBe(Duration.MONTH.valueOf());
 
       const getDiscountResponse = await productClient.getDiscount({
         duration: Duration.MONTH.valueOf(),

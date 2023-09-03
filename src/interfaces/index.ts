@@ -49,7 +49,7 @@ export interface DiscountMetadata extends BaseDiscountRecord {
   expiresIn?: number;
 }
 
-export interface ProductGlobalState {
+interface ProductGlobalState {
   productName: string;
   subscriptionName: string;
   manager: string;
@@ -63,4 +63,8 @@ export interface ProductGlobalState {
   oracleID: number;
   unitName: string;
   imageURL: string;
+}
+
+export interface ProductState extends ProductGlobalState {
+  discounts: DiscountRecord[];
 }

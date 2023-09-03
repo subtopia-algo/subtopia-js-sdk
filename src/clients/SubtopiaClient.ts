@@ -37,6 +37,7 @@ import {
   DurationType,
   DiscountType,
   Duration,
+  SubscriptionType,
 } from "../enums";
 
 import {
@@ -49,7 +50,7 @@ import {
   ApplicationSpec,
   AssetMetadata,
   DiscountRecord,
-  ProductGlobalState,
+  ProductState,
   SubscriptionRecord,
 } from "interfaces";
 
@@ -175,15 +176,38 @@ export class SubtopiaClient {
     });
   }
 
-  public async getGlobalState(
+  public async getAppState(
     withPriceNormalization = true
-  ): Promise<ProductGlobalState> {
+  ): Promise<ProductState> {
     const globalState = await getAppGlobalState(
       this.appID,
       this.algodClient
     ).catch((error) => {
       throw new Error(error);
     });
+
+    const durations = [];
+    if (Number(globalState.sub_type.value) === SubscriptionType.UNLIMITED) {
+      durations.push(Duration.UNLIMITED);
+    } else {
+      durations.push(
+        Duration.MONTH,
+        Duration.QUARTER,
+        Duration.SEMI_ANNUAL,
+        Duration.ANNUAL
+      );
+    }
+
+    const discounts = [];
+    for (const duration of durations) {
+      try {
+        const discount = await this.getDiscount({ duration });
+        discounts.push(discount);
+      } catch (error) {
+        // Ignore
+        continue;
+      }
+    }
 
     return {
       productName: String(globalState.product_name.value),
@@ -209,6 +233,7 @@ export class SubtopiaClient {
       oracleID: Number(globalState.oracle_id.value),
       unitName: String(globalState.unit_name.value),
       imageURL: String(globalState.image_url.value),
+      discounts: discounts,
     };
   }
 
@@ -260,7 +285,7 @@ export class SubtopiaClient {
   public async getDiscount({
     duration,
   }: {
-    duration: DurationType;
+    duration: Duration;
   }): Promise<DiscountRecord> {
     const getDiscountAtc = new AtomicTransactionComposer();
     getDiscountAtc.addMethodCall({
@@ -289,9 +314,11 @@ export class SubtopiaClient {
     });
 
     const response = await getDiscountAtc.simulate(this.algodClient);
-    const boxContent: Array<number> = (
-      response.methodResults[0].returnValue?.valueOf() as Array<number>
-    ).map((value) => Number(value));
+    const rawContent = response.methodResults[0].returnValue?.valueOf();
+
+    const boxContent: Array<number> = Array.isArray(rawContent)
+      ? rawContent.map((value) => Number(value))
+      : [];
 
     if (boxContent.length !== 6) {
       throw new Error("Invalid subscription record");

@@ -16,3 +16,10 @@ export {
 
 export * from "./interfaces";
 export * from "./enums";
+export {
+  LOCKER_VERSION,
+  REGISTRY_VERSION,
+  ORACLE_VERSION,
+  PRODUCT_VERSION,
+  SUBTOPIA_REGISTRY_ID,
+} from "./constants";

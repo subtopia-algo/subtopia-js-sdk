@@ -42,6 +42,6 @@ export const PRODUCT_CREATION_PLATFORM_FEE_CENTS = 500;
 
 // Algorand minimum transaction fee
 export const REGISTRY_VERSION = "1.0";
-export const PRODUCTVERSION = "1.0";
+export const PRODUCT_VERSION = "1.0";
 export const LOCKER_VERSION = "1.0";
 export const ORACLE_VERSION = "1.0";

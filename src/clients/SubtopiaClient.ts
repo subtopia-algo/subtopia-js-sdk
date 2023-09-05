@@ -243,7 +243,7 @@ export class SubtopiaClient {
         ? normalizePrice(
             Number(globalState.price.value),
             this.coin.decimals,
-            PriceNormalizationType.RAW
+            PriceNormalizationType.PRETTY
           )
         : Number(globalState.price.value),
       totalSubs: Number(globalState.total_subs.value),

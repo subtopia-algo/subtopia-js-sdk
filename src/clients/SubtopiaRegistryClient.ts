@@ -12,6 +12,10 @@ import algosdk, {
   makePaymentTxnWithSuggestedParamsFromObject,
   ABIMethod,
   getApplicationAddress,
+  makeEmptyTransactionSigner,
+  modelsv2,
+  decodeObj,
+  EncodedSignedTransaction,
 } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
@@ -112,10 +116,26 @@ export class SubtopiaRegistryClient {
         returns: { type: "string" },
       }),
       sender: creator.addr,
-      signer: creator.signer,
+      signer: makeEmptyTransactionSigner(),
       suggestedParams: await getParamsWithFeeCount(algodClient, 1),
     });
-    const response = await versionAtc.simulate(algodClient);
+    const group = versionAtc
+      .buildGroup()
+      .map((txn) => algosdk.encodeUnsignedSimulateTransaction(txn.txn));
+
+    const request = new modelsv2.SimulateRequest({
+      allowEmptySignatures: true,
+      txnGroups: [
+        new modelsv2.SimulateRequestTransactionGroup({
+          // Must decode the signed txn bytes into an object
+          txns: group.map((txn) =>
+            decodeObj(txn)
+          ) as EncodedSignedTransaction[],
+        }),
+      ],
+    });
+
+    const response = await versionAtc.simulate(algodClient, request);
     const version = response.methodResults[0].returnValue as string;
 
     return new SubtopiaRegistryClient({
@@ -172,7 +192,26 @@ export class SubtopiaRegistryClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
-    const response = await computePlatformFeeAtc.simulate(this.algodClient);
+    const group = computePlatformFeeAtc
+      .buildGroup()
+      .map((txn) => algosdk.encodeUnsignedSimulateTransaction(txn.txn));
+
+    const request = new modelsv2.SimulateRequest({
+      allowEmptySignatures: true,
+      txnGroups: [
+        new modelsv2.SimulateRequestTransactionGroup({
+          // Must decode the signed txn bytes into an object
+          txns: group.map((txn) =>
+            decodeObj(txn)
+          ) as EncodedSignedTransaction[],
+        }),
+      ],
+    });
+
+    const response = await computePlatformFeeAtc.simulate(
+      this.algodClient,
+      request
+    );
 
     return Number(response.methodResults[0].returnValue);
   }

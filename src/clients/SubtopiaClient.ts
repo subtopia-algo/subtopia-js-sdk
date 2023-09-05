@@ -6,13 +6,17 @@
 import algosdk, {
   ABIMethod,
   AtomicTransactionComposer,
+  EncodedSignedTransaction,
   algosToMicroalgos,
   decodeAddress,
+  decodeObj,
   encodeAddress,
   encodeUint64,
   getApplicationAddress,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
+  makeEmptyTransactionSigner,
   makePaymentTxnWithSuggestedParamsFromObject,
+  modelsv2,
 } from "algosdk";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
@@ -133,6 +137,7 @@ export class SubtopiaClient {
     const subscriptionName = String(productGlobalState.subscription_name.value);
 
     const versionAtc = new AtomicTransactionComposer();
+
     versionAtc.addMethodCall({
       appID: productID,
       method: new ABIMethod({
@@ -141,10 +146,27 @@ export class SubtopiaClient {
         returns: { type: "string" },
       }),
       sender: creator.addr,
-      signer: creator.signer,
+      signer: makeEmptyTransactionSigner(),
       suggestedParams: await getParamsWithFeeCount(algodClient, 1),
     });
-    const response = await versionAtc.simulate(algodClient);
+
+    const group = versionAtc
+      .buildGroup()
+      .map((txn) => algosdk.encodeUnsignedSimulateTransaction(txn.txn));
+
+    const request = new modelsv2.SimulateRequest({
+      allowEmptySignatures: true,
+      txnGroups: [
+        new modelsv2.SimulateRequestTransactionGroup({
+          // Must decode the signed txn bytes into an object
+          txns: group.map((txn) =>
+            decodeObj(txn)
+          ) as EncodedSignedTransaction[],
+        }),
+      ],
+    });
+
+    const response = await versionAtc.simulate(algodClient, request);
     const version = response.methodResults[0].returnValue as string;
     const coin = await getAssetByID(
       algodClient,
@@ -265,11 +287,30 @@ export class SubtopiaClient {
       }),
       methodArgs: [priceInCents],
       sender: this.creator.addr,
-      signer: this.creator.signer,
+      signer: makeEmptyTransactionSigner(),
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
-    const response = await computePlatformFeeAtc.simulate(this.algodClient);
+    const group = computePlatformFeeAtc
+      .buildGroup()
+      .map((txn) => algosdk.encodeUnsignedSimulateTransaction(txn.txn));
+
+    const request = new modelsv2.SimulateRequest({
+      allowEmptySignatures: true,
+      txnGroups: [
+        new modelsv2.SimulateRequestTransactionGroup({
+          // Must decode the signed txn bytes into an object
+          txns: group.map((txn) =>
+            decodeObj(txn)
+          ) as EncodedSignedTransaction[],
+        }),
+      ],
+    });
+
+    const response = await computePlatformFeeAtc.simulate(
+      this.algodClient,
+      request
+    );
 
     return Number(response.methodResults[0].returnValue);
   }
@@ -309,11 +350,27 @@ export class SubtopiaClient {
         },
       ],
       sender: this.creator.addr,
-      signer: this.creator.signer,
+      signer: makeEmptyTransactionSigner(),
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
-    const response = await getDiscountAtc.simulate(this.algodClient);
+    const group = getDiscountAtc
+      .buildGroup()
+      .map((txn) => algosdk.encodeUnsignedSimulateTransaction(txn.txn));
+
+    const request = new modelsv2.SimulateRequest({
+      allowEmptySignatures: true,
+      txnGroups: [
+        new modelsv2.SimulateRequestTransactionGroup({
+          // Must decode the signed txn bytes into an object
+          txns: group.map((txn) =>
+            decodeObj(txn)
+          ) as EncodedSignedTransaction[],
+        }),
+      ],
+    });
+
+    const response = await getDiscountAtc.simulate(this.algodClient, request);
     const rawContent = response.methodResults[0].returnValue?.valueOf();
 
     const boxContent: Array<number> = Array.isArray(rawContent)
@@ -774,7 +831,7 @@ export class SubtopiaClient {
       }),
       methodArgs: [subscriberAddress],
       sender: this.creator.addr,
-      signer: this.creator.signer,
+      signer: makeEmptyTransactionSigner(),
       boxes: [
         {
           appIndex: this.appID,
@@ -784,7 +841,23 @@ export class SubtopiaClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
-    const response = await isSubscriberAtc.simulate(this.algodClient);
+    const group = isSubscriberAtc
+      .buildGroup()
+      .map((txn) => algosdk.encodeUnsignedSimulateTransaction(txn.txn));
+
+    const request = new modelsv2.SimulateRequest({
+      allowEmptySignatures: true,
+      txnGroups: [
+        new modelsv2.SimulateRequestTransactionGroup({
+          // Must decode the signed txn bytes into an object
+          txns: group.map((txn) =>
+            decodeObj(txn)
+          ) as EncodedSignedTransaction[],
+        }),
+      ],
+    });
+
+    const response = await isSubscriberAtc.simulate(this.algodClient, request);
 
     return Boolean(response.methodResults[0].returnValue);
   }
@@ -812,7 +885,7 @@ export class SubtopiaClient {
       }),
       methodArgs: [subscriberAddress],
       sender: this.creator.addr,
-      signer: this.creator.signer,
+      signer: makeEmptyTransactionSigner(),
       boxes: [
         {
           appIndex: this.appID,
@@ -822,7 +895,23 @@ export class SubtopiaClient {
       suggestedParams: await getParamsWithFeeCount(algodClient, 1),
     });
 
-    const response = await getSubscriptionAtc.simulate(algodClient);
+    const group = getSubscriptionAtc
+      .buildGroup()
+      .map((txn) => algosdk.encodeUnsignedSimulateTransaction(txn.txn));
+
+    const request = new modelsv2.SimulateRequest({
+      allowEmptySignatures: true,
+      txnGroups: [
+        new modelsv2.SimulateRequestTransactionGroup({
+          // Must decode the signed txn bytes into an object
+          txns: group.map((txn) =>
+            decodeObj(txn)
+          ) as EncodedSignedTransaction[],
+        }),
+      ],
+    });
+
+    const response = await getSubscriptionAtc.simulate(algodClient, request);
     const boxContent: Array<number> = (
       response.methodResults[0].returnValue?.valueOf() as Array<number>
     ).map((value) => Number(value));

@@ -43,3 +43,8 @@ export enum LockerType {
   CREATOR = 0,
   USER = 1,
 }
+
+export enum LifecycleState {
+  ENABLED = 0,
+  DISABLED = 1,
+}

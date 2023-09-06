@@ -58,7 +58,7 @@ jobs:
         run: npm run lint:scripts
 
   unit-tests:
-    name: Unit tests
+    name: Integration tests (TestNet)
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

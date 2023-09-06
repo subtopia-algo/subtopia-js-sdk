@@ -26,25 +26,28 @@ import {
   transactionSignerAccount,
   transferAlgos,
 } from "@algorandfoundation/algokit-utils";
+import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
+
+const CONFIG = {
+  SERVER_URL: "https://testnet-api.algonode.cloud",
+  DISPENSER_MNEMONIC: process.env[
+    "TESTNET_SUBTOPIA_DISPENSER_MNEMONIC"
+  ] as string,
+  CREATOR_MNEMONIC: process.env["TESTNET_SUBTOPIA_CREATOR_MNEMONIC"] as string,
+  BOB_MNEMONIC: process.env["TESTNET_SUBTOPIA_BOB_MNEMONIC"] as string,
+};
 
 const algodClient = getAlgoClient({
-  server: "https://testnet-api.algonode.cloud",
+  server: CONFIG.SERVER_URL,
 });
 
-const dispenserAccount = mnemonicToSecretKey(
-  process.env["TESTNET_SUBTOPIA_DISPENSER_MNEMONIC"] as string
-);
+const dispenserAccount = mnemonicToSecretKey(CONFIG.DISPENSER_MNEMONIC);
+const creatorAccount = mnemonicToSecretKey(CONFIG.CREATOR_MNEMONIC);
+const bobTestAccount = mnemonicToSecretKey(CONFIG.BOB_MNEMONIC);
 
-const creatorAccount = mnemonicToSecretKey(
-  process.env["TESTNET_SUBTOPIA_CREATOR_MNEMONIC"] as string
-);
 const creatorSignerAccount = transactionSignerAccount(
   makeBasicAccountTransactionSigner(creatorAccount),
   creatorAccount.addr
-);
-
-const bobTestAccount = mnemonicToSecretKey(
-  process.env["TESTNET_SUBTOPIA_BOB_MNEMONIC"] as string
 );
 
 const refundTestnetAlgos = async (account: Account) => {
@@ -64,6 +67,31 @@ const refundTestnetAlgos = async (account: Account) => {
     );
   }
 };
+
+async function setupSubtopiaRegistryClient(
+  signerAccount: TransactionSignerAccount
+) {
+  const subtopiaRegistryClient = await SubtopiaRegistryClient.init(
+    algodClient,
+    signerAccount,
+    ChainType.TESTNET
+  );
+
+  let lockerID = await SubtopiaRegistryClient.getLocker({
+    registryID: subtopiaRegistryClient.appID,
+    algodClient: algodClient,
+    ownerAddress: creatorAccount.addr,
+  });
+  if (!lockerID) {
+    const response = await subtopiaRegistryClient.createLocker({
+      creator: signerAccount,
+      lockerType: LockerType.CREATOR,
+    });
+    lockerID = response.lockerID;
+  }
+
+  return { subtopiaRegistryClient, lockerID };
+}
 
 describe("subtopia", () => {
   beforeAll(async () => {
@@ -103,27 +131,11 @@ describe("subtopia", () => {
   });
 
   it(
-    "should correctly add product, create subscription, delete subscription and delete product",
+    "should manage product and subscription lifecycle correctly",
     async () => {
       // Setup
-      const subtopiaRegistryClient = await SubtopiaRegistryClient.init(
-        algodClient,
-        creatorSignerAccount,
-        ChainType.TESTNET
-      );
-
-      let lockerID = await SubtopiaRegistryClient.getLocker({
-        registryID: subtopiaRegistryClient.appID,
-        algodClient: algodClient,
-        ownerAddress: creatorAccount.addr,
-      });
-      if (lockerID === undefined) {
-        const response = await subtopiaRegistryClient.createLocker({
-          creator: creatorSignerAccount,
-          lockerType: LockerType.CREATOR,
-        });
-        lockerID = response.lockerID;
-      }
+      const { subtopiaRegistryClient, lockerID } =
+        await setupSubtopiaRegistryClient(creatorSignerAccount);
 
       // Test
       const response = await subtopiaRegistryClient.createInfrastructure({
@@ -218,33 +230,29 @@ describe("subtopia", () => {
 
       // Assert
       expect(content.price.value).toBe(algos(1).microAlgos);
+
+      const disableProductResponse = await productClient.disable();
+
+      expect(disableProductResponse.txID).toBeDefined();
+
+      const deleteProductResponse =
+        await subtopiaRegistryClient.deleteInfrastructure({
+          infrastructureID: productClient.appID,
+          lockerID: lockerID,
+        });
+
+      expect(deleteProductResponse.txID).toBeDefined();
     },
     { timeout: 10e6 }
   );
 
   it(
-    "should correctly add product, create discount, transfer product and delete discount",
+    "should handle product and discount operations correctly",
     async () => {
-      const subtopiaRegistryClient = await SubtopiaRegistryClient.init(
-        algodClient,
-        creatorSignerAccount,
-        ChainType.TESTNET
-      );
+      const { subtopiaRegistryClient, lockerID } =
+        await setupSubtopiaRegistryClient(creatorSignerAccount);
 
       const newOwner = bobTestAccount;
-
-      let lockerID = await SubtopiaRegistryClient.getLocker({
-        registryID: subtopiaRegistryClient.appID,
-        algodClient: algodClient,
-        ownerAddress: creatorAccount.addr,
-      });
-      if (lockerID === undefined) {
-        const response = await subtopiaRegistryClient.createLocker({
-          creator: creatorSignerAccount,
-          lockerType: LockerType.CREATOR,
-        });
-        lockerID = response.lockerID;
-      }
 
       // Test
       const response = await subtopiaRegistryClient.createInfrastructure({
@@ -308,6 +316,35 @@ describe("subtopia", () => {
       );
 
       expect(deleteDiscountResponse.txID).toBeDefined();
+
+      const disableProductResponse = await newOwnerProductClient.disable();
+
+      expect(disableProductResponse.txID).toBeDefined();
+
+      const newOwnerLockerID = await SubtopiaRegistryClient.getLocker({
+        registryID: subtopiaRegistryClient.appID,
+        algodClient: algodClient,
+        ownerAddress: newOwner.addr,
+      });
+
+      expect(newOwnerLockerID).toBeGreaterThan(0);
+
+      const newOwnerRegistryClient = await SubtopiaRegistryClient.init(
+        algodClient,
+        transactionSignerAccount(
+          makeBasicAccountTransactionSigner(newOwner),
+          newOwner.addr
+        ),
+        ChainType.TESTNET
+      );
+
+      const deleteProductResponse =
+        await newOwnerRegistryClient.deleteInfrastructure({
+          infrastructureID: productClient.appID,
+          lockerID: newOwnerLockerID as number,
+        });
+
+      expect(deleteProductResponse.txID).toBeDefined();
     },
     {
       timeout: 10e6,

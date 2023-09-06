@@ -386,7 +386,7 @@ export class SubtopiaRegistryClient {
           {
             type: "application",
             name: "infrastructure",
-            desc: "The INFRASTRUCTURE.",
+            desc: "The product.",
           },
           {
             type: "application",
@@ -498,12 +498,12 @@ export class SubtopiaRegistryClient {
           {
             type: "uint64",
             name: "sub_type",
-            desc: "The sub type of the INFRASTRUCTURE.",
+            desc: "The sub type of The product.",
           },
           {
             type: "uint64",
             name: "price",
-            desc: "The price of the INFRASTRUCTURE.",
+            desc: "The price of The product.",
           },
           {
             type: "uint64",
@@ -513,17 +513,17 @@ export class SubtopiaRegistryClient {
           {
             type: "asset",
             name: "coin",
-            desc: "The coin of the INFRASTRUCTURE.",
+            desc: "The coin of The product.",
           },
           {
             type: "string",
             name: "unit_name",
-            desc: "The unit name of the INFRASTRUCTURE.",
+            desc: "The unit name of The product.",
           },
           {
             type: "string",
             name: "image_url",
-            desc: "The image URL of the INFRASTRUCTURE.",
+            desc: "The image URL of The product.",
           },
           {
             type: "address",
@@ -623,6 +623,56 @@ export class SubtopiaRegistryClient {
     return {
       txID: response.txIDs.pop() as string,
       infrastructureID: Number(response.methodResults[0].returnValue),
+    };
+  }
+
+  public async deleteInfrastructure({
+    infrastructureID,
+    lockerID,
+  }: {
+    infrastructureID: number;
+    lockerID: number;
+  }): Promise<{
+    txID: string;
+  }> {
+    const deleteInfraAtc = new AtomicTransactionComposer();
+    deleteInfraAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "delete_infrastructure",
+        args: [
+          {
+            type: "application",
+            name: "infrastructure",
+            desc: "The product.",
+          },
+          {
+            type: "application",
+            name: "locker",
+            desc: "The locker.",
+          },
+        ],
+        returns: { type: "void" },
+      }),
+      methodArgs: [infrastructureID, lockerID],
+      boxes: [
+        {
+          appIndex: this.appID,
+          name: new Uint8Array([
+            ...Buffer.from("cl-"),
+            ...decodeAddress(this.creator.addr).publicKey,
+          ]),
+        },
+      ],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 4),
+    });
+
+    const response = await deleteInfraAtc.execute(this.algodClient, 10);
+
+    return {
+      txID: response.txIDs.pop() as string,
     };
   }
 }

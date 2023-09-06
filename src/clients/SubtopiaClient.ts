@@ -42,6 +42,7 @@ import {
   DiscountType,
   Duration,
   SubscriptionType,
+  LifecycleState,
 } from "../enums";
 
 import {
@@ -196,6 +197,52 @@ export class SubtopiaClient {
       coin,
       version,
     });
+  }
+
+  protected async updateLifecycle({
+    lifecycle,
+  }: {
+    lifecycle: LifecycleState;
+  }): Promise<{
+    txID: string;
+  }> {
+    const updateLifecycleAtc = new AtomicTransactionComposer();
+    updateLifecycleAtc.addMethodCall({
+      appID: this.appID,
+      method: new ABIMethod({
+        name: "update_lifecycle",
+        args: [
+          {
+            type: "uint64",
+            name: "lifecycle",
+            desc: "The new lifecycle.",
+          },
+        ],
+        returns: { type: "void" },
+      }),
+      methodArgs: [lifecycle],
+      sender: this.creator.addr,
+      signer: this.creator.signer,
+      suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
+    });
+
+    const response = await updateLifecycleAtc.execute(this.algodClient, 10);
+
+    return {
+      txID: response.txIDs.pop() as string,
+    };
+  }
+
+  public async enable(): Promise<{
+    txID: string;
+  }> {
+    return this.updateLifecycle({ lifecycle: LifecycleState.ENABLED });
+  }
+
+  public async disable(): Promise<{
+    txID: string;
+  }> {
+    return this.updateLifecycle({ lifecycle: LifecycleState.DISABLED });
   }
 
   public async getAppState(

@@ -8,14 +8,6 @@ export enum SubscriptionType {
   TIME_BASED = 1,
 }
 
-export enum DurationType {
-  UNLIMITED = 0,
-  MONTHLY = 1,
-  QUARTERLY = 2,
-  SEMI_ANNUAL = 3,
-  ANNUAL = 4,
-}
-
 export enum Duration {
   UNLIMITED = 0,
   MONTH = 2592000,

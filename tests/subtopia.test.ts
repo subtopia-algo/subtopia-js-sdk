@@ -12,7 +12,6 @@ import { SubtopiaClient } from "../src/clients/SubtopiaClient";
 import {
   ChainType,
   LockerType,
-  DurationType,
   Duration,
   DiscountType,
   SubscriptionType,
@@ -164,7 +163,7 @@ describe("subtopia", () => {
 
       const subscribeResponse = await productClient.createSubscription({
         subscriber: subscriberSigner,
-        duration: DurationType.UNLIMITED,
+        duration: Duration.UNLIMITED,
       });
 
       const productClientGlobalState = await productClient.getAppState();

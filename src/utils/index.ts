@@ -18,7 +18,7 @@ import algosdk, {
 
 import { ApplicationSpec, AssetMetadata } from "../interfaces";
 import { DEFAULT_AWAIT_ROUNDS, ALGO_ASSET } from "../constants";
-import { LockerType, PriceNormalizationType, DurationType } from "../enums";
+import { LockerType, PriceNormalizationType } from "../enums";
 import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 
@@ -134,20 +134,6 @@ export async function getParamsWithFeeCount(
   params.flatFee = true;
   params.fee = getTxnFeeCount(txnNumber);
   return params;
-}
-
-export function durationToMonths(duration: DurationType): number {
-  if (duration === DurationType.MONTHLY) {
-    return 1;
-  } else if (duration === DurationType.QUARTERLY) {
-    return 3;
-  } else if (duration === DurationType.SEMI_ANNUAL) {
-    return 6;
-  } else if (duration === DurationType.ANNUAL) {
-    return 12;
-  } else {
-    return 1;
-  }
 }
 
 // Price MBR calculations

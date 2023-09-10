@@ -3,7 +3,7 @@
 // Copyright (C) 2023 Altynbek Orumbayev
 // =============================================================================
 
-import { DiscountType, DurationType, SubscriptionType } from "../enums";
+import { DiscountType, Duration, SubscriptionType } from "../enums";
 
 // === Boxes ===
 
@@ -19,13 +19,13 @@ export interface ApplicationSpec {
 export interface SubscriptionRecord {
   createdAt: number;
   expiresAt: number | undefined;
-  duration: DurationType;
+  duration: Duration;
   subID: number;
   subType: SubscriptionType;
 }
 
 export interface BaseDiscountRecord {
-  duration: DurationType;
+  duration: Duration;
   discountType: DiscountType;
   discountValue: number;
 }

@@ -38,7 +38,6 @@ import {
 } from "../constants";
 import {
   PriceNormalizationType,
-  DurationType,
   DiscountType,
   Duration,
   SubscriptionType,
@@ -518,11 +517,7 @@ export class SubtopiaClient {
     };
   }
 
-  public async deleteDiscount({
-    duration,
-  }: {
-    duration: DurationType;
-  }): Promise<{
+  public async deleteDiscount({ duration }: { duration: Duration }): Promise<{
     txID: string;
   }> {
     const deleteDiscountAtc = new AtomicTransactionComposer();
@@ -563,7 +558,7 @@ export class SubtopiaClient {
     duration,
   }: {
     subscriber: TransactionSignerAccount;
-    duration: DurationType;
+    duration: Duration;
   }): Promise<{
     txID: string;
     subscriptionID: number;

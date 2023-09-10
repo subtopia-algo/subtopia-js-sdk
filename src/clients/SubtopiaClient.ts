@@ -432,8 +432,8 @@ export class SubtopiaClient {
       duration: boxContent[0],
       discountType: boxContent[1],
       discountValue: boxContent[2],
-      expiresAt: boxContent[3] === 0 ? undefined : new Date(boxContent[3]),
-      createdAt: new Date(boxContent[4]),
+      expiresAt: boxContent[3] === 0 ? undefined : boxContent[3],
+      createdAt: boxContent[4],
       totalClaims: boxContent[5],
     };
   }
@@ -970,8 +970,8 @@ export class SubtopiaClient {
     return {
       subType: boxContent[0],
       subID: boxContent[1],
-      createdAt: new Date(boxContent[2]),
-      expiresAt: boxContent[3] === 0 ? undefined : new Date(boxContent[3]),
+      createdAt: boxContent[2],
+      expiresAt: boxContent[3] === 0 ? undefined : boxContent[3],
       duration: boxContent[4],
     };
   }

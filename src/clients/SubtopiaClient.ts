@@ -27,6 +27,7 @@ import {
   calculateRegistryLockerBoxCreateMbr,
   calculateProductDiscountBoxCreateMbr,
   calculateProductSubscriptionBoxCreateMbr,
+  optInAsset,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
@@ -777,6 +778,23 @@ export class SubtopiaClient {
   }): Promise<{
     txID: string;
   }> {
+    let isOptedIn = false;
+    const assetInfo = await this.algodClient
+      .accountAssetInformation(subscriber.addr, subscriptionID)
+      .do()
+      .catch(() => {
+        isOptedIn = false;
+      });
+    isOptedIn = assetInfo !== undefined;
+
+    if (!isOptedIn) {
+      await optInAsset({
+        client: this.algodClient,
+        account: subscriber,
+        assetID: subscriptionID,
+      });
+    }
+
     const claimSubscriptionAtc = new AtomicTransactionComposer();
     claimSubscriptionAtc.addMethodCall({
       appID: this.appID,
@@ -819,6 +837,19 @@ export class SubtopiaClient {
   }): Promise<{
     txID: string;
   }> {
+    let isHoldingSubscription = false;
+    const assetInfo = await this.algodClient
+      .accountAssetInformation(subscriber.addr, subscriptionID)
+      .do()
+      .catch(() => {
+        isHoldingSubscription = false;
+      });
+    if (assetInfo) {
+      isHoldingSubscription = assetInfo["asset-holding"].amount > 0;
+    }
+
+    console.log(assetInfo);
+
     const deleteSubscriptionAtc = new AtomicTransactionComposer();
     deleteSubscriptionAtc.addMethodCall({
       appID: this.appID,
@@ -842,7 +873,10 @@ export class SubtopiaClient {
       ],
       sender: subscriber.addr,
       signer: subscriber.signer,
-      suggestedParams: await getParamsWithFeeCount(this.algodClient, 3),
+      suggestedParams: await getParamsWithFeeCount(
+        this.algodClient,
+        isHoldingSubscription ? 4 : 3
+      ),
     });
 
     const response = await deleteSubscriptionAtc.execute(this.algodClient, 10);

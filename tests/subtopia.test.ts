@@ -4,7 +4,7 @@ import {
   Account,
 } from "algosdk";
 import "dotenv/config";
-import { optInAsset, optOutAsset } from "../src/index";
+import { optOutAsset } from "../src/index";
 import { it, describe, expect, beforeAll, afterAll } from "vitest";
 
 import { SubtopiaRegistryClient } from "../src/clients/SubtopiaRegistryClient";
@@ -185,12 +185,6 @@ describe("subtopia", () => {
       });
 
       expect(isSubscriberResponse).toBe(true);
-
-      await optInAsset({
-        client: algodClient,
-        account: subscriberSigner,
-        assetID: subscribeResponse.subscriptionID,
-      });
 
       const claimResponse = await productClient.claimSubscription({
         subscriber: subscriberSigner,

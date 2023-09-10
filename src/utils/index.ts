@@ -21,13 +21,14 @@ import { DEFAULT_AWAIT_ROUNDS, ALGO_ASSET } from "../constants";
 import { LockerType, PriceNormalizationType } from "../enums";
 import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
+import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 
 export async function optInAsset({
   client,
   account,
   assetID,
 }: {
-  client: Algodv2;
+  client: AlgodClient | Algodv2;
   account: TransactionSignerAccount;
   assetID: number;
 }): Promise<{

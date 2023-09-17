@@ -315,9 +315,12 @@ export class SubtopiaClient {
     );
   }
 
-  public async getSubscriptionPlatformFee(
-    priceInCents: number
-  ): Promise<number> {
+  public async getSubscriptionPlatformFee(): Promise<number> {
+    if (this.price === 0) {
+      return new Promise((resolve) => resolve(0));
+    }
+
+    const priceInCents = SUBSCRIPTION_PLATFORM_FEE_CENTS;
     const computePlatformFeeAtc = new AtomicTransactionComposer();
     computePlatformFeeAtc.addMethodCall({
       appID: this.oracleID,
@@ -572,9 +575,7 @@ export class SubtopiaClient {
       // @ts-ignore
       oracleAdminState.valueRaw
     );
-    const platformFeeAmount = await this.getSubscriptionPlatformFee(
-      SUBSCRIPTION_PLATFORM_FEE_CENTS
-    );
+    const platformFeeAmount = await this.getSubscriptionPlatformFee();
     const creatorLockerId = await SubtopiaRegistryClient.getLocker({
       registryID: TESTNET_SUBTOPIA_REGISTRY_ID,
       algodClient: this.algodClient,

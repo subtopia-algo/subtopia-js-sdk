@@ -343,4 +343,54 @@ describe("subtopia", () => {
       timeout: 10e6,
     }
   );
+
+  it(
+    "should not withdraw platform fee for free subscription",
+    async () => {
+      // Setup
+      const { subtopiaRegistryClient, lockerID } =
+        await setupSubtopiaRegistryClient(creatorSignerAccount);
+
+      // Create a new infrastructure with price 0
+      const response = await subtopiaRegistryClient.createInfrastructure({
+        productName: "Freeflix",
+        subscriptionName: "Free",
+        price: 0,
+        subType: SubscriptionType.UNLIMITED,
+        maxSubs: 0,
+        coinID: 0,
+        lockerID: lockerID,
+      });
+
+      // Initialize a new SubtopiaClient
+      const productClient = await SubtopiaClient.init(
+        algodClient,
+        response.infrastructureID,
+        creatorSignerAccount
+      );
+
+      // Subscribe a user to the product
+      const subscriberSigner = transactionSignerAccount(
+        makeBasicAccountTransactionSigner(bobTestAccount),
+        bobTestAccount.addr
+      );
+
+      const subscribeResponse = await productClient.createSubscription({
+        subscriber: subscriberSigner,
+        duration: Duration.UNLIMITED,
+      });
+
+      expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
+      expect(subscribeResponse.txID).toBeDefined();
+
+      // Get the platform fee
+      const platformFee = await productClient.getSubscriptionPlatformFee();
+
+      // Assert that the platform fee is 0
+      expect(platformFee).toBe(0);
+    },
+    {
+      timeout: 10e6,
+    }
+  );
 });

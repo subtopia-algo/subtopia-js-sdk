@@ -169,9 +169,8 @@ export class SubtopiaRegistryClient {
     );
   }
 
-  public async getProductCreationPlatformFee(
-    priceInCents: number
-  ): Promise<number> {
+  public async getProductCreationPlatformFee(): Promise<number> {
+    const priceInCents = PRODUCT_CREATION_PLATFORM_FEE_CENTS;
     const computePlatformFeeAtc = new AtomicTransactionComposer();
     computePlatformFeeAtc.addMethodCall({
       appID: this.oracleID,
@@ -475,9 +474,7 @@ export class SubtopiaRegistryClient {
       oracleAdminState.valueRaw
     );
     const feeAmount = await this.getProductCreationFee(coinID);
-    const platformFeeAmount = await this.getProductCreationPlatformFee(
-      PRODUCT_CREATION_PLATFORM_FEE_CENTS
-    );
+    const platformFeeAmount = await this.getProductCreationPlatformFee();
 
     const createInfraAtc = new AtomicTransactionComposer();
     createInfraAtc.addMethodCall({

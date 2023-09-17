@@ -187,7 +187,7 @@ export class SubtopiaRegistryClient {
       }),
       methodArgs: [priceInCents],
       sender: this.creator.addr,
-      signer: this.creator.signer,
+      signer: makeEmptyTransactionSigner(),
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 

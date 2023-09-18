@@ -245,9 +245,7 @@ export class SubtopiaClient {
     return this.updateLifecycle({ lifecycle: LifecycleState.DISABLED });
   }
 
-  public async getAppState(
-    withPriceNormalization = true
-  ): Promise<ProductState> {
+  public async getAppState(parseWholeUnits = true): Promise<ProductState> {
     const globalState = await getAppGlobalState(
       this.appID,
       this.algodClient
@@ -286,7 +284,7 @@ export class SubtopiaClient {
         // @ts-ignore
         globalState.manager.valueRaw
       ),
-      price: withPriceNormalization
+      price: parseWholeUnits
         ? normalizePrice(
             Number(globalState.price.value),
             this.coin.decimals,
@@ -560,9 +558,11 @@ export class SubtopiaClient {
   public async createSubscription({
     subscriber,
     duration,
+    parseWholeUnits = false,
   }: {
     subscriber: TransactionSignerAccount;
     duration: Duration;
+    parseWholeUnits?: boolean;
   }): Promise<{
     txID: string;
     subscriptionID: number;
@@ -674,11 +674,13 @@ export class SubtopiaClient {
               txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
                 from: subscriber.addr,
                 to: lockerAddress,
-                amount: normalizePrice(
-                  this.price,
-                  this.coin.decimals,
-                  PriceNormalizationType.RAW
-                ),
+                amount: parseWholeUnits
+                  ? normalizePrice(
+                      this.price,
+                      this.coin.decimals,
+                      PriceNormalizationType.RAW
+                    )
+                  : this.price,
                 assetIndex: this.coin.index,
                 suggestedParams: await getParamsWithFeeCount(
                   this.algodClient,
@@ -848,8 +850,6 @@ export class SubtopiaClient {
     if (assetInfo) {
       isHoldingSubscription = assetInfo["asset-holding"].amount > 0;
     }
-
-    console.log(assetInfo);
 
     const deleteSubscriptionAtc = new AtomicTransactionComposer();
     deleteSubscriptionAtc.addMethodCall({

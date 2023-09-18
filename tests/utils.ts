@@ -7,12 +7,12 @@ import {
   makeBasicAccountTransactionSigner,
   makeAssetCreateTxnWithSuggestedParamsFromObject,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
+  Account,
 } from "algosdk";
 import { DEFAULT_AWAIT_ROUNDS } from "../src/constants";
 import { PriceNormalizationType } from "../src/enums";
 import { normalizePrice, optInAsset } from "../src/utils";
 import { AssetMetadata } from "./interfaces";
-import { SandboxAccount } from "beaker-ts/dist/types/sandbox/accounts";
 
 export async function getRandomAccount(
   client: Algodv2,
@@ -69,7 +69,7 @@ export async function getRandomAccount(
 
 export async function generateRandomAsset(
   client: Algodv2,
-  sender: SandboxAccount,
+  sender: Account,
   assetName?: string,
   total?: number,
   decimals?: number
@@ -99,7 +99,7 @@ export async function generateRandomAsset(
     assetURL: "https://path/to/my/asset/details",
   });
 
-  const stxn = txn.signTxn(sender.privateKey);
+  const stxn = txn.signTxn(sender.sk);
 
   let txid = await client.sendRawTransaction(stxn).do();
   txid = txid["txId"];
@@ -107,8 +107,6 @@ export async function generateRandomAsset(
   const ptx = await client.pendingTransactionInformation(txid).do();
 
   const assetId = ptx["asset-index"];
-
-  console.log(`\n --- ASA ${assetName} - ${assetId} minted.`);
 
   return {
     index: assetId,

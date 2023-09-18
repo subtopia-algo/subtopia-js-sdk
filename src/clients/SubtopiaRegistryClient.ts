@@ -164,7 +164,7 @@ export class SubtopiaRegistryClient {
     return (
       algosToMicroalgos(MIN_APP_OPTIN_MBR) +
       algosToMicroalgos(MIN_APP_BALANCE_MBR) +
-      (await calculateSmiCreationMbr(this.appSpec)) +
+      (await calculateSmiCreationMbr(this.appSpec, 1, 8, 5)) +
       (coinID > 0 ? algosToMicroalgos(MIN_ASA_OPTIN_MBR) : 0)
     );
   }
@@ -446,6 +446,7 @@ export class SubtopiaRegistryClient {
     coinID = 0,
     unitName = STP_UNIT_NAME,
     imageUrl = STP_IMAGE_URL,
+    parseWholeUnits = false,
   }: {
     productName: string;
     subscriptionName: string;
@@ -456,6 +457,7 @@ export class SubtopiaRegistryClient {
     coinID?: number;
     unitName?: string;
     imageUrl?: string;
+    parseWholeUnits?: boolean;
   }): Promise<{
     txID: string;
     infrastructureID: number;
@@ -554,11 +556,13 @@ export class SubtopiaRegistryClient {
         productName,
         subscriptionName,
         subType.valueOf(),
-        normalizePrice(
-          price,
-          asset.decimals,
-          PriceNormalizationType.RAW
-        ).valueOf(),
+        parseWholeUnits
+          ? normalizePrice(
+              price,
+              asset.decimals,
+              PriceNormalizationType.RAW
+            ).valueOf()
+          : price,
         maxSubs,
         asset.index,
         unitName,
@@ -612,7 +616,10 @@ export class SubtopiaRegistryClient {
       ],
       sender: this.creator.addr,
       signer: this.creator.signer,
-      suggestedParams: await getParamsWithFeeCount(this.algodClient, 8),
+      suggestedParams: await getParamsWithFeeCount(
+        this.algodClient,
+        coinID > 0 ? 11 : 8
+      ),
     });
 
     const response = await createInfraAtc.execute(this.algodClient, 10);

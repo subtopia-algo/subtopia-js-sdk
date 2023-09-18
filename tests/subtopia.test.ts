@@ -4,7 +4,7 @@ import {
   Account,
 } from "algosdk";
 import "dotenv/config";
-import { optOutAsset } from "../src/index";
+import { optInAsset, optOutAsset } from "../src/index";
 import { it, describe, expect, beforeAll, afterAll } from "vitest";
 
 import { SubtopiaRegistryClient } from "../src/clients/SubtopiaRegistryClient";
@@ -26,6 +26,7 @@ import {
   transferAlgos,
 } from "@algorandfoundation/algokit-utils";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
+import { transferAsset } from "../src/utils";
 
 const CONFIG = {
   SERVER_URL: "https://testnet-api.algonode.cloud",
@@ -40,6 +41,7 @@ const algodClient = getAlgoClient({
   server: CONFIG.SERVER_URL,
 });
 
+const TESTNET_USDC_ASA_ID = 67395862;
 const dispenserAccount = mnemonicToSecretKey(CONFIG.DISPENSER_MNEMONIC);
 const creatorAccount = mnemonicToSecretKey(CONFIG.CREATOR_MNEMONIC);
 const bobTestAccount = mnemonicToSecretKey(CONFIG.BOB_MNEMONIC);
@@ -388,6 +390,81 @@ describe("subtopia", () => {
 
       // Assert that the platform fee is 0
       expect(platformFee).toBe(0);
+    },
+    {
+      timeout: 10e6,
+    }
+  );
+
+  it(
+    "should handle time-based subscriptions with ASA correctly",
+    async () => {
+      // Setup
+      const { subtopiaRegistryClient, lockerID } =
+        await setupSubtopiaRegistryClient(creatorSignerAccount);
+
+      // Create a new infrastructure with the ASA as the price
+      const response = await subtopiaRegistryClient.createInfrastructure({
+        productName: "ASAFlix",
+        subscriptionName: "Premium",
+        price: 1,
+        subType: SubscriptionType.TIME_BASED,
+        maxSubs: 0,
+        coinID: TESTNET_USDC_ASA_ID,
+        lockerID: lockerID,
+      });
+
+      // Initialize a new SubtopiaClient
+      const productClient = await SubtopiaClient.init(
+        algodClient,
+        response.infrastructureID,
+        creatorSignerAccount
+      );
+
+      // OptIn USDC (if not already opted in)
+      const subscriberSigner = transactionSignerAccount(
+        makeBasicAccountTransactionSigner(bobTestAccount),
+        bobTestAccount.addr
+      );
+
+      const accountInfo = await algodClient
+        .accountInformation(subscriberSigner.addr)
+        .do();
+
+      const isOptedIn = Boolean(
+        accountInfo["assets"].some(
+          (asset: { "asset-id": number }) =>
+            asset["asset-id"] === TESTNET_USDC_ASA_ID
+        )
+      );
+
+      if (!isOptedIn) {
+        await optInAsset({
+          client: algodClient,
+          account: subscriberSigner,
+          assetID: TESTNET_USDC_ASA_ID,
+        });
+      }
+
+      // Transfer some ASA to the subscriber
+      await transferAsset(
+        {
+          sender: creatorSignerAccount,
+          recipient: subscriberSigner.addr,
+          assetID: TESTNET_USDC_ASA_ID,
+          amount: 1,
+        },
+        algodClient
+      );
+
+      const subscribeResponse = await productClient.createSubscription({
+        subscriber: subscriberSigner,
+        duration: Duration.MONTH,
+        parseWholeUnits: false,
+      });
+
+      expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
+      expect(subscribeResponse.txID).toBeDefined();
     },
     {
       timeout: 10e6,

@@ -23,6 +23,43 @@ import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 
+export async function transferAsset(
+  transfer: {
+    sender: TransactionSignerAccount;
+    recipient: string;
+    assetID: number;
+    amount: number;
+  },
+  client: Algodv2
+): Promise<{
+  confirmedRound: number;
+  txIDs: string[];
+  methodResults: algosdk.ABIResult[];
+}> {
+  const { sender, recipient, assetID, amount } = transfer;
+  const transferAtc = new AtomicTransactionComposer();
+  transferAtc.addTransaction({
+    txn: algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      from: sender.addr,
+      to: recipient,
+      closeRemainderTo: undefined,
+      amount: amount,
+      assetIndex: assetID,
+      suggestedParams: await getParamsWithFeeCount(client, 1),
+      rekeyTo: undefined,
+    }),
+
+    signer: sender.signer,
+  });
+
+  const transferResult = await transferAtc.execute(
+    client,
+    DEFAULT_AWAIT_ROUNDS
+  );
+
+  return transferResult;
+}
+
 export async function optInAsset({
   client,
   account,
@@ -49,7 +86,6 @@ export async function optInAsset({
   });
   const optInResult = await optInAtc.execute(client, DEFAULT_AWAIT_ROUNDS);
 
-  console.log("Opted in to pass", optInResult);
   return optInResult;
 }
 
@@ -80,7 +116,6 @@ export async function optOutAsset({
   });
   const optInResult = await optInAtc.execute(client, DEFAULT_AWAIT_ROUNDS);
 
-  console.log("Opted out from pass", optInResult);
   return optInResult;
 }
 
@@ -211,16 +246,22 @@ export function calculateCreationMbr(
 }
 
 export async function calculateSmiCreationMbr(
-  applicationSpec: ApplicationSpec
+  applicationSpec: ApplicationSpec,
+  extraPages = 0,
+  globalNumUint = 0,
+  globalNumByteSlice = 0
 ): Promise<number> {
-  const extraPages = await calculateExtraPages(
-    applicationSpec.approval,
-    applicationSpec.clear
-  );
+  const computedExtraPages = extraPages
+    ? extraPages
+    : await calculateExtraPages(
+        applicationSpec.approval,
+        applicationSpec.clear
+      );
+
   return calculateCreationMbr(
-    extraPages,
-    applicationSpec.globalNumUint,
-    applicationSpec.globalNumByteSlice
+    computedExtraPages,
+    globalNumUint ?? applicationSpec.globalNumUint,
+    globalNumByteSlice ?? applicationSpec.globalNumByteSlice
   );
 }
 

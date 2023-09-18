@@ -444,11 +444,13 @@ export class SubtopiaClient {
     discountType,
     discountValue,
     expiresIn,
+    parseWholeUnits = false,
   }: {
     duration: Duration;
     discountType: DiscountType;
     discountValue: number;
     expiresIn: number;
+    parseWholeUnits?: boolean;
   }): Promise<{
     txID: string;
   }> {
@@ -489,7 +491,13 @@ export class SubtopiaClient {
       methodArgs: [
         duration.valueOf(),
         discountType.valueOf(),
-        discountValue,
+        parseWholeUnits
+          ? normalizePrice(
+              discountValue,
+              this.coin.decimals,
+              PriceNormalizationType.RAW
+            )
+          : discountValue,
         expiresIn,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({

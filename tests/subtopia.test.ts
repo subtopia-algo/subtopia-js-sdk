@@ -224,7 +224,7 @@ describe("subtopia", () => {
       );
 
       // Assert
-      expect(content.price.value).toBe(algos(1).microAlgos);
+      expect(content.price.value).toBe(algos(1).algos);
 
       const disableProductResponse = await productClient.disable();
 
@@ -270,7 +270,7 @@ describe("subtopia", () => {
       const createDiscountResponse = await productClient.createDiscount({
         duration: Duration.MONTH.valueOf(),
         discountType: DiscountType.FIXED,
-        discountValue: 1e6,
+        discountValue: 1,
         expiresIn: 0,
       });
 
@@ -285,7 +285,7 @@ describe("subtopia", () => {
         duration: Duration.MONTH.valueOf(),
       });
 
-      expect(getDiscountResponse.discountValue).toBe(1e6);
+      expect(getDiscountResponse.discountValue).toBe(1);
 
       const transferResponse =
         await subtopiaRegistryClient.transferInfrastructure({

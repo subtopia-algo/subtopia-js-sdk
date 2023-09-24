@@ -584,17 +584,18 @@ export class SubtopiaClient {
       oracleAdminState.valueRaw
     );
     const platformFeeAmount = await this.getSubscriptionPlatformFee();
-    const creatorLockerId = await SubtopiaRegistryClient.getLocker({
+    const state = await this.getAppState(parseWholeUnits);
+    const managerLockerID = await SubtopiaRegistryClient.getLocker({
       registryID: TESTNET_SUBTOPIA_REGISTRY_ID,
       algodClient: this.algodClient,
-      ownerAddress: this.creator.addr,
+      ownerAddress: state.manager,
     });
 
-    if (!creatorLockerId) {
+    if (!managerLockerID) {
       throw new Error("Creator locker is not initialized");
     }
 
-    const lockerAddress = getApplicationAddress(creatorLockerId);
+    const lockerAddress = getApplicationAddress(managerLockerID);
 
     const createSubscriptionAtc = new AtomicTransactionComposer();
     createSubscriptionAtc.addMethodCall({
@@ -643,7 +644,7 @@ export class SubtopiaClient {
       methodArgs: [
         subscriber.addr,
         duration.valueOf(),
-        creatorLockerId,
+        managerLockerID,
         this.oracleID,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({

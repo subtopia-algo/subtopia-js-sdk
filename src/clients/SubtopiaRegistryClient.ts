@@ -331,18 +331,18 @@ export class SubtopiaRegistryClient {
   }): Promise<{
     txID: string;
   }> {
-    const oldOwnerLockerId = await SubtopiaRegistryClient.getLocker({
+    const oldOwnerLockerID = await SubtopiaRegistryClient.getLocker({
       registryID: this.appID,
       algodClient: this.algodClient,
       ownerAddress: this.creator.addr,
     });
-    const newOwnerLockerId = await SubtopiaRegistryClient.getLocker({
+    const newOwnerLockerID = await SubtopiaRegistryClient.getLocker({
       registryID: this.appID,
       algodClient: this.algodClient,
       ownerAddress: newOwnerAddress,
     });
 
-    if (!oldOwnerLockerId) {
+    if (!oldOwnerLockerID) {
       throw new Error("Locker not found");
     }
 
@@ -363,7 +363,7 @@ export class SubtopiaRegistryClient {
       },
     ];
 
-    if (!newOwnerLockerId) {
+    if (!newOwnerLockerID) {
       boxes.push.apply(boxes, [
         {
           appIndex: this.appID,
@@ -407,13 +407,13 @@ export class SubtopiaRegistryClient {
       }),
       methodArgs: [
         infrastructureID,
-        oldOwnerLockerId,
+        oldOwnerLockerID,
         newOwnerAddress,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: this.creator.addr,
             to: this.appAddress,
-            amount: algosToMicroalgos(newOwnerLockerId ? 1 : 0.5),
+            amount: algosToMicroalgos(newOwnerLockerID ? 1 : 0.5),
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
           signer: this.creator.signer,
@@ -422,10 +422,10 @@ export class SubtopiaRegistryClient {
       boxes: boxes,
       sender: this.creator.addr,
       signer: this.creator.signer,
-      appForeignApps: newOwnerLockerId ? [newOwnerLockerId] : undefined,
+      appForeignApps: newOwnerLockerID ? [newOwnerLockerID] : undefined,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,
-        newOwnerLockerId ? 10 : 11
+        newOwnerLockerID ? 10 : 11
       ),
     });
 

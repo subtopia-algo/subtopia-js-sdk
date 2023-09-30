@@ -17,7 +17,13 @@ import algosdk, {
 } from "algosdk";
 
 import { ApplicationSpec, AssetMetadata } from "../interfaces";
-import { DEFAULT_AWAIT_ROUNDS, ALGO_ASSET } from "../constants";
+import {
+  DEFAULT_AWAIT_ROUNDS,
+  ALGO_ASSET,
+  LOCKER_EXTRA_PAGES,
+  LOCKER_GLOBAL_NUM_UINTS,
+  LOCKER_GLOBAL_NUM_BYTE_SLICES,
+} from "../constants";
 import { LockerType, PriceNormalizationType } from "../enums";
 import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
@@ -209,7 +215,10 @@ export function calculateRegistryLockerBoxCreateMbr(
 ): number {
   const uint64Type = new ABIUintType(64);
   return calculateBoxMbr(
-    decodeAddress(locker_owner).publicKey,
+    new Uint8Array([
+      ...Buffer.from("cl-"),
+      ...decodeAddress(locker_owner).publicKey,
+    ]),
     uint64Type.byteLen(), // UInt64 is 8 bytes - 800 is microalgos
     "create"
   );
@@ -245,7 +254,7 @@ export function calculateCreationMbr(
   );
 }
 
-export async function calculateSmiCreationMbr(
+export async function calculateProductCreationMbr(
   applicationSpec: ApplicationSpec,
   extraPages = 0,
   globalNumUint = 0,
@@ -265,17 +274,11 @@ export async function calculateSmiCreationMbr(
   );
 }
 
-export async function calculateSmlCreationMbr(
-  applicationSpec: ApplicationSpec
-): Promise<number> {
-  const extraPages = await calculateExtraPages(
-    applicationSpec.approval,
-    applicationSpec.clear
-  );
+export function calculateLockerCreationMbr(): number {
   return calculateCreationMbr(
-    extraPages,
-    applicationSpec.globalNumUint,
-    applicationSpec.globalNumByteSlice
+    LOCKER_EXTRA_PAGES,
+    LOCKER_GLOBAL_NUM_UINTS,
+    LOCKER_GLOBAL_NUM_BYTE_SLICES
   );
 }
 

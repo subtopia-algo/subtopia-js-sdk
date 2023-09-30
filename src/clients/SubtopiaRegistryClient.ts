@@ -21,8 +21,8 @@ import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
   normalizePrice,
   getParamsWithFeeCount,
-  calculateSmiCreationMbr,
-  calculateSmlCreationMbr,
+  calculateProductCreationMbr,
+  calculateLockerCreationMbr,
   calculateRegistryLockerBoxCreateMbr,
   getLockerBoxPrefix,
 } from "../utils";
@@ -31,12 +31,12 @@ import {
   PRODUCT_APPROVAL_KEY,
   PRODUCT_CLEAR_KEY,
   MIN_APP_OPTIN_MBR,
-  MIN_APP_BALANCE_MBR,
   MIN_ASA_OPTIN_MBR,
   PRODUCT_CREATION_PLATFORM_FEE_CENTS,
   LOCKER_APPROVAL_KEY,
   LOCKER_CLEAR_KEY,
   SUBTOPIA_REGISTRY_ID,
+  MIN_APP_CREATE_MBR,
 } from "../constants";
 import {
   SubscriptionType,
@@ -163,8 +163,8 @@ export class SubtopiaRegistryClient {
   public async getProductCreationFee(coinID = 0): Promise<number> {
     return (
       algosToMicroalgos(MIN_APP_OPTIN_MBR) +
-      algosToMicroalgos(MIN_APP_BALANCE_MBR) +
-      (await calculateSmiCreationMbr(this.appSpec, 1, 8, 5)) +
+      algosToMicroalgos(MIN_APP_CREATE_MBR) +
+      (await calculateProductCreationMbr(this.appSpec, 1, 8, 5)) +
       (coinID > 0 ? algosToMicroalgos(MIN_ASA_OPTIN_MBR) : 0)
     );
   }
@@ -215,12 +215,22 @@ export class SubtopiaRegistryClient {
     return Number(response.methodResults[0].returnValue);
   }
 
-  public async getLockerCreationFee(creatorAddress: string): Promise<number> {
+  public getLockerCreationFee(creatorAddress: string): number {
     return (
-      algosToMicroalgos(MIN_APP_OPTIN_MBR) +
-      (await calculateSmlCreationMbr(this.appSpec)) +
+      algosToMicroalgos(MIN_APP_CREATE_MBR) +
+      calculateLockerCreationMbr() +
       calculateRegistryLockerBoxCreateMbr(creatorAddress)
     );
+  }
+
+  public getLockerTransferFee(
+    creatorAddress: string,
+    isNewLocker: boolean,
+    coinID: number
+  ): number {
+    let fee = algosToMicroalgos(MIN_APP_OPTIN_MBR);
+    fee = coinID ? fee + algosToMicroalgos(MIN_ASA_OPTIN_MBR) : fee;
+    return isNewLocker ? fee : fee + this.getLockerCreationFee(creatorAddress);
   }
 
   public async createLocker({
@@ -233,7 +243,7 @@ export class SubtopiaRegistryClient {
     txID: string;
     lockerID: number;
   }> {
-    const feeAmount = (await this.getLockerCreationFee(creator.addr)) + 10000;
+    const feeAmount = this.getLockerCreationFee(creator.addr);
 
     const createLockerAtc = new AtomicTransactionComposer();
     createLockerAtc.addMethodCall({
@@ -273,7 +283,7 @@ export class SubtopiaRegistryClient {
         {
           appIndex: this.appID,
           name: new Uint8Array([
-            ...Buffer.from("cl-"),
+            ...getLockerBoxPrefix(lockerType),
             ...decodeAddress(creator.addr).publicKey,
           ]),
         },
@@ -322,11 +332,11 @@ export class SubtopiaRegistryClient {
     return boxValue ? decodeUint64(boxValue.value, "safe") : undefined;
   }
 
-  public async transferInfrastructure({
-    infrastructureID,
+  public async transferProduct({
+    productID,
     newOwnerAddress,
   }: {
-    infrastructureID: number;
+    productID: number;
     newOwnerAddress: string;
   }): Promise<{
     txID: string;
@@ -376,6 +386,15 @@ export class SubtopiaRegistryClient {
       ]);
     }
 
+    const productState = await getAppGlobalState(productID, this.algodClient);
+    const productCoinID = productState.coin_id.value as number;
+    const appCallFee =
+      (newOwnerLockerID ? 10 : 11) + (productCoinID > 0 ? 3 : 0);
+    const payFee = this.getLockerTransferFee(
+      newOwnerAddress,
+      !newOwnerLockerID,
+      productCoinID
+    );
     const transferInfraAtc = new AtomicTransactionComposer();
     transferInfraAtc.addMethodCall({
       appID: this.appID,
@@ -406,14 +425,14 @@ export class SubtopiaRegistryClient {
         returns: { type: "void" },
       }),
       methodArgs: [
-        infrastructureID,
+        productID,
         oldOwnerLockerID,
         newOwnerAddress,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: this.creator.addr,
             to: this.appAddress,
-            amount: algosToMicroalgos(newOwnerLockerID ? 1 : 0.5),
+            amount: payFee,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
           signer: this.creator.signer,
@@ -425,7 +444,7 @@ export class SubtopiaRegistryClient {
       appForeignApps: newOwnerLockerID ? [newOwnerLockerID] : undefined,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,
-        newOwnerLockerID ? 10 : 11
+        appCallFee
       ),
     });
 
@@ -436,7 +455,7 @@ export class SubtopiaRegistryClient {
     };
   }
 
-  public async createInfrastructure({
+  public async createProduct({
     productName,
     subscriptionName,
     price,
@@ -460,7 +479,7 @@ export class SubtopiaRegistryClient {
     parseWholeUnits?: boolean;
   }): Promise<{
     txID: string;
-    infrastructureID: number;
+    productID: number;
   }> {
     const asset = await getAssetByID(this.algodClient, coinID);
 
@@ -626,15 +645,15 @@ export class SubtopiaRegistryClient {
 
     return {
       txID: response.txIDs.pop() as string,
-      infrastructureID: Number(response.methodResults[0].returnValue),
+      productID: Number(response.methodResults[0].returnValue),
     };
   }
 
-  public async deleteInfrastructure({
-    infrastructureID,
+  public async deleteProduct({
+    productID,
     lockerID,
   }: {
-    infrastructureID: number;
+    productID: number;
     lockerID: number;
   }): Promise<{
     txID: string;
@@ -658,7 +677,7 @@ export class SubtopiaRegistryClient {
         ],
         returns: { type: "void" },
       }),
-      methodArgs: [infrastructureID, lockerID],
+      methodArgs: [productID, lockerID],
       boxes: [
         {
           appIndex: this.appID,

@@ -22,8 +22,7 @@ import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
   normalizePrice,
   getParamsWithFeeCount,
-  calculateSmiCreationMbr,
-  calculateSmlCreationMbr,
+  calculateLockerCreationMbr,
   calculateRegistryLockerBoxCreateMbr,
   calculateProductDiscountBoxCreateMbr,
   calculateProductSubscriptionBoxCreateMbr,
@@ -31,11 +30,10 @@ import {
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
-  MIN_APP_OPTIN_MBR,
-  MIN_APP_BALANCE_MBR,
-  MIN_ASA_OPTIN_MBR,
   SUBSCRIPTION_PLATFORM_FEE_CENTS,
   TESTNET_SUBTOPIA_REGISTRY_ID,
+  MIN_APP_CREATE_MBR,
+  MIN_ASA_CREATE_MBR,
 } from "../constants";
 import {
   PriceNormalizationType,
@@ -304,15 +302,6 @@ export class SubtopiaClient {
     };
   }
 
-  public async getSubscriptionPrice(coinID = 0): Promise<number> {
-    return (
-      algosToMicroalgos(MIN_APP_OPTIN_MBR) +
-      algosToMicroalgos(MIN_APP_BALANCE_MBR) +
-      (await calculateSmiCreationMbr(this.appSpec)) +
-      (coinID > 0 ? algosToMicroalgos(MIN_ASA_OPTIN_MBR) : 0)
-    );
-  }
-
   public async getSubscriptionPlatformFee(): Promise<number> {
     if (this.price === 0) {
       return new Promise((resolve) => resolve(0));
@@ -365,8 +354,8 @@ export class SubtopiaClient {
 
   public async getLockerCreationFee(creatorAddress: string): Promise<number> {
     return (
-      algosToMicroalgos(MIN_APP_OPTIN_MBR) +
-      (await calculateSmlCreationMbr(this.appSpec)) +
+      algosToMicroalgos(MIN_APP_CREATE_MBR) +
+      calculateLockerCreationMbr() +
       calculateRegistryLockerBoxCreateMbr(creatorAddress)
     );
   }
@@ -652,7 +641,7 @@ export class SubtopiaClient {
             to: this.appAddress,
             amount:
               calculateProductSubscriptionBoxCreateMbr(subscriber.addr) +
-              algosToMicroalgos(MIN_APP_OPTIN_MBR),
+              algosToMicroalgos(MIN_ASA_CREATE_MBR),
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
           signer: subscriber.signer,

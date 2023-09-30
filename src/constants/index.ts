@@ -31,8 +31,8 @@ export const PRODUCT_CLEAR_KEY = "infrastructure_clear";
 export const LOCKER_APPROVAL_KEY = "locker_approval";
 export const LOCKER_CLEAR_KEY = "locker_clear";
 
-export const MIN_APP_BALANCE_MBR = 0.1; // ALGO
 export const MIN_APP_OPTIN_MBR = 0.1; // ALGO
+export const MIN_APP_CREATE_MBR = 0.1; // ALGO
 export const MIN_ASA_OPTIN_MBR = 0.1; // ALGO
 export const MIN_ASA_CREATE_MBR = 0.1; // ALGO
 
@@ -45,3 +45,10 @@ export const REGISTRY_VERSION = "1.0";
 export const PRODUCT_VERSION = "1.0";
 export const LOCKER_VERSION = "1.0";
 export const ORACLE_VERSION = "1.0";
+
+// Locker creation
+export const LOCKER_EXTRA_PAGES = 0;
+export const LOCKER_GLOBAL_NUM_UINTS = 1;
+export const LOCKER_GLOBAL_NUM_BYTE_SLICES = 1;
+export const LOCKER_LOCAL_NUM_UINTS = 0;
+export const LOCKER_LOCAL_NUM_BYTE_SLICES = 0;

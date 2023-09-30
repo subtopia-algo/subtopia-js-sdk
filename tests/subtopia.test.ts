@@ -83,6 +83,7 @@ async function setupSubtopiaRegistryClient(
     algodClient: algodClient,
     ownerAddress: creatorAccount.addr,
   });
+
   if (!lockerID) {
     const response = await subtopiaRegistryClient.createLocker({
       creator: signerAccount,
@@ -139,7 +140,7 @@ describe("subtopia", () => {
         await setupSubtopiaRegistryClient(creatorSignerAccount);
 
       // Test
-      const response = await subtopiaRegistryClient.createInfrastructure({
+      const response = await subtopiaRegistryClient.createProduct({
         productName: "Notflix",
         subscriptionName: "Premium",
         price: 1,
@@ -149,7 +150,7 @@ describe("subtopia", () => {
         lockerID: lockerID,
       });
 
-      expect(response.infrastructureID).toBeGreaterThan(0);
+      expect(response.productID).toBeGreaterThan(0);
 
       const subscriberAccount = bobTestAccount;
       const subscriberSigner = transactionSignerAccount(
@@ -159,7 +160,7 @@ describe("subtopia", () => {
 
       const productClient = await SubtopiaClient.init(
         algodClient,
-        response.infrastructureID,
+        response.productID,
         creatorSignerAccount
       );
 
@@ -218,10 +219,7 @@ describe("subtopia", () => {
 
       expect(deleteSubscriptionResponse.txID).toBeDefined();
 
-      const content = await getAppGlobalState(
-        response.infrastructureID,
-        algodClient
-      );
+      const content = await getAppGlobalState(response.productID, algodClient);
 
       // Assert
       expect(content.price.value).toBe(algos(1).algos);
@@ -230,11 +228,10 @@ describe("subtopia", () => {
 
       expect(disableProductResponse.txID).toBeDefined();
 
-      const deleteProductResponse =
-        await subtopiaRegistryClient.deleteInfrastructure({
-          infrastructureID: productClient.appID,
-          lockerID: lockerID,
-        });
+      const deleteProductResponse = await subtopiaRegistryClient.deleteProduct({
+        productID: productClient.appID,
+        lockerID: lockerID,
+      });
 
       expect(deleteProductResponse.txID).toBeDefined();
     },
@@ -250,7 +247,7 @@ describe("subtopia", () => {
       const newOwner = bobTestAccount;
 
       // Test
-      const response = await subtopiaRegistryClient.createInfrastructure({
+      const response = await subtopiaRegistryClient.createProduct({
         productName: "Hooli",
         subscriptionName: "Pro",
         price: 1,
@@ -260,11 +257,11 @@ describe("subtopia", () => {
         lockerID: lockerID,
       });
 
-      expect(response.infrastructureID).toBeGreaterThan(0);
+      expect(response.productID).toBeGreaterThan(0);
 
       const productClient = await SubtopiaClient.init(
         algodClient,
-        response.infrastructureID,
+        response.productID,
         creatorSignerAccount
       );
       const createDiscountResponse = await productClient.createDiscount({
@@ -287,17 +284,16 @@ describe("subtopia", () => {
 
       expect(getDiscountResponse.discountValue).toBe(1);
 
-      const transferResponse =
-        await subtopiaRegistryClient.transferInfrastructure({
-          infrastructureID: response.infrastructureID,
-          newOwnerAddress: newOwner.addr,
-        });
+      const transferResponse = await subtopiaRegistryClient.transferProduct({
+        productID: response.productID,
+        newOwnerAddress: newOwner.addr,
+      });
 
       expect(transferResponse.txID).toBeDefined();
 
       const newOwnerProductClient = await SubtopiaClient.init(
         algodClient,
-        response.infrastructureID,
+        response.productID,
         transactionSignerAccount(
           makeBasicAccountTransactionSigner(newOwner),
           newOwner.addr
@@ -333,11 +329,10 @@ describe("subtopia", () => {
         ChainType.TESTNET
       );
 
-      const deleteProductResponse =
-        await newOwnerRegistryClient.deleteInfrastructure({
-          infrastructureID: productClient.appID,
-          lockerID: newOwnerLockerID as number,
-        });
+      const deleteProductResponse = await newOwnerRegistryClient.deleteProduct({
+        productID: productClient.appID,
+        lockerID: newOwnerLockerID as number,
+      });
 
       expect(deleteProductResponse.txID).toBeDefined();
     },
@@ -353,8 +348,8 @@ describe("subtopia", () => {
       const { subtopiaRegistryClient, lockerID } =
         await setupSubtopiaRegistryClient(creatorSignerAccount);
 
-      // Create a new infrastructure with price 0
-      const response = await subtopiaRegistryClient.createInfrastructure({
+      // Create a new product with price 0
+      const response = await subtopiaRegistryClient.createProduct({
         productName: "Freeflix",
         subscriptionName: "Free",
         price: 0,
@@ -367,7 +362,7 @@ describe("subtopia", () => {
       // Initialize a new SubtopiaClient
       const productClient = await SubtopiaClient.init(
         algodClient,
-        response.infrastructureID,
+        response.productID,
         creatorSignerAccount
       );
 
@@ -403,8 +398,8 @@ describe("subtopia", () => {
       const { subtopiaRegistryClient, lockerID } =
         await setupSubtopiaRegistryClient(creatorSignerAccount);
 
-      // Create a new infrastructure with the ASA as the price
-      const response = await subtopiaRegistryClient.createInfrastructure({
+      // Create a new product with the ASA as the price
+      const response = await subtopiaRegistryClient.createProduct({
         productName: "ASAFlix",
         subscriptionName: "Premium",
         price: 1,
@@ -417,7 +412,7 @@ describe("subtopia", () => {
       // Initialize a new SubtopiaClient
       const productClient = await SubtopiaClient.init(
         algodClient,
-        response.infrastructureID,
+        response.productID,
         creatorSignerAccount
       );
 

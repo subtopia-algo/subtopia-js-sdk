@@ -441,6 +441,7 @@ export class SubtopiaRegistryClient {
       boxes: boxes,
       sender: this.creator.addr,
       signer: this.creator.signer,
+      appForeignAssets: productCoinID ? [productCoinID] : undefined,
       appForeignApps: newOwnerLockerID ? [newOwnerLockerID] : undefined,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,

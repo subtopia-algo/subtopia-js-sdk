@@ -23,6 +23,7 @@ import {
   LOCKER_EXTRA_PAGES,
   LOCKER_GLOBAL_NUM_UINTS,
   LOCKER_GLOBAL_NUM_BYTE_SLICES,
+  DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 } from "../constants";
 import { LockerType, PriceNormalizationType } from "../enums";
 import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
@@ -36,11 +37,13 @@ export async function transferAsset(
     assetID: number;
     amount: number;
   },
-  client: Algodv2
+  client: Algodv2,
+  timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS
 ): Promise<{
   confirmedRound: number;
   txIDs: string[];
   methodResults: algosdk.ABIResult[];
+  timeout?: number;
 }> {
   const { sender, recipient, assetID, amount } = transfer;
   const transferAtc = new AtomicTransactionComposer();
@@ -58,7 +61,9 @@ export async function transferAsset(
     signer: sender.signer,
   });
 
-  const transferResult = await transferAtc.execute(
+  const transferResult = await asyncWithTimeout(
+    transferAtc.execute.bind(transferAtc),
+    timeout,
     client,
     DEFAULT_AWAIT_ROUNDS
   );
@@ -70,10 +75,12 @@ export async function optInAsset({
   client,
   account,
   assetID,
+  timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 }: {
   client: AlgodClient | Algodv2;
   account: TransactionSignerAccount;
   assetID: number;
+  timeout?: number;
 }): Promise<{
   confirmedRound: number;
   txIDs: string[];
@@ -90,7 +97,12 @@ export async function optInAsset({
     }),
     signer: account.signer,
   });
-  const optInResult = await optInAtc.execute(client, DEFAULT_AWAIT_ROUNDS);
+  const optInResult = await asyncWithTimeout(
+    optInAtc.execute.bind(optInAtc),
+    timeout,
+    client,
+    DEFAULT_AWAIT_ROUNDS
+  );
 
   return optInResult;
 }
@@ -99,10 +111,12 @@ export async function optOutAsset({
   client,
   account,
   assetID,
+  timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 }: {
   client: Algodv2;
   account: TransactionSignerAccount;
   assetID: number;
+  timeout?: number;
 }): Promise<{
   confirmedRound: number;
   txIDs: string[];
@@ -120,7 +134,12 @@ export async function optOutAsset({
     }),
     signer: account.signer,
   });
-  const optInResult = await optInAtc.execute(client, DEFAULT_AWAIT_ROUNDS);
+  const optInResult = await asyncWithTimeout(
+    optInAtc.execute.bind(optInAtc),
+    timeout,
+    client,
+    DEFAULT_AWAIT_ROUNDS
+  );
 
   return optInResult;
 }
@@ -290,4 +309,40 @@ export function getLockerBoxPrefix(lockerType: LockerType): Buffer {
   } else {
     throw new Error(`Unknown locker type: ${lockerType}`);
   }
+}
+
+export function wait(ms: number) {
+  const resp = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("TRANSACTION_SIGNING_TIMED_OUT")), ms)
+  );
+
+  return resp;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function asyncWithTimeout<T, A extends any[]>(
+  fn: (...args: A) => Promise<T>,
+  timeout: number,
+  ...args: A
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`Timeout error: exceeded ${timeout} seconds`));
+    }, timeout * 1000);
+
+    const resultPromise = fn(...args);
+    if (!resultPromise || typeof resultPromise.then !== "function") {
+      reject(new Error("Function did not return a promise"));
+      return;
+    }
+    resultPromise
+      .then((result) => {
+        clearTimeout(timeoutId);
+        resolve(result);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        reject(err);
+      });
+  });
 }

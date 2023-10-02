@@ -25,6 +25,7 @@ import {
   calculateLockerCreationMbr,
   calculateRegistryLockerBoxCreateMbr,
   getLockerBoxPrefix,
+  asyncWithTimeout,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
@@ -37,6 +38,7 @@ import {
   LOCKER_CLEAR_KEY,
   SUBTOPIA_REGISTRY_ID,
   MIN_APP_CREATE_MBR,
+  DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 } from "../constants";
 import {
   SubscriptionType,
@@ -65,6 +67,7 @@ export class SubtopiaRegistryClient {
   appAddress: string;
   appSpec: ApplicationSpec;
   oracleID: number;
+  timeout: number;
 
   protected constructor({
     algodClient,
@@ -74,6 +77,7 @@ export class SubtopiaRegistryClient {
     appSpec,
     oracleID,
     version,
+    timeout,
   }: {
     algodClient: AlgodClient;
     creator: TransactionSignerAccount;
@@ -82,6 +86,7 @@ export class SubtopiaRegistryClient {
     appSpec: ApplicationSpec;
     oracleID: number;
     version: string;
+    timeout: number;
   }) {
     this.algodClient = algodClient;
     this.creator = creator;
@@ -90,12 +95,14 @@ export class SubtopiaRegistryClient {
     this.appSpec = appSpec;
     this.oracleID = oracleID;
     this.version = version;
+    this.timeout = timeout;
   }
 
   public static async init(
     algodClient: AlgodClient,
     creator: TransactionSignerAccount,
-    chainType: ChainType
+    chainType: ChainType,
+    timeout: number = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS
   ): Promise<SubtopiaRegistryClient> {
     const registryID = SUBTOPIA_REGISTRY_ID(chainType);
     const registryAddress = getApplicationAddress(registryID);
@@ -157,6 +164,7 @@ export class SubtopiaRegistryClient {
       },
       oracleID: oracleID,
       version: version,
+      timeout: timeout,
     });
   }
 
@@ -301,7 +309,12 @@ export class SubtopiaRegistryClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 4),
     });
 
-    const response = await createLockerAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      createLockerAtc.execute.bind(createLockerAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,
@@ -449,7 +462,12 @@ export class SubtopiaRegistryClient {
       ),
     });
 
-    const response = await transferInfraAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      transferInfraAtc.execute.bind(transferInfraAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,
@@ -642,7 +660,12 @@ export class SubtopiaRegistryClient {
       ),
     });
 
-    const response = await createInfraAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      createInfraAtc.execute.bind(createInfraAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,
@@ -693,7 +716,12 @@ export class SubtopiaRegistryClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 4),
     });
 
-    const response = await deleteInfraAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      deleteInfraAtc.execute.bind(deleteInfraAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,

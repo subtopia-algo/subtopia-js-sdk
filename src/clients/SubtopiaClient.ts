@@ -27,6 +27,7 @@ import {
   calculateProductDiscountBoxCreateMbr,
   calculateProductSubscriptionBoxCreateMbr,
   optInAsset,
+  asyncWithTimeout,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
@@ -34,6 +35,7 @@ import {
   TESTNET_SUBTOPIA_REGISTRY_ID,
   MIN_APP_CREATE_MBR,
   MIN_ASA_CREATE_MBR,
+  DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 } from "../constants";
 import {
   PriceNormalizationType,
@@ -69,6 +71,7 @@ export class SubtopiaClient {
   appID: number;
   appAddress: string;
   appSpec: ApplicationSpec;
+  timeout: number;
 
   protected constructor({
     algodClient,
@@ -82,6 +85,7 @@ export class SubtopiaClient {
     price,
     coin,
     version,
+    timeout,
   }: {
     algodClient: AlgodClient;
     productName: string;
@@ -94,6 +98,7 @@ export class SubtopiaClient {
     price: number;
     coin: AssetMetadata;
     version: string;
+    timeout: number;
   }) {
     this.algodClient = algodClient;
     this.productName = productName;
@@ -106,12 +111,14 @@ export class SubtopiaClient {
     this.price = price;
     this.coin = coin;
     this.version = version;
+    this.timeout = timeout;
   }
 
   public static async init(
     algodClient: AlgodClient,
     productID: number,
-    creator: TransactionSignerAccount
+    creator: TransactionSignerAccount,
+    timeout: number = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS
   ): Promise<SubtopiaClient> {
     const productGlobalState = await getAppGlobalState(
       productID,
@@ -194,6 +201,7 @@ export class SubtopiaClient {
       price: productPrice,
       coin,
       version,
+      timeout,
     });
   }
 
@@ -224,7 +232,12 @@ export class SubtopiaClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
-    const response = await updateLifecycleAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      updateLifecycleAtc.execute.bind(updateLifecycleAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,
@@ -509,7 +522,12 @@ export class SubtopiaClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
     });
 
-    const response = await createDiscountAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      createDiscountAtc.execute.bind(createDiscountAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,
@@ -545,7 +563,12 @@ export class SubtopiaClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
     });
 
-    const response = await deleteDiscountAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      deleteDiscountAtc.execute.bind(deleteDiscountAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,
@@ -706,7 +729,12 @@ export class SubtopiaClient {
       ),
     });
 
-    const response = await createSubscriptionAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      createSubscriptionAtc.execute.bind(createSubscriptionAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,
@@ -760,7 +788,9 @@ export class SubtopiaClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
     });
 
-    const response = await transferSubscriptionAtc.execute(
+    const response = await asyncWithTimeout(
+      transferSubscriptionAtc.execute.bind(transferSubscriptionAtc),
+      this.timeout,
       this.algodClient,
       10
     );
@@ -822,7 +852,12 @@ export class SubtopiaClient {
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
     });
 
-    const response = await claimSubscriptionAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      claimSubscriptionAtc.execute.bind(claimSubscriptionAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,
@@ -878,7 +913,12 @@ export class SubtopiaClient {
       ),
     });
 
-    const response = await deleteSubscriptionAtc.execute(this.algodClient, 10);
+    const response = await asyncWithTimeout(
+      deleteSubscriptionAtc.execute.bind(deleteSubscriptionAtc),
+      this.timeout,
+      this.algodClient,
+      10
+    );
 
     return {
       txID: response.txIDs.pop() as string,

@@ -52,3 +52,6 @@ export const LOCKER_GLOBAL_NUM_UINTS = 1;
 export const LOCKER_GLOBAL_NUM_BYTE_SLICES = 1;
 export const LOCKER_LOCAL_NUM_UINTS = 0;
 export const LOCKER_LOCAL_NUM_BYTE_SLICES = 0;
+
+// Misc
+export const DEFAULT_TXN_SIGN_TIMEOUT_SECONDS = 60;

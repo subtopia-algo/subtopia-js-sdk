@@ -82,6 +82,7 @@ async function setupSubtopiaRegistryClient(
     registryID: subtopiaRegistryClient.appID,
     algodClient: algodClient,
     ownerAddress: creatorAccount.addr,
+    lockerType: LockerType.CREATOR,
   });
 
   if (!lockerID) {
@@ -316,6 +317,7 @@ describe("subtopia", () => {
         registryID: subtopiaRegistryClient.appID,
         algodClient: algodClient,
         ownerAddress: newOwner.addr,
+        lockerType: LockerType.CREATOR,
       });
 
       expect(newOwnerLockerID).toBeGreaterThan(0);

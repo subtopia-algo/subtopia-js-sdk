@@ -43,6 +43,7 @@ import {
   Duration,
   SubscriptionType,
   LifecycleState,
+  LockerType,
 } from "../enums";
 
 import {
@@ -601,6 +602,7 @@ export class SubtopiaClient {
       registryID: TESTNET_SUBTOPIA_REGISTRY_ID,
       algodClient: this.algodClient,
       ownerAddress: state.manager,
+      lockerType: LockerType.CREATOR,
     });
 
     if (!managerLockerID) {

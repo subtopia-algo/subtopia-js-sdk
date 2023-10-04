@@ -326,16 +326,18 @@ export class SubtopiaRegistryClient {
     registryID,
     algodClient,
     ownerAddress,
+    lockerType,
   }: {
     registryID: number;
     algodClient: AlgodClient;
     ownerAddress: string;
+    lockerType: LockerType;
   }): Promise<number | undefined> {
     const boxValue = await algodClient
       .getApplicationBoxByName(
         registryID,
         new Uint8Array([
-          ...getLockerBoxPrefix(LockerType.CREATOR),
+          ...getLockerBoxPrefix(lockerType),
           ...decodeAddress(ownerAddress).publicKey,
         ])
       )
@@ -358,11 +360,13 @@ export class SubtopiaRegistryClient {
       registryID: this.appID,
       algodClient: this.algodClient,
       ownerAddress: this.creator.addr,
+      lockerType: LockerType.CREATOR,
     });
     const newOwnerLockerID = await SubtopiaRegistryClient.getLocker({
       registryID: this.appID,
       algodClient: this.algodClient,
       ownerAddress: newOwnerAddress,
+      lockerType: LockerType.CREATOR,
     });
 
     if (!oldOwnerLockerID) {

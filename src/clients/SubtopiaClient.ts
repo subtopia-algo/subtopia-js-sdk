@@ -579,11 +579,9 @@ export class SubtopiaClient {
   public async createSubscription({
     subscriber,
     duration,
-    parseWholeUnits = false,
   }: {
     subscriber: TransactionSignerAccount;
     duration: Duration;
-    parseWholeUnits?: boolean;
   }): Promise<{
     txID: string;
     subscriptionID: number;
@@ -597,7 +595,7 @@ export class SubtopiaClient {
       oracleAdminState.valueRaw
     );
     const platformFeeAmount = await this.getSubscriptionPlatformFee();
-    const state = await this.getAppState(parseWholeUnits);
+    const state = await this.getAppState();
     const managerLockerID = await SubtopiaRegistryClient.getLocker({
       registryID: TESTNET_SUBTOPIA_REGISTRY_ID,
       algodClient: this.algodClient,
@@ -610,6 +608,21 @@ export class SubtopiaClient {
     }
 
     const lockerAddress = getApplicationAddress(managerLockerID);
+
+    let subscriptionPrice = this.price;
+    for (const discount of state.discounts) {
+      if (discount.duration === duration.valueOf()) {
+        if (discount.discountType === DiscountType.PERCENTAGE) {
+          subscriptionPrice =
+            subscriptionPrice -
+            (subscriptionPrice * discount.discountValue) / 100;
+          break;
+        } else if (discount.discountType === DiscountType.FIXED) {
+          subscriptionPrice = subscriptionPrice - discount.discountValue;
+          break;
+        }
+      }
+    }
 
     const createSubscriptionAtc = new AtomicTransactionComposer();
     createSubscriptionAtc.addMethodCall({
@@ -675,7 +688,7 @@ export class SubtopiaClient {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: subscriber.addr,
             to: adminAddress,
-            amount: platformFeeAmount,
+            amount: this.price > 0 ? platformFeeAmount : 0,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
           signer: subscriber.signer,
@@ -685,7 +698,7 @@ export class SubtopiaClient {
               txn: makePaymentTxnWithSuggestedParamsFromObject({
                 from: subscriber.addr,
                 to: lockerAddress,
-                amount: this.price,
+                amount: subscriptionPrice,
                 suggestedParams: await getParamsWithFeeCount(
                   this.algodClient,
                   0
@@ -697,13 +710,7 @@ export class SubtopiaClient {
               txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
                 from: subscriber.addr,
                 to: lockerAddress,
-                amount: parseWholeUnits
-                  ? normalizePrice(
-                      this.price,
-                      this.coin.decimals,
-                      PriceNormalizationType.RAW
-                    )
-                  : this.price,
+                amount: subscriptionPrice,
                 assetIndex: this.coin.index,
                 suggestedParams: await getParamsWithFeeCount(
                   this.algodClient,

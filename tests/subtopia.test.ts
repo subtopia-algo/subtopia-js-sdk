@@ -274,7 +274,21 @@ describe("subtopia", () => {
 
       expect(createDiscountResponse.txID).toBeDefined();
 
+      const purchaseResponse = await productClient.createSubscription({
+        subscriber: creatorSignerAccount,
+        duration: Duration.MONTH,
+      });
+      expect(purchaseResponse.txID).toBeDefined();
+
       const productState = await productClient.getAppState();
+
+      const deleteSubscriptionResponse = await productClient.deleteSubscription(
+        {
+          subscriber: creatorSignerAccount,
+          subscriptionID: purchaseResponse.subscriptionID,
+        }
+      );
+      expect(deleteSubscriptionResponse.txID).toBeDefined();
 
       expect(productState.discounts.length).toBe(1);
       expect(productState.discounts[0].duration).toBe(Duration.MONTH.valueOf());
@@ -457,7 +471,6 @@ describe("subtopia", () => {
       const subscribeResponse = await productClient.createSubscription({
         subscriber: subscriberSigner,
         duration: Duration.MONTH,
-        parseWholeUnits: false,
       });
 
       expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);

@@ -3,7 +3,12 @@
 // Copyright (C) 2023 Altynbek Orumbayev
 // =============================================================================
 
-import { normalizePrice, optInAsset, optOutAsset } from "./utils";
+import {
+  normalizePrice,
+  optInAsset,
+  optOutAsset,
+  durationToMonths,
+} from "./utils";
 import { SubtopiaClient, SubtopiaRegistryClient } from "./clients";
 
 export {
@@ -12,6 +17,7 @@ export {
   normalizePrice,
   optInAsset,
   optOutAsset,
+  durationToMonths,
 };
 
 export * from "./interfaces";

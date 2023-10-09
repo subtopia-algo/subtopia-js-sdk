@@ -25,7 +25,7 @@ import {
   LOCKER_GLOBAL_NUM_BYTE_SLICES,
   DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 } from "../constants";
-import { LockerType, PriceNormalizationType } from "../enums";
+import { Duration, LockerType, PriceNormalizationType } from "../enums";
 import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
@@ -356,4 +356,20 @@ export async function asyncWithTimeout<T, A extends any[]>(
         reject(err);
       });
   });
+}
+
+export function durationToMonths(duration: Duration | undefined): number {
+  if (duration === Duration.UNLIMITED) {
+    return 1;
+  } else if (duration === Duration.MONTH) {
+    return 1;
+  } else if (duration === Duration.QUARTER) {
+    return 3;
+  } else if (duration === Duration.SEMI_ANNUAL) {
+    return 6;
+  } else if (duration === Duration.ANNUAL) {
+    return 12;
+  } else {
+    throw new Error("Invalid expiration type");
+  }
 }

@@ -28,6 +28,7 @@ import {
   calculateProductSubscriptionBoxCreateMbr,
   optInAsset,
   asyncWithTimeout,
+  durationToMonths,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
@@ -609,7 +610,7 @@ export class SubtopiaClient {
 
     const lockerAddress = getApplicationAddress(managerLockerID);
 
-    let subscriptionPrice = this.price;
+    let subscriptionPrice = this.price * durationToMonths(duration);
     for (const discount of state.discounts) {
       if (discount.duration === duration.valueOf()) {
         if (discount.discountType === DiscountType.PERCENTAGE) {

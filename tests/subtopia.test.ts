@@ -98,6 +98,9 @@ async function setupSubtopiaRegistryClient(
 
 describe("subtopia", () => {
   beforeAll(async () => {
+    await refundTestnetAlgos(creatorAccount);
+    await refundTestnetAlgos(bobTestAccount);
+
     const dispenserInfo = await algodClient
       .accountInformation(dispenserAccount.addr)
       .do();

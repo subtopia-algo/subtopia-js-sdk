@@ -147,11 +147,22 @@ export async function optOutAsset({
 export function normalizePrice(
   price: number,
   decimals: number,
-  direction = PriceNormalizationType.RAW // RAW = multiply by decimals, PRETTY = divide by decimals
+  direction = PriceNormalizationType.RAW, // RAW = multiply by decimals, PRETTY = divide by decimals
+  precision?: number
 ): number {
-  return direction === PriceNormalizationType.RAW
-    ? Math.floor(price * 10 ** decimals)
-    : Math.floor(price / 10 ** decimals);
+  let result =
+    direction === PriceNormalizationType.RAW
+      ? price * 10 ** decimals
+      : price / 10 ** decimals;
+
+  if (precision !== undefined) {
+    const factor = 10 ** precision;
+    result = Math.round(result * factor) / factor;
+  } else {
+    result = Math.floor(result);
+  }
+
+  return result;
 }
 
 export async function getAssetByID(

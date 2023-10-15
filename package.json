@@ -1,6 +1,6 @@
 {
   "name": "subtopia-js",
-  "version": "3.0.0-beta.25",
+  "version": "3.0.0-beta.26",
   "description": "Subtopia SDK for JavaScript",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",

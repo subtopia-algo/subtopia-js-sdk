@@ -437,7 +437,7 @@ export class SubtopiaClient {
       duration: boxContent[0],
       discountType: boxContent[1],
       discountValue: boxContent[2],
-      expiresAt: boxContent[3] === 0 ? undefined : boxContent[3],
+      expiresAt: boxContent[3] === 0 ? null : boxContent[3],
       createdAt: boxContent[4],
       totalClaims: boxContent[5],
     };
@@ -819,16 +819,14 @@ export class SubtopiaClient {
   }): Promise<{
     txID: string;
   }> {
-    let isOptedIn = false;
     const assetInfo = await this.algodClient
       .accountAssetInformation(subscriber.addr, subscriptionID)
       .do()
       .catch(() => {
-        isOptedIn = false;
+        return null;
       });
-    isOptedIn = assetInfo !== undefined;
 
-    if (!isOptedIn) {
+    if (!assetInfo) {
       await optInAsset({
         client: this.algodClient,
         account: subscriber,
@@ -1049,7 +1047,7 @@ export class SubtopiaClient {
       subType: boxContent[0],
       subID: boxContent[1],
       createdAt: boxContent[2],
-      expiresAt: boxContent[3] === 0 ? undefined : boxContent[3],
+      expiresAt: boxContent[3] === 0 ? null : boxContent[3],
       duration: boxContent[4],
     };
   }

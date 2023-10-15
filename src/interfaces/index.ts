@@ -18,7 +18,7 @@ export interface ApplicationSpec {
 
 export interface SubscriptionRecord {
   createdAt: number;
-  expiresAt: number | undefined;
+  expiresAt: number | null;
   duration: Duration;
   subID: number;
   subType: SubscriptionType;
@@ -32,7 +32,7 @@ export interface BaseDiscountRecord {
 
 export interface DiscountRecord extends BaseDiscountRecord {
   createdAt: number;
-  expiresAt: number | undefined;
+  expiresAt: number | null;
   totalClaims: number;
 }
 // === Common ===

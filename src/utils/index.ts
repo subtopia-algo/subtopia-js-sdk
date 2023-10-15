@@ -155,7 +155,7 @@ export function normalizePrice(
       ? price * 10 ** decimals
       : price / 10 ** decimals;
 
-  if (precision !== undefined) {
+  if (precision) {
     const factor = 10 ** precision;
     result = Math.round(result * factor) / factor;
   } else {
@@ -358,7 +358,7 @@ export async function asyncWithTimeout<T, A extends any[]>(
   });
 }
 
-export function durationToMonths(duration: Duration | undefined): number {
+export function durationToMonths(duration: Duration | null): number {
   if (duration === Duration.UNLIMITED) {
     return 1;
   } else if (duration === Duration.MONTH) {

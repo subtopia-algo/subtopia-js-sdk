@@ -332,7 +332,7 @@ export class SubtopiaRegistryClient {
     algodClient: AlgodClient;
     ownerAddress: string;
     lockerType: LockerType;
-  }): Promise<number | undefined> {
+  }): Promise<number | null> {
     const boxValue = await algodClient
       .getApplicationBoxByName(
         registryID,
@@ -342,9 +342,9 @@ export class SubtopiaRegistryClient {
         ])
       )
       .do()
-      .catch(() => undefined);
+      .catch(() => null);
 
-    return boxValue ? decodeUint64(boxValue.value, "safe") : undefined;
+    return boxValue ? decodeUint64(boxValue.value, "safe") : null;
   }
 
   public async transferProduct({

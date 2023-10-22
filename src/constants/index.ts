@@ -7,8 +7,8 @@ import { ChainType } from "../enums";
 import { AssetMetadata } from "../interfaces";
 
 export const DEFAULT_AWAIT_ROUNDS = 10;
-export const TESTNET_SUBTOPIA_REGISTRY_ID = 269954941;
-export const MAINNET_SUBTOPIA_REGISTRY_ID = 269954941;
+export const TESTNET_SUBTOPIA_REGISTRY_ID = 450888714;
+export const MAINNET_SUBTOPIA_REGISTRY_ID = 450888714;
 export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
   if (chainType === ChainType.MAINNET) {
     return TESTNET_SUBTOPIA_REGISTRY_ID;
@@ -26,8 +26,10 @@ export const ALGO_ASSET = {
 } as AssetMetadata;
 
 export const PRODUCT_STATE_MANAGER_KEY = "manager";
-export const PRODUCT_APPROVAL_KEY = "infrastructure_approval";
-export const PRODUCT_CLEAR_KEY = "infrastructure_clear";
+export const PRODUCT_VERSION_KEY = "product_version";
+export const PRODUCT_APPROVAL_KEY = "product_approval";
+export const PRODUCT_CLEAR_KEY = "product_clear";
+export const LOCKER_VERSION_KEY = "locker_version";
 export const LOCKER_APPROVAL_KEY = "locker_approval";
 export const LOCKER_CLEAR_KEY = "locker_clear";
 

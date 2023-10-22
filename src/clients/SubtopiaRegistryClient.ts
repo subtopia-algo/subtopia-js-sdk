@@ -39,6 +39,8 @@ import {
   SUBTOPIA_REGISTRY_ID,
   MIN_APP_CREATE_MBR,
   DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
+  PRODUCT_VERSION_KEY,
+  LOCKER_VERSION_KEY,
 } from "../constants";
 import {
   SubscriptionType,
@@ -54,11 +56,15 @@ import {
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 import { ApplicationSpec } from "interfaces";
 
-const STP_IMAGE_URL =
+const SUBTOPIA_DEFAULT_IMAGE_URL =
   "ipfs://bafybeicddz7kbuxajj6bob5bjqtweq6wchkdkiq4vvhwrwrne7iz4f25xi";
-const STP_UNIT_NAME = "STP";
+const SUBTOPIA_DEFAULT_UNIT_NAME = "STP";
 const encoder = new TextEncoder();
 
+/**
+ * SubtopiaRegistryClient is a class that provides methods to interact with the Subtopia Registry contract.
+ * It provides methods to create, update and delete products and lockers in the registry.
+ */
 export class SubtopiaRegistryClient {
   algodClient: algosdk.Algodv2;
   creator: TransactionSignerAccount;
@@ -98,6 +104,25 @@ export class SubtopiaRegistryClient {
     this.timeout = timeout;
   }
 
+  /**
+   * Initializes a new instance of the SubtopiaRegistryClient class with the specified parameters.
+   *
+   * @param algodClient - An instance of the AlgodClient class from the algosdk library.
+   * @param creator - An instance of the TransactionSignerAccount class from the algosdk library.
+   * @param chainType - A value from the ChainType enum.
+   * @param timeout - The timeout value in seconds for transaction signing. Defaults to DEFAULT_TXN_SIGN_TIMEOUT_SECONDS.
+   * @returns A new instance of the SubtopiaRegistryClient class with the specified parameters.
+   * @example
+   * ```typescript
+   * import { ChainType, SubtopiaRegistryClient } from "subtopia-js-sdk";
+   *
+   * const registryClient = await SubtopiaRegistryClient.init(
+   *    algodClient,
+   *    creator,
+   *    ChainType.TESTNET
+   * );
+   * ```
+   */
   public static async init(
     algodClient: AlgodClient,
     creator: TransactionSignerAccount,
@@ -168,6 +193,46 @@ export class SubtopiaRegistryClient {
     });
   }
 
+  /**
+   * This method is used to get the latest available product contract version.
+   * Can be used to check if the current product instance is up to date.
+   * @returns {Promise<string>} A promise that resolves to the product version.
+   */
+  public async getProductVersion(): Promise<string> {
+    const appBoxResponse = await this.algodClient
+      .getApplicationBoxByName(
+        this.appID,
+        new Uint8Array([...Buffer.from(PRODUCT_VERSION_KEY)])
+      )
+      .do();
+    const version = new TextDecoder().decode(appBoxResponse.value);
+    return version;
+  }
+
+  /**
+   * This method is used to get the latest available locker contract version.
+   * Can be used to check if the current locker instance is up to date.
+   * @returns {Promise<string>} A promise that resolves to the locker version.
+   */
+  public async getLockerVersion(): Promise<string> {
+    const appBoxResponse = await this.algodClient
+      .getApplicationBoxByName(
+        this.appID,
+        new Uint8Array([...Buffer.from(LOCKER_VERSION_KEY)])
+      )
+      .do();
+    const version = new TextDecoder().decode(appBoxResponse.value);
+    return version;
+  }
+
+  /**
+   * This method is used to calculate the product creation fee.
+   * The fee is calculated based on the minimum balance requirements for creating and opting into an application,
+   * and the minimum balance requirement for creating a product.
+   * If a coinID is provided, the minimum balance requirement for opting into an ASA is also added to the fee.
+   * @param {number} coinID - The ID of the coin. If provided, the minimum balance requirement for opting into an ASA is added to the fee.
+   * @returns {Promise<number>} A promise that resolves to the product creation fee in microAlgos.
+   */
   public async getProductCreationFee(coinID = 0): Promise<number> {
     return (
       algosToMicroalgos(MIN_APP_OPTIN_MBR) +
@@ -177,6 +242,11 @@ export class SubtopiaRegistryClient {
     );
   }
 
+  /**
+   * This method is used to calculate the product creation platform fee.
+   * The fee is always returns in microAlgos equivalent to the current price of Algo in cents.
+   * @returns {Promise<number>} A promise that resolves to the product creation platform fee in microAlgos.
+   */
   public async getProductCreationPlatformFee(): Promise<number> {
     const priceInCents = PRODUCT_CREATION_PLATFORM_FEE_CENTS;
     const computePlatformFeeAtc = new AtomicTransactionComposer();
@@ -223,6 +293,13 @@ export class SubtopiaRegistryClient {
     return Number(response.methodResults[0].returnValue);
   }
 
+  /**
+   * This method is used to calculate the locker creation fee.
+   * The fee is calculated by adding the minimum application creation member,
+   * the locker creation member, and the registry locker box creation member.
+   * @param {string} creatorAddress - The address of the creator.
+   * @returns {number} The locker creation fee.
+   */
   public getLockerCreationFee(creatorAddress: string): number {
     return (
       algosToMicroalgos(MIN_APP_CREATE_MBR) +
@@ -231,6 +308,16 @@ export class SubtopiaRegistryClient {
     );
   }
 
+  /**
+   * This method is used to calculate the locker transfer fee.
+   * The fee is calculated by adding the minimum application opt-in member,
+   * and if the coinID is provided, the minimum ASA opt-in member.
+   * If the locker is new, the locker creation fee is also added.
+   * @param {string} creatorAddress - The address of the creator.
+   * @param {boolean} isNewLocker - Whether the locker is new.
+   * @param {number} coinID - The ID of the coin.
+   * @returns {number} The locker transfer fee.
+   */
   public getLockerTransferFee(
     creatorAddress: string,
     isNewLocker: boolean,
@@ -241,6 +328,14 @@ export class SubtopiaRegistryClient {
     return isNewLocker ? fee : fee + this.getLockerCreationFee(creatorAddress);
   }
 
+  /**
+   * This method is used to create a new locker.
+   * The locker creation fee is calculated and paid by the creator.
+   * The method returns the transaction ID and the locker ID.
+   * @param {TransactionSignerAccount} creator - The account that will create the locker.
+   * @param {LockerType} lockerType - The type of the locker to be created.
+   * @returns {Promise<{txID: string, lockerID: number}>} A promise that resolves to an object containing the transaction ID and the locker ID.
+   */
   public async createLocker({
     creator,
     lockerType,
@@ -347,6 +442,13 @@ export class SubtopiaRegistryClient {
     return boxValue ? decodeUint64(boxValue.value, "safe") : null;
   }
 
+  /**
+   * This method is used to transfer a product from one owner to another.
+   * The method returns the transaction ID of the transfer.
+   * @param {number} productID - The ID of the product to be transferred.
+   * @param {string} newOwnerAddress - The address of the new owner.
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   public async transferProduct({
     productID,
     newOwnerAddress,
@@ -416,11 +518,11 @@ export class SubtopiaRegistryClient {
     transferInfraAtc.addMethodCall({
       appID: this.appID,
       method: new ABIMethod({
-        name: "transfer_infrastructure",
+        name: "transfer_product",
         args: [
           {
             type: "application",
-            name: "infrastructure",
+            name: "product",
             desc: "The product.",
           },
           {
@@ -478,6 +580,21 @@ export class SubtopiaRegistryClient {
     };
   }
 
+  /**
+   * This method is used to create a new product.
+   * The method returns the transaction ID and the product ID.
+   * @param {string} productName - The name of the product.
+   * @param {string} subscriptionName - The name of the subscription.
+   * @param {number} price - The price of the product.
+   * @param {number} lockerID - The ID of the locker.
+   * @param {SubscriptionType} subType - The type of the subscription (default is UNLIMITED).
+   * @param {number} maxSubs - The maximum number of subscriptions (default is 0).
+   * @param {number} coinID - The ID of the coin (default is 0).
+   * @param {string} unitName - The name of the unit (default is SUBTOPIA_DEFAULT_UNIT_NAME).
+   * @param {string} imageUrl - The URL of the image (default is SUBTOPIA_DEFAULT_IMAGE_URL).
+   * @param {boolean} parseWholeUnits - Whether to parse whole units (default is false).
+   * @returns {Promise<{txID: string, productID: number}>} A promise that resolves to an object containing the transaction ID and the product ID.
+   */
   public async createProduct({
     productName,
     subscriptionName,
@@ -486,8 +603,8 @@ export class SubtopiaRegistryClient {
     subType = SubscriptionType.UNLIMITED,
     maxSubs = 0,
     coinID = 0,
-    unitName = STP_UNIT_NAME,
-    imageUrl = STP_IMAGE_URL,
+    unitName = SUBTOPIA_DEFAULT_UNIT_NAME,
+    imageUrl = SUBTOPIA_DEFAULT_IMAGE_URL,
     parseWholeUnits = false,
   }: {
     productName: string;
@@ -524,7 +641,7 @@ export class SubtopiaRegistryClient {
     createInfraAtc.addMethodCall({
       appID: this.appID,
       method: new ABIMethod({
-        name: "create_infrastructure",
+        name: "create_product",
         args: [
           {
             type: "string",
@@ -539,12 +656,12 @@ export class SubtopiaRegistryClient {
           {
             type: "uint64",
             name: "sub_type",
-            desc: "The sub type of The product.",
+            desc: "The sub type of the Product.",
           },
           {
             type: "uint64",
             name: "price",
-            desc: "The price of The product.",
+            desc: "The price of the Product.",
           },
           {
             type: "uint64",
@@ -554,17 +671,17 @@ export class SubtopiaRegistryClient {
           {
             type: "asset",
             name: "coin",
-            desc: "The coin of The product.",
+            desc: "The coin of the Product.",
           },
           {
             type: "string",
             name: "unit_name",
-            desc: "The unit name of The product.",
+            desc: "The unit name of the Product.",
           },
           {
             type: "string",
             name: "image_url",
-            desc: "The image URL of The product.",
+            desc: "The image URL of the Product.",
           },
           {
             type: "address",
@@ -677,6 +794,13 @@ export class SubtopiaRegistryClient {
     };
   }
 
+  /**
+   * This method is used to delete a product.
+   * The method returns the transaction ID.
+   * @param {number} productID - The ID of the product to be deleted.
+   * @param {number} lockerID - The ID of the locker where the product is stored.
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   public async deleteProduct({
     productID,
     lockerID,
@@ -690,11 +814,11 @@ export class SubtopiaRegistryClient {
     deleteInfraAtc.addMethodCall({
       appID: this.appID,
       method: new ABIMethod({
-        name: "delete_infrastructure",
+        name: "delete_product",
         args: [
           {
             type: "application",
-            name: "infrastructure",
+            name: "product",
             desc: "The product.",
           },
           {

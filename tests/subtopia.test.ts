@@ -4,7 +4,12 @@ import {
   Account,
 } from "algosdk";
 import "dotenv/config";
-import { optInAsset, optOutAsset } from "../src/index";
+import {
+  LOCKER_VERSION,
+  PRODUCT_VERSION,
+  optInAsset,
+  optOutAsset,
+} from "../src/index";
 import { it, describe, expect, beforeAll, afterAll } from "vitest";
 
 import { SubtopiaRegistryClient } from "../src/clients/SubtopiaRegistryClient";
@@ -135,6 +140,21 @@ describe("subtopia", () => {
     await refundTestnetAlgos(creatorAccount);
     await refundTestnetAlgos(bobTestAccount);
   });
+
+  it("should match latest precompiled versions of locker and product contracts", async () => {
+    // Setup
+    const { subtopiaRegistryClient } = await setupSubtopiaRegistryClient(
+      creatorSignerAccount
+    );
+
+    // Test
+    const productVersion = await subtopiaRegistryClient.getProductVersion();
+    const lockerVersion = await subtopiaRegistryClient.getLockerVersion();
+
+    // Assert
+    expect(lockerVersion).toBe(LOCKER_VERSION);
+    expect(productVersion).toBe(PRODUCT_VERSION);
+  }, 10e6);
 
   it(
     "should manage product and subscription lifecycle correctly",

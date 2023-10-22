@@ -144,6 +144,16 @@ export async function optOutAsset({
   return optInResult;
 }
 
+/**
+ * Normalizes a price value based on the provided decimals and direction.
+ *
+ * @param {number} price - The price value to normalize.
+ * @param {number} decimals - The number of decimals to consider for normalization.
+ * @param {PriceNormalizationType} direction - The direction of normalization. RAW = multiply by decimals, PRETTY = divide by decimals.
+ * @param {number} precision - The precision to use when rounding the result. If not provided, the result is floored.
+ *
+ * @returns {number} - The normalized price.
+ */
 export function normalizePrice(
   price: number,
   decimals: number,
@@ -330,6 +340,14 @@ export function wait(ms: number) {
   return resp;
 }
 
+/**
+ * Executes a function with a timeout.
+ * @param {(...args: A) => Promise<T>} fn - The function to execute.
+ * @param {number} timeout - The timeout in seconds.
+ * @param {...A} args - The arguments to pass to the function.
+ * @returns {Promise<T>} - A promise that resolves with the result of the function if it completes before the timeout.
+ * @throws {Error} - If the function does not complete before the timeout.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function asyncWithTimeout<T, A extends any[]>(
   fn: (...args: A) => Promise<T>,

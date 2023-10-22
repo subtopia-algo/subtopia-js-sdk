@@ -61,6 +61,11 @@ import {
   SubscriptionRecord,
 } from "interfaces";
 
+/**
+ * The `SubtopiaClient` class is responsible for interacting with a Subtopia Product contracts on the Algorand blockchain.
+ * It provides methods for initializing the client, managing the lifecycle of the application, creating and managing subscriptions,
+ * and retrieving information about the application and subscriptions.
+ */
 export class SubtopiaClient {
   productName: string;
   subscriptionName: string;
@@ -116,6 +121,28 @@ export class SubtopiaClient {
     this.timeout = timeout;
   }
 
+  /**
+   * This method is used to initialize a SubtopiaClient instance.
+   * It fetches the product's global state, validates it, and creates a new SubtopiaClient instance.
+   *
+   * @param {AlgodClient} algodClient - The Algod client to interact with the Algorand network.
+   * @param {number} productID - The ID of the product.
+   * @param {TransactionSignerAccount} creator - The account that will sign the transactions.
+   * @param {number} timeout - The timeout for the transactions (default is DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).
+   *
+   * @returns {Promise<SubtopiaClient>} A promise that resolves to a SubtopiaClient instance.
+   *
+   * @example
+   * ```typescript
+   * import { SubtopiaClient } from "@algorand/subtopia";
+   *
+   * const subtopiaClient = await SubtopiaClient.init(
+   *   algodClient,
+   *   productID,
+   *   creator
+   * );
+   * ```
+   */
   public static async init(
     algodClient: AlgodClient,
     productID: number,
@@ -207,6 +234,12 @@ export class SubtopiaClient {
     });
   }
 
+  /**
+   * This method is used to update the lifecycle state of the application.
+   * The method returns the transaction ID.
+   * @param {LifecycleState} lifecycle - The new lifecycle state.
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   protected async updateLifecycle({
     lifecycle,
   }: {
@@ -246,18 +279,37 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * This method is used to enable the application (updates the lifecycle).
+   * The method returns the transaction ID.
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   public async enable(): Promise<{
     txID: string;
   }> {
     return this.updateLifecycle({ lifecycle: LifecycleState.ENABLED });
   }
 
+  /**
+   * This method is used to disable the application (updates the lifecycle).
+   * Has to be called before deleting the application. Upon disabling, product will stop allowing
+   * new subscriptions to be sold, existing subscribers will only be able to cancel their subscriptions.
+   * Product can be deleted once all subscriptions are cancelled or expired.
+   * The method returns the transaction ID.
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   public async disable(): Promise<{
     txID: string;
   }> {
     return this.updateLifecycle({ lifecycle: LifecycleState.DISABLED });
   }
 
+  /**
+   * This method is used to get the state of the application.
+   * It returns an object containing the product name, subscription name, manager, price, total subscriptions, maximum subscriptions, coin ID, subscription type, lifecycle, creation time, oracle ID, unit name, image URL, and discounts.
+   * @param {boolean} parseWholeUnits - A boolean indicating whether to parse the whole units (default is true).
+   * @returns {Promise<ProductState>} A promise that resolves to an object containing the state of the application.
+   */
   public async getAppState(parseWholeUnits = true): Promise<ProductState> {
     const globalState = await getAppGlobalState(
       this.appID,
@@ -317,6 +369,11 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * This method is used to calculate the platform fee for a subscription.
+   * The method returns the platform fee as a number.
+   * @returns {Promise<number>} A promise that resolves to a number representing the platform fee.
+   */
   public async getSubscriptionPlatformFee(): Promise<number> {
     if (this.price === 0) {
       return new Promise((resolve) => resolve(0));
@@ -367,6 +424,12 @@ export class SubtopiaClient {
     return Number(response.methodResults[0].returnValue);
   }
 
+  /**
+   * This method is used to calculate the locker creation fee.
+   * It takes the creator's address as an argument and returns a promise that resolves to the fee amount.
+   * @param {string} creatorAddress - The address of the creator.
+   * @returns {Promise<number>} A promise that resolves to the locker creation fee.
+   */
   public async getLockerCreationFee(creatorAddress: string): Promise<number> {
     return (
       algosToMicroalgos(MIN_APP_CREATE_MBR) +
@@ -375,6 +438,12 @@ export class SubtopiaClient {
     );
   }
 
+  /**
+   * This method is used to get the discount based on the duration.
+   * It takes a duration object as an argument and returns a promise that resolves to a DiscountRecord.
+   * @param {Duration} duration - The duration for which the discount is to be calculated.
+   * @returns {Promise<DiscountRecord>} A promise that resolves to the discount record.
+   */
   public async getDiscount({
     duration,
   }: {
@@ -443,6 +512,16 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * This method is used to create a discount for a subscription.
+   * The method returns the transaction ID.
+   * @param {Duration} duration - The duration of the discount.
+   * @param {DiscountType} discountType - The type of discount (percentage or amount).
+   * @param {number} discountValue - The discount value in micro ALGOs.
+   * @param {number} expiresIn - The number of seconds to append to creation date.
+   * @param {boolean} parseWholeUnits - A boolean indicating whether to parse the whole units (default is false).
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   public async createDiscount({
     duration,
     discountType,
@@ -536,6 +615,12 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * This method is used to delete a discount.
+   * It takes a duration object as an argument and returns a promise that resolves to an object containing the transaction ID.
+   * @param {Duration} duration - The duration of the discount to be deleted.
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   public async deleteDiscount({ duration }: { duration: Duration }): Promise<{
     txID: string;
   }> {
@@ -577,6 +662,13 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * This method is used to create a subscription.
+   * It takes a subscriber and a duration as arguments and returns a promise that resolves to an object containing the transaction ID and subscription ID.
+   * @param {TransactionSignerAccount} subscriber - The subscriber's account.
+   * @param {Duration} duration - The duration of the subscription.
+   * @returns {Promise<{txID: string, subscriptionID: number}>} A promise that resolves to an object containing the transaction ID and subscription ID.
+   */
   public async createSubscription({
     subscriber,
     duration,
@@ -752,6 +844,14 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * This method is used to transfer a subscription from one subscriber to another.
+   * It takes an old subscriber, a new subscriber address, and a subscription ID as arguments and returns a promise that resolves to an object containing the transaction ID.
+   * @param {TransactionSignerAccount} oldSubscriber - The old subscriber's account.
+   * @param {string} newSubscriberAddress - The new subscriber's address.
+   * @param {number} subscriptionID - The ID of the subscription to be transferred.
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   public async transferSubscription({
     oldSubscriber,
     newSubscriberAddress,
@@ -810,6 +910,13 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * Claims a subscription for a given subscriber.
+   *
+   * @param {Object} subscriber - The account of the subscriber, containing the address and signer.
+   * @param {number} subscriptionID - The ID of the subscription asset.
+   * @returns {Promise<Object>} - The transaction ID of the executed transaction.
+   */
   public async claimSubscription({
     subscriber,
     subscriptionID,
@@ -872,6 +979,13 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * This method is used to delete a subscription.
+   * It takes a subscriber and a subscription ID as arguments and returns a promise that resolves to an object containing the transaction ID.
+   * @param {TransactionSignerAccount} subscriber - The subscriber's account.
+   * @param {number} subscriptionID - The ID of the subscription to be deleted.
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   */
   public async deleteSubscription({
     subscriber,
     subscriptionID,
@@ -933,6 +1047,12 @@ export class SubtopiaClient {
     };
   }
 
+  /**
+   * Checks if a given address is a subscriber.
+   *
+   * @param {Object} subscriberAddress - The address of the potential subscriber.
+   * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the address is a subscriber.
+   */
   public async isSubscriber({
     subscriberAddress,
   }: {
@@ -985,6 +1105,13 @@ export class SubtopiaClient {
     return Boolean(response.methodResults[0].returnValue);
   }
 
+  /**
+   * This method is used to get a subscription.
+   * It takes an AlgodClient and a subscriber address as arguments and returns a promise that resolves to a SubscriptionRecord.
+   * @param {AlgodClient} algodClient - The AlgodClient to use for the transaction.
+   * @param {string} subscriberAddress - The address of the subscriber.
+   * @returns {Promise<SubscriptionRecord>} A promise that resolves to a SubscriptionRecord.
+   */
   public async getSubscription({
     algodClient,
     subscriberAddress,

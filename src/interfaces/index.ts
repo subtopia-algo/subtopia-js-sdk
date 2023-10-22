@@ -7,6 +7,9 @@ import { DiscountType, Duration, SubscriptionType } from "../enums";
 
 // === Boxes ===
 
+/**
+ * Interface for the application specification.
+ */
 export interface ApplicationSpec {
   approval: Uint8Array;
   clear: Uint8Array;
@@ -16,6 +19,9 @@ export interface ApplicationSpec {
   localNumByteSlice: number;
 }
 
+/**
+ * Interface for the subscription record.
+ */
 export interface SubscriptionRecord {
   createdAt: number;
   expiresAt: number | null;
@@ -24,12 +30,18 @@ export interface SubscriptionRecord {
   subType: SubscriptionType;
 }
 
+/**
+ * Interface for the base discount record.
+ */
 export interface BaseDiscountRecord {
   duration: Duration;
   discountType: DiscountType;
   discountValue: number;
 }
 
+/**
+ * Interface for the discount record.
+ */
 export interface DiscountRecord extends BaseDiscountRecord {
   createdAt: number;
   expiresAt: number | null;
@@ -37,6 +49,9 @@ export interface DiscountRecord extends BaseDiscountRecord {
 }
 // === Common ===
 
+/**
+ * Interface for the asset metadata.
+ */
 export interface AssetMetadata {
   index: number;
   creator: string;
@@ -45,10 +60,16 @@ export interface AssetMetadata {
   unitName: string;
 }
 
+/**
+ * Interface for the discount metadata.
+ */
 export interface DiscountMetadata extends BaseDiscountRecord {
   expiresIn?: number;
 }
 
+/**
+ * Interface for the product global state.
+ */
 interface ProductGlobalState {
   productName: string;
   subscriptionName: string;
@@ -65,6 +86,9 @@ interface ProductGlobalState {
   imageURL: string;
 }
 
+/**
+ * Interface for the product state.
+ */
 export interface ProductState extends ProductGlobalState {
   discounts: DiscountRecord[];
 }

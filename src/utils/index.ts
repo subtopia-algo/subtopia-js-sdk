@@ -322,6 +322,17 @@ export function calculateLockerCreationMbr(): number {
   );
 }
 
+/**
+ * Determines the prefix for a locker box based on the provided lockerType.
+ *
+ * @param lockerType - The type of locker box. Can be either LockerType.CREATOR or LockerType.USER.
+ * @returns A buffer representing the prefix for a locker box based on the provided lockerType.
+ * @throws {Error} If the lockerType is unknown.
+ *
+ * @example
+ * const prefix = getLockerBoxPrefix(LockerType.CREATOR);
+ * console.log(prefix); // Output: <Buffer 63 6c 2d>
+ */
 export function getLockerBoxPrefix(lockerType: LockerType): Buffer {
   if (lockerType === LockerType.CREATOR) {
     return Buffer.from("cl-");

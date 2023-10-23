@@ -7,6 +7,7 @@ import {
   normalizePrice,
   optInAsset,
   optOutAsset,
+  getLockerBoxPrefix,
   durationToMonths,
 } from "./utils";
 import { SubtopiaClient, SubtopiaRegistryClient } from "./clients";
@@ -18,6 +19,7 @@ export {
   optInAsset,
   optOutAsset,
   durationToMonths,
+  getLockerBoxPrefix,
 };
 
 export * from "./interfaces";

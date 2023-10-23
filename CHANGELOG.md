@@ -1,3 +1,5 @@
+# [3.0.0-beta.28](https://github.com/subtopia-algo/subtopia-js/compare/v3.0.0-beta.27...v3.0.0-beta.28) (2023-10-23)
+
 # [3.0.0-beta.27](https://github.com/subtopia-algo/subtopia-js/compare/v3.0.0-beta.26...v3.0.0-beta.27) (2023-10-22)
 
 # [3.0.0-beta.26](https://github.com/subtopia-algo/subtopia-js/compare/v3.0.0-beta.25...v3.0.0-beta.26) (2023-10-15)

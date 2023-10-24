@@ -111,6 +111,7 @@ export class SubtopiaRegistryClient {
    * @param creator - An instance of the TransactionSignerAccount class from the algosdk library.
    * @param chainType - A value from the ChainType enum.
    * @param timeout - The timeout value in seconds for transaction signing. Defaults to DEFAULT_TXN_SIGN_TIMEOUT_SECONDS.
+   * @param registryID - The ID of the registry application. Defaults to official SUBTOPIA_REGISTRY_ID specific to supplied chainType.
    * @returns A new instance of the SubtopiaRegistryClient class with the specified parameters.
    * @example
    * ```typescript

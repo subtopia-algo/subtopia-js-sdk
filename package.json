@@ -27,8 +27,8 @@
     "pre-commit": "npm run lint:scripts && npm run format:scripts && npm run test:integration"
   },
   "peerDependencies": {
-    "@algorandfoundation/algokit-utils": "^3.0.0",
-    "algosdk": "^2.5.0"
+    "@algorandfoundation/algokit-utils": "^4.1.0",
+    "algosdk": "^2.7.0"
   },
   "devDependencies": {
     "@feki.de/semantic-release-yarn": "1.0.1",

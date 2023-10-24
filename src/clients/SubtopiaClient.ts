@@ -79,6 +79,7 @@ export class SubtopiaClient {
   appAddress: string;
   appSpec: ApplicationSpec;
   timeout: number;
+  registryID: number;
 
   protected constructor({
     algodClient,
@@ -93,6 +94,7 @@ export class SubtopiaClient {
     coin,
     version,
     timeout,
+    registryID,
   }: {
     algodClient: AlgodClient;
     productName: string;
@@ -106,6 +108,7 @@ export class SubtopiaClient {
     coin: AssetMetadata;
     version: string;
     timeout: number;
+    registryID: number;
   }) {
     this.algodClient = algodClient;
     this.productName = productName;
@@ -119,6 +122,7 @@ export class SubtopiaClient {
     this.coin = coin;
     this.version = version;
     this.timeout = timeout;
+    this.registryID = registryID;
   }
 
   /**
@@ -129,6 +133,7 @@ export class SubtopiaClient {
    * @param {number} productID - The ID of the product.
    * @param {TransactionSignerAccount} creator - The account that will sign the transactions.
    * @param {number} timeout - The timeout for the transactions (default is DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).
+   * @param {number} registryID - The ID of the registry (default is TESTNET_SUBTOPIA_REGISTRY_ID).
    *
    * @returns {Promise<SubtopiaClient>} A promise that resolves to a SubtopiaClient instance.
    *
@@ -147,7 +152,8 @@ export class SubtopiaClient {
     algodClient: AlgodClient,
     productID: number,
     creator: TransactionSignerAccount,
-    timeout: number = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS
+    timeout: number = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
+    registryID: number = TESTNET_SUBTOPIA_REGISTRY_ID
   ): Promise<SubtopiaClient> {
     const productGlobalState = await getAppGlobalState(
       productID,
@@ -231,6 +237,7 @@ export class SubtopiaClient {
       coin,
       version,
       timeout,
+      registryID,
     });
   }
 
@@ -690,7 +697,7 @@ export class SubtopiaClient {
     const platformFeeAmount = await this.getSubscriptionPlatformFee();
     const state = await this.getAppState();
     const managerLockerID = await SubtopiaRegistryClient.getLocker({
-      registryID: TESTNET_SUBTOPIA_REGISTRY_ID,
+      registryID: this.registryID,
       algodClient: this.algodClient,
       ownerAddress: state.manager,
       lockerType: LockerType.CREATOR,

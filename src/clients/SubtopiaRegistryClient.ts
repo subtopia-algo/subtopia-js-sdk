@@ -127,21 +127,24 @@ export class SubtopiaRegistryClient {
     algodClient: AlgodClient,
     creator: TransactionSignerAccount,
     chainType: ChainType,
-    timeout: number = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS
+    timeout: number = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
+    registryID?: number
   ): Promise<SubtopiaRegistryClient> {
-    const registryID = SUBTOPIA_REGISTRY_ID(chainType);
-    const registryAddress = getApplicationAddress(registryID);
-    const registrySpec = await getAppById(registryID, algodClient);
+    const registryId = registryID
+      ? registryID
+      : SUBTOPIA_REGISTRY_ID(chainType);
+    const registryAddress = getApplicationAddress(registryId);
+    const registrySpec = await getAppById(registryId, algodClient);
 
     const registryGlobalState = await getAppGlobalState(
-      registryID,
+      registryId,
       algodClient
     );
     const oracleID = registryGlobalState.oracle_id.value as number;
 
     const versionAtc = new AtomicTransactionComposer();
     versionAtc.addMethodCall({
-      appID: registryID,
+      appID: registryId,
       method: new ABIMethod({
         name: "get_version",
         args: [],
@@ -173,7 +176,7 @@ export class SubtopiaRegistryClient {
     return new SubtopiaRegistryClient({
       algodClient: algodClient,
       creator: creator,
-      appID: registryID,
+      appID: registryId,
       appAddress: registryAddress,
       appSpec: {
         approval: registrySpec.params.approvalProgram,

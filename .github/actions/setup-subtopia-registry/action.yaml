@@ -46,7 +46,7 @@ runs:
       shell: sh
       run: |
         cd registry-infra
-        pipx install git+https://github.com/algorandfoundation/algokit-cli@localnet_update
+        pipx install algokit
         algokit localnet start
 
     - name: Setup localnet registry

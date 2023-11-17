@@ -1,27 +1,27 @@
 # .github/actions/setup-subtopia-registry/action.yaml
-name: 'Setup Subtopia Registry'
-description: 'Setup Subtopia Registry'
+name: "Setup Subtopia Registry"
+description: "Setup Subtopia Registry"
 inputs:
   ssh-key:
-    description: 'SSH Key'
+    description: "SSH Key"
     required: true
   repository:
-    description: 'Repository'
+    description: "Repository"
     required: true
   path:
-    description: 'Path'
+    description: "Path"
     required: true
   node-version:
-    description: 'Node Version'
+    description: "Node Version"
     required: true
   python-version:
-    description: 'Python Version'
+    description: "Python Version"
     required: true
   poetry-version:
-    description: 'Poetry Version'
+    description: "Poetry Version"
     required: true
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Check out registry infra setup
       uses: actions/checkout@v4

@@ -83,7 +83,7 @@ jobs:
           repository: subtopia-algo/subtopia-contracts
           path: ./registry-infra
           node-version: 18
-          python-version: 3.11
+          python-version: ">=3.11 <3.12"
           poetry-version: 1.7.1
 
       - name: Install dependencies

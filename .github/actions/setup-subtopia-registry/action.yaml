@@ -39,15 +39,16 @@ runs:
         cache: "npm"
         cache-dependency-path: ./package-lock.json
 
+    - name: Set up Poetry
+      shell: bash
+      run: |
+        pipx install poetry
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ inputs.python-version }}
-
-    - name: Set up Poetry
-      uses: abatilo/actions-poetry@v2.3.0
-      with:
-        poetry-version: ${{ inputs.poetry-version }}
+        cache: "poetry"
 
     - name: Run AlgoKit LocalNet
       shell: bash

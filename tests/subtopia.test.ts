@@ -1,16 +1,13 @@
-import {
-  mnemonicToSecretKey,
-  makeBasicAccountTransactionSigner,
-  Account,
-} from "algosdk";
+import { makeBasicAccountTransactionSigner } from "algosdk";
 import "dotenv/config";
 import {
   LOCKER_VERSION,
   PRODUCT_VERSION,
+  SUBTOPIA_REGISTRY_ID,
   optInAsset,
   optOutAsset,
 } from "../src/index";
-import { it, describe, expect, beforeAll, afterAll } from "vitest";
+import { it, describe, expect, beforeAll } from "vitest";
 
 import { SubtopiaRegistryClient } from "../src/clients/SubtopiaRegistryClient";
 import { SubtopiaClient } from "../src/clients/SubtopiaClient";
@@ -23,65 +20,44 @@ import {
 } from "../src/enums";
 import {
   algos,
-  ensureFunded,
   getAlgoClient,
   getAppGlobalState,
-  microAlgos,
   transactionSignerAccount,
-  transferAlgos,
+  getDefaultLocalNetConfig,
+  getLocalNetDispenserAccount,
 } from "@algorandfoundation/algokit-utils";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 import { transferAsset } from "../src/utils";
+import { generateRandomAsset, getRandomAccount } from "./utils";
 
-const CONFIG = {
-  SERVER_URL: "https://testnet-api.algonode.cloud",
-  DISPENSER_MNEMONIC: process.env[
-    "TESTNET_SUBTOPIA_DISPENSER_MNEMONIC"
-  ] as string,
-  CREATOR_MNEMONIC: process.env["TESTNET_SUBTOPIA_CREATOR_MNEMONIC"] as string,
-  BOB_MNEMONIC: process.env["TESTNET_SUBTOPIA_BOB_MNEMONIC"] as string,
-};
+const algodClient = getAlgoClient(getDefaultLocalNetConfig("algod"));
 
-const algodClient = getAlgoClient({
-  server: CONFIG.SERVER_URL,
-});
-
-const TESTNET_USDC_ASA_ID = 67395862;
-const dispenserAccount = mnemonicToSecretKey(CONFIG.DISPENSER_MNEMONIC);
-const creatorAccount = mnemonicToSecretKey(CONFIG.CREATOR_MNEMONIC);
-const bobTestAccount = mnemonicToSecretKey(CONFIG.BOB_MNEMONIC);
+let LOCALNET_USDC_ASA_ID = -1;
+const dispenserAccount = await getLocalNetDispenserAccount(algodClient);
+const creatorAccount = await getRandomAccount(
+  algodClient,
+  dispenserAccount.addr,
+  makeBasicAccountTransactionSigner(dispenserAccount)
+);
+const bobTestAccount = await getRandomAccount(
+  algodClient,
+  dispenserAccount.addr,
+  makeBasicAccountTransactionSigner(dispenserAccount)
+);
 
 const creatorSignerAccount = transactionSignerAccount(
   makeBasicAccountTransactionSigner(creatorAccount),
   creatorAccount.addr
 );
 
-const refundTestnetAlgos = async (account: Account) => {
-  const accountInfo = await algodClient.accountInformation(account.addr).do();
-
-  const minWithdrawableAmount =
-    accountInfo["amount"] - accountInfo["min-balance"] - algos(0.1).microAlgos;
-
-  if (minWithdrawableAmount > 0) {
-    await transferAlgos(
-      {
-        amount: microAlgos(minWithdrawableAmount),
-        from: account,
-        to: dispenserAccount,
-      },
-      algodClient
-    );
-  }
-};
-
 async function setupSubtopiaRegistryClient(
   signerAccount: TransactionSignerAccount
 ) {
-  const subtopiaRegistryClient = await SubtopiaRegistryClient.init(
-    algodClient,
-    signerAccount,
-    ChainType.TESTNET
-  );
+  const subtopiaRegistryClient = await SubtopiaRegistryClient.init({
+    algodClient: algodClient,
+    creator: signerAccount,
+    chainType: ChainType.LOCALNET,
+  });
 
   let lockerID = await SubtopiaRegistryClient.getLocker({
     registryID: subtopiaRegistryClient.appID,
@@ -103,42 +79,15 @@ async function setupSubtopiaRegistryClient(
 
 describe("subtopia", () => {
   beforeAll(async () => {
-    await refundTestnetAlgos(creatorAccount);
-    await refundTestnetAlgos(bobTestAccount);
-
-    const dispenserInfo = await algodClient
-      .accountInformation(dispenserAccount.addr)
-      .do();
-
-    const dispenserBalance = dispenserInfo["amount"];
-
-    expect(dispenserBalance, "Dispenser must be funded").toBeGreaterThan(
-      algos(10).microAlgos
+    const metadata = await generateRandomAsset(
+      algodClient,
+      creatorAccount,
+      "USDC",
+      1000000000,
+      6
     );
 
-    await ensureFunded(
-      {
-        accountToFund: creatorAccount,
-        fundingSource: dispenserAccount,
-        minSpendingBalance: algos(5),
-        minFundingIncrement: algos(5),
-      },
-      algodClient
-    );
-
-    await ensureFunded(
-      {
-        accountToFund: bobTestAccount,
-        fundingSource: dispenserAccount,
-        minSpendingBalance: algos(2),
-      },
-      algodClient
-    );
-  });
-
-  afterAll(async () => {
-    await refundTestnetAlgos(creatorAccount);
-    await refundTestnetAlgos(bobTestAccount);
+    LOCALNET_USDC_ASA_ID = metadata.index;
   });
 
   it("should match latest precompiled versions of locker and product contracts", async () => {
@@ -182,11 +131,12 @@ describe("subtopia", () => {
         subscriberAccount.addr
       );
 
-      const productClient = await SubtopiaClient.init(
-        algodClient,
-        response.productID,
-        creatorSignerAccount
-      );
+      const productClient = await SubtopiaClient.init({
+        algodClient: algodClient,
+        productID: response.productID,
+        creator: creatorSignerAccount,
+        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+      });
 
       const subscribeResponse = await productClient.createSubscription({
         subscriber: subscriberSigner,
@@ -283,11 +233,12 @@ describe("subtopia", () => {
 
       expect(response.productID).toBeGreaterThan(0);
 
-      const productClient = await SubtopiaClient.init(
-        algodClient,
-        response.productID,
-        creatorSignerAccount
-      );
+      const productClient = await SubtopiaClient.init({
+        algodClient: algodClient,
+        productID: response.productID,
+        creator: creatorSignerAccount,
+        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+      });
       const createDiscountResponse = await productClient.createDiscount({
         duration: Duration.MONTH.valueOf(),
         discountType: DiscountType.FIXED,
@@ -329,14 +280,15 @@ describe("subtopia", () => {
 
       expect(transferResponse.txID).toBeDefined();
 
-      const newOwnerProductClient = await SubtopiaClient.init(
-        algodClient,
-        response.productID,
-        transactionSignerAccount(
+      const newOwnerProductClient = await SubtopiaClient.init({
+        algodClient: algodClient,
+        productID: response.productID,
+        creator: transactionSignerAccount(
           makeBasicAccountTransactionSigner(newOwner),
           newOwner.addr
-        )
-      );
+        ),
+        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+      });
 
       const deleteDiscountResponse = await newOwnerProductClient.deleteDiscount(
         {
@@ -359,14 +311,14 @@ describe("subtopia", () => {
 
       expect(newOwnerLockerID).toBeGreaterThan(0);
 
-      const newOwnerRegistryClient = await SubtopiaRegistryClient.init(
-        algodClient,
-        transactionSignerAccount(
+      const newOwnerRegistryClient = await SubtopiaRegistryClient.init({
+        algodClient: algodClient,
+        creator: transactionSignerAccount(
           makeBasicAccountTransactionSigner(newOwner),
           newOwner.addr
         ),
-        ChainType.TESTNET
-      );
+        chainType: ChainType.LOCALNET,
+      });
 
       const deleteProductResponse = await newOwnerRegistryClient.deleteProduct({
         productID: productClient.appID,
@@ -399,11 +351,12 @@ describe("subtopia", () => {
       });
 
       // Initialize a new SubtopiaClient
-      const productClient = await SubtopiaClient.init(
-        algodClient,
-        response.productID,
-        creatorSignerAccount
-      );
+      const productClient = await SubtopiaClient.init({
+        algodClient: algodClient,
+        productID: response.productID,
+        creator: creatorSignerAccount,
+        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+      });
 
       // Subscribe a user to the product
       const subscriberSigner = transactionSignerAccount(
@@ -444,16 +397,17 @@ describe("subtopia", () => {
         price: 1,
         subType: SubscriptionType.TIME_BASED,
         maxSubs: 0,
-        coinID: TESTNET_USDC_ASA_ID,
+        coinID: LOCALNET_USDC_ASA_ID,
         lockerID: lockerID,
       });
 
       // Initialize a new SubtopiaClient
-      const productClient = await SubtopiaClient.init(
-        algodClient,
-        response.productID,
-        creatorSignerAccount
-      );
+      const productClient = await SubtopiaClient.init({
+        algodClient: algodClient,
+        productID: response.productID,
+        creator: creatorSignerAccount,
+        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+      });
 
       // OptIn USDC (if not already opted in)
       const subscriberSigner = transactionSignerAccount(
@@ -468,7 +422,7 @@ describe("subtopia", () => {
       const isOptedIn = Boolean(
         accountInfo["assets"].some(
           (asset: { "asset-id": number }) =>
-            asset["asset-id"] === TESTNET_USDC_ASA_ID
+            asset["asset-id"] === LOCALNET_USDC_ASA_ID
         )
       );
 
@@ -476,7 +430,7 @@ describe("subtopia", () => {
         await optInAsset({
           client: algodClient,
           account: subscriberSigner,
-          assetID: TESTNET_USDC_ASA_ID,
+          assetID: LOCALNET_USDC_ASA_ID,
         });
       }
 
@@ -485,7 +439,7 @@ describe("subtopia", () => {
         {
           sender: creatorSignerAccount,
           recipient: subscriberSigner.addr,
-          assetID: TESTNET_USDC_ASA_ID,
+          assetID: LOCALNET_USDC_ASA_ID,
           amount: 1,
         },
         algodClient

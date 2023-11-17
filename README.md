@@ -53,11 +53,11 @@ Example snippets of using the Subtopia JS SDK.
 ```ts
 // ... your code
 
-const subtopiaClient = await SubtopiaClient.init(
-  { PUT_ALGOD_INSTANCE_HERE },
-  { PUT_PRODUCT_ID_HERE },
-  { address: { PUT_WALLET_ADDRESS }, signer: { PUT_WALLET_SIGNER } }
-);
+const subtopiaClient = await SubtopiaClient.init({
+  algodClient: PUT_ALGOD_INSTANCE_HERE,
+  productID: PUT_PRODUCT_ID_HERE,
+  creator: { address: { PUT_WALLET_ADDRESS }, signer: { PUT_WALLET_SIGNER } },
+});
 
 const response = await subtopiaClient.subscribe(
   { address: { PUT_WALLET_ADDRESS }, signer: { PUT_WALLET_SIGNER } },
@@ -122,11 +122,11 @@ console.log(transferResult.txID);
 ```ts
 // ... your code
 
-const subtopiaRegistryClient = await SubtopiaRegistryClient.init(
-  { PUT_ALGOD_INSTANCE_HERE },
-  { address: { PUT_WALLET_ADDRESS }, signer: { PUT_WALLET_SIGNER } },
-  { PUT_CHAIN_TYPE_HERE }
-);
+const subtopiaRegistryClient = await SubtopiaRegistryClient.init({
+  algodClient = PUT_ALGOD_INSTANCE_HERE,
+  creator = { address: { PUT_WALLET_ADDRESS }, signer: { PUT_WALLET_SIGNER } },
+  chainType = PUT_CHAIN_TYPE_HERE,
+});
 
 const discount = await subtopiaRegistryClient.createDiscount({
   productID: { PUT_PRODUCT_ID_HERE }, // number - the ID of the Product instance you want to create a discount for

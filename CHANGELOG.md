@@ -1,3 +1,10 @@
+# [3.0.0-beta.30](https://github.com/subtopia-algo/subtopia-js/compare/v3.0.0-beta.29...v3.0.0-beta.30) (2023-11-17)
+
+
+### Features
+
+* adding localnet support ([#26](https://github.com/subtopia-algo/subtopia-js/issues/26)) ([506927c](https://github.com/subtopia-algo/subtopia-js/commit/506927ca8d054ff0078f13783691d283dd0fcb79))
+
 # [3.0.0-beta.29](https://github.com/subtopia-algo/subtopia-js/compare/v3.0.0-beta.28...v3.0.0-beta.29) (2023-10-24)
 
 # [3.0.0-beta.28](https://github.com/subtopia-algo/subtopia-js/compare/v3.0.0-beta.27...v3.0.0-beta.28) (2023-10-23)

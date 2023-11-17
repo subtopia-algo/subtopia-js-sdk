@@ -55,3 +55,16 @@ runs:
         cd registry-infra
         poetry run pipx install algokit
         algokit localnet start
+
+    - name: Setup localnet registry
+      shell: bash
+      env:
+        LOCALNET_APP_IDS_PATH: ${{ github.workspace }}/.env
+        CHAIN_TYPE: localnet
+      run: |
+        cp .env.template .env
+        cd registry-infra
+        poetry install
+        cat ${{ github.workspace }}/.env
+        poetry run python3 admin_scripts/deploy_localnet_infra.py
+        cat ${{ github.workspace }}/.env

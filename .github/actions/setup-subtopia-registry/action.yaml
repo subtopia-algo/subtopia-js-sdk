@@ -50,6 +50,7 @@ runs:
         poetry-version: ${{ inputs.poetry-version }}
 
     - name: Run AlgoKit LocalNet
+      shell: bash
       run: |
         cd registry-infra
         poetry run pipx install algokit

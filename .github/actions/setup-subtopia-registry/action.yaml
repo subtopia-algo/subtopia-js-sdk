@@ -44,7 +44,10 @@ runs:
 
     - name: Run AlgoKit LocalNet
       shell: sh
-      run: pipx install algokit --verbose && algokit localnet start
+      run: |
+        poetry env use 3.11
+        poetry run pipx install algokit --verbose
+        algokit localnet start
 
     - name: Setup localnet registry
       shell: sh

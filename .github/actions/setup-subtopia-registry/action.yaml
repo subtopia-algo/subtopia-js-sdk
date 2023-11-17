@@ -39,6 +39,7 @@ runs:
     - name: Set up Poetry
       shell: sh
       run: |
+        pip install pipx
         pipx install poetry
 
     - name: Run AlgoKit LocalNet

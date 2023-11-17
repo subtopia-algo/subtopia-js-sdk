@@ -15,11 +15,11 @@ export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
   } else if (chainType === ChainType.TESTNET) {
     return MAINNET_SUBTOPIA_REGISTRY_ID;
   } else {
-    // attempt to load from env variable called SUBTOPIA_REGISTRY_ID
-    // throw exception if not found
-    try {
-      return Number(process.env.SUBTOPIA_REGISTRY_ID);
-    } catch (error) {
+    // Check if SUBTOPIA_REGISTRY_ID environment variable exists and is a number
+    const subtopiaRegistryId = Number(process.env.SUBTOPIA_REGISTRY_ID);
+    if (!isNaN(subtopiaRegistryId)) {
+      return subtopiaRegistryId;
+    } else {
       throw new Error(
         "SUBTOPIA_REGISTRY_ID environment variable is not set or is not a number"
       );

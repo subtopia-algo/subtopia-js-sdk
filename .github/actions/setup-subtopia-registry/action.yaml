@@ -31,14 +31,6 @@ runs:
         path: ${{ inputs.path }}
         fetch-depth: 1
 
-    - name: Setup node
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ inputs.node-version }}
-        scope: "@subtopia-algo"
-        cache: "npm"
-        cache-dependency-path: ./package-lock.json
-
     - name: Set up Poetry
       shell: bash
       run: |
@@ -53,7 +45,6 @@ runs:
     - name: Run AlgoKit LocalNet
       shell: bash
       run: |
-        cd registry-infra
         pipx install algokit
         algokit localnet start
 
@@ -65,7 +56,7 @@ runs:
       run: |
         cp .env.template .env
         cd registry-infra
-        poetry install
+        poetry install --no-interaction
         cat ${{ github.workspace }}/.env
         poetry run python3 admin_scripts/deploy_localnet_infra.py
         cat ${{ github.workspace }}/.env

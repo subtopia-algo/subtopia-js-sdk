@@ -12,8 +12,18 @@ export const MAINNET_SUBTOPIA_REGISTRY_ID = 450888714;
 export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
   if (chainType === ChainType.MAINNET) {
     return TESTNET_SUBTOPIA_REGISTRY_ID;
-  } else {
+  } else if (chainType === ChainType.TESTNET) {
     return MAINNET_SUBTOPIA_REGISTRY_ID;
+  } else {
+    // attempt to load from env variable called SUBTOPIA_REGISTRY_ID
+    // throw exception if not found
+    try {
+      return Number(process.env.SUBTOPIA_REGISTRY_ID);
+    } catch (error) {
+      throw new Error(
+        "SUBTOPIA_REGISTRY_ID environment variable is not set or is not a number"
+      );
+    }
   }
 };
 

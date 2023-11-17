@@ -126,14 +126,14 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method is used to initialize a SubtopiaClient instance.
-   * It fetches the product's global state, validates it, and creates a new SubtopiaClient instance.
+   * This method initializes a SubtopiaClient instance.
+   * It retrieves the product's global state, validates it, and instantiates a new SubtopiaClient.
    *
-   * @param {AlgodClient} algodClient - The Algod client to interact with the Algorand network.
-   * @param {number} productID - The ID of the product.
-   * @param {TransactionSignerAccount} creator - The account that will sign the transactions.
-   * @param {number} timeout - The timeout for the transactions (default is DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).
-   * @param {number} registryID - The ID of the registry (default is TESTNET_SUBTOPIA_REGISTRY_ID).
+   * @param {AlgodClient} algodClient - The Algod client used for Algorand network interactions.
+   * @param {number} productID - The unique identifier of the product.
+   * @param {TransactionSignerAccount} creator - The account responsible for signing transactions.
+   * @param {number} timeout - The transaction timeout duration (default is DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).
+   * @param {number} registryID - The registry's unique identifier (default is TESTNET_SUBTOPIA_REGISTRY_ID).
    *
    * @returns {Promise<SubtopiaClient>} A promise that resolves to a SubtopiaClient instance.
    *
@@ -141,20 +141,26 @@ export class SubtopiaClient {
    * ```typescript
    * import { SubtopiaClient } from "@algorand/subtopia";
    *
-   * const subtopiaClient = await SubtopiaClient.init(
-   *   algodClient,
-   *   productID,
-   *   creator
-   * );
+   * const subtopiaClient = await SubtopiaClient.init({
+   *   algodClient: algodClient,
+   *   productID: productID,
+   *   creator: creator
+   * });
    * ```
    */
-  public static async init(
-    algodClient: AlgodClient,
-    productID: number,
-    creator: TransactionSignerAccount,
-    timeout: number = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
-    registryID: number = TESTNET_SUBTOPIA_REGISTRY_ID
-  ): Promise<SubtopiaClient> {
+  public static async init({
+    algodClient,
+    productID,
+    creator,
+    timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
+    registryID = TESTNET_SUBTOPIA_REGISTRY_ID,
+  }: {
+    algodClient: AlgodClient;
+    productID: number;
+    creator: TransactionSignerAccount;
+    timeout?: number;
+    registryID?: number;
+  }): Promise<SubtopiaClient> {
     const productGlobalState = await getAppGlobalState(
       productID,
       algodClient

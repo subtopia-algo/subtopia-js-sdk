@@ -4,7 +4,6 @@ import {
   makePaymentTxnWithSuggestedParamsFromObject,
   TransactionSigner,
   AtomicTransactionComposer,
-  makeBasicAccountTransactionSigner,
   makeAssetCreateTxnWithSuggestedParamsFromObject,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   Account,
@@ -61,10 +60,7 @@ export async function getRandomAccount(
     await atc.execute(client, DEFAULT_AWAIT_ROUNDS);
   }
 
-  return {
-    address: randomAccount.addr,
-    signer: makeBasicAccountTransactionSigner(randomAccount),
-  };
+  return randomAccount;
 }
 
 export async function generateRandomAsset(

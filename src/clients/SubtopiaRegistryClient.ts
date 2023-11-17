@@ -117,20 +117,26 @@ export class SubtopiaRegistryClient {
    * ```typescript
    * import { ChainType, SubtopiaRegistryClient } from "subtopia-js-sdk";
    *
-   * const registryClient = await SubtopiaRegistryClient.init(
-   *    algodClient,
-   *    creator,
-   *    ChainType.TESTNET
-   * );
+   * const registryClient = await SubtopiaRegistryClient.init({
+   *    algodClient: algodClient,
+   *    creator: creator,
+   *    chainType: ChainType.TESTNET
+   * });
    * ```
    */
-  public static async init(
-    algodClient: AlgodClient,
-    creator: TransactionSignerAccount,
-    chainType: ChainType,
-    timeout: number = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
-    registryID?: number
-  ): Promise<SubtopiaRegistryClient> {
+  public static async init({
+    algodClient,
+    creator,
+    chainType,
+    timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
+    registryID,
+  }: {
+    algodClient: AlgodClient;
+    creator: TransactionSignerAccount;
+    chainType: ChainType;
+    timeout?: number;
+    registryID?: number;
+  }): Promise<SubtopiaRegistryClient> {
     const registryId = registryID
       ? registryID
       : SUBTOPIA_REGISTRY_ID(chainType);
@@ -329,7 +335,7 @@ export class SubtopiaRegistryClient {
   ): number {
     let fee = algosToMicroalgos(MIN_APP_OPTIN_MBR);
     fee = coinID ? fee + algosToMicroalgos(MIN_ASA_OPTIN_MBR) : fee;
-    return isNewLocker ? fee : fee + this.getLockerCreationFee(creatorAddress);
+    return isNewLocker ? fee + this.getLockerCreationFee(creatorAddress) : fee;
   }
 
   /**

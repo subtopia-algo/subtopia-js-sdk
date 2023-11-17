@@ -47,6 +47,7 @@ export enum DiscountType {
  * @enum {string}
  */
 export enum ChainType {
+  LOCALNET = "localnet",
   TESTNET = "testnet",
   MAINNET = "mainnet",
 }

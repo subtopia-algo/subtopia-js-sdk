@@ -53,7 +53,7 @@ runs:
       shell: bash
       run: |
         cd registry-infra
-        poetry run pipx install algokit
+        pipx install algokit
         algokit localnet start
 
     - name: Setup localnet registry

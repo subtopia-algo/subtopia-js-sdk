@@ -46,7 +46,7 @@ runs:
       shell: sh
       run: |
         cd registry-infra
-        poetry run pipx install algokit --verbose
+        pipx install git+https://github.com/algorandfoundation/algokit-cli@localnet_update
         algokit localnet start
 
     - name: Setup localnet registry

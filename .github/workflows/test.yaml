@@ -48,6 +48,7 @@ jobs:
 
       - name: Run AlgoKit LocalNet
         run: |
+          cd registry-infra
           poetry run pipx install algokit
           algokit localnet start
 

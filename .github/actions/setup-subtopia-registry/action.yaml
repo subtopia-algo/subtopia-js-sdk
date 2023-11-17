@@ -1,0 +1,56 @@
+# .github/actions/setup-subtopia-registry/action.yaml
+name: 'Setup Subtopia Registry'
+description: 'Setup Subtopia Registry'
+inputs:
+  ssh-key:
+    description: 'SSH Key'
+    required: true
+  repository:
+    description: 'Repository'
+    required: true
+  path:
+    description: 'Path'
+    required: true
+  node-version:
+    description: 'Node Version'
+    required: true
+  python-version:
+    description: 'Python Version'
+    required: true
+  poetry-version:
+    description: 'Poetry Version'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Check out registry infra setup
+      uses: actions/checkout@v4
+      with:
+        ssh-key: ${{ inputs.ssh-key }}
+        repository: ${{ inputs.repository }}
+        path: ${{ inputs.path }}
+        fetch-depth: 1
+
+    - name: Setup node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        scope: "@subtopia-algo"
+        cache: "npm"
+        cache-dependency-path: ./package-lock.json
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Set up Poetry
+      uses: abatilo/actions-poetry@v2.3.0
+      with:
+        poetry-version: ${{ inputs.poetry-version }}
+
+    - name: Run AlgoKit LocalNet
+      run: |
+        cd registry-infra
+        poetry run pipx install algokit
+        algokit localnet start

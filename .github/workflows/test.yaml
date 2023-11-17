@@ -24,14 +24,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Check out registry infra setup
-        uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
-          repository: subtopia-algo/subtopia-contracts
-          path: ./registry-infra
-          fetch-depth: 1
-
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -40,33 +32,15 @@ jobs:
           cache: "npm"
           cache-dependency-path: ./package-lock.json
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup Subtopia Registry
+        uses: ./.github/actions/setup-subtopia-registry
         with:
+          ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
+          repository: subtopia-algo/subtopia-contracts
+          path: ./registry-infra
+          node-version: 18
           python-version: 3.11
-
-      - name: Set up Poetry
-        uses: abatilo/actions-poetry@v2.3.0
-        with:
           poetry-version: 1.7.1
-
-      - name: Run AlgoKit LocalNet
-        run: |
-          cd registry-infra
-          poetry run pipx install algokit
-          algokit localnet start
-
-      - name: Setup localnet registry
-        env:
-          LOCALNET_APP_IDS_PATH: ${{ github.workspace }}/.env
-          CHAIN_TYPE: localnet
-        run: |
-          cp .env.template .env
-          cd registry-infra
-          poetry install
-          cat ${{ github.workspace }}/.env
-          poetry run python3 admin_scripts/deploy_localnet_infra.py
-          cat ${{ github.workspace }}/.env
 
       - name: Install dependencies
         run: npm ci

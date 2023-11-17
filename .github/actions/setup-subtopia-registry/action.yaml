@@ -32,7 +32,7 @@ runs:
         fetch-depth: 1
 
     - name: Set up Poetry
-      shell: bash
+      shell: sh
       run: |
         pipx install poetry
 
@@ -43,13 +43,13 @@ runs:
         cache: "poetry"
 
     - name: Run AlgoKit LocalNet
-      shell: bash
+      shell: sh
       run: |
         pipx install algokit
         algokit localnet start
 
     - name: Setup localnet registry
-      shell: bash
+      shell: sh
       env:
         LOCALNET_APP_IDS_PATH: ${{ github.workspace }}/.env
         CHAIN_TYPE: localnet

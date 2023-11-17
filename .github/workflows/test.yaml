@@ -57,12 +57,15 @@ jobs:
           algokit localnet start
 
       - name: Setup localnet registry
+        env:
+          LOCALNET_APP_IDS_PATH: ${{ github.workspace }}/.env
+          CHAIN_TYPE: localnet
         run: |
           cp .env.template .env
           cd registry-infra
           poetry install
           cat ${{ github.workspace }}/.env
-          LOCALNET_APP_IDS_PATH=${{ github.workspace }}/.env poetry run python3 admin_scripts/deploy_localnet_infra.py
+          poetry run python3 admin_scripts/deploy_localnet_infra.py
           cat ${{ github.workspace }}/.env
 
       - name: Install dependencies

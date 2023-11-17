@@ -16,7 +16,9 @@ export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
     return MAINNET_SUBTOPIA_REGISTRY_ID;
   } else {
     // Check if SUBTOPIA_REGISTRY_ID environment variable exists and is a number
-    const subtopiaRegistryId = Number(process.env.SUBTOPIA_REGISTRY_ID);
+    const subtopiaRegistryId =
+      Number(process.env.SUBTOPIA_REGISTRY_ID) ||
+      Number(process.env.NEXT_PUBLIC_SUBTOPIA_REGISTRY_ID);
     if (!isNaN(subtopiaRegistryId)) {
       return subtopiaRegistryId;
     } else {

@@ -1,12 +1,12 @@
 <p align="center"><img  width=100%  src="https://bafybeietopj64xoicecmuruwcn7n2vijfgffrcv3ur4vw3qh477ezllchm.ipfs.nftstorage.link/" /></p>
 
 <p align="center">
-    <a href="https://www.npmjs.com/package/subtopia-js"><img src="https://badge.fury.io/js/subtopia-js.svg" alt="npm version"></a>
-    <a href="https://www.npmjs.com/package/subtopia-js" >
-    <img src="https://img.shields.io/npm/types/subtopia-js"/>
+    <a href="https://www.npmjs.com/package/subtopia-js-sdk"><img src="https://badge.fury.io/js/subtopia-js-sdk.svg" alt="npm version"></a>
+    <a href="https://www.npmjs.com/package/subtopia-js-sdk" >
+    <img src="https://img.shields.io/npm/types/subtopia-js-sdk"/>
     </a>
-    <a href="https://codecov.io/gh/subtopia-algo/subtopia-js" >
-    <img src="https://codecov.io/gh/subtopia-algo/subtopia-js/branch/main/graph/badge.svg?token=FEJBE5IAW5"/>
+    <a href="https://codecov.io/gh/subtopia-algo/subtopia-js-sdk" >
+    <img src="https://codecov.io/gh/subtopia-algo/subtopia-js-sdk/branch/main/graph/badge.svg?token=FEJBE5IAW5"/>
     </a>
     <a href="https://subtopia.io"><img src="https://img.shields.io/badge/platform-link-cyan.svg" /></a>
     <a href="https://algorand.com"><img src="https://img.shields.io/badge/Powered by-Algorand-black.svg" /></a>
@@ -30,16 +30,16 @@ Subtopia JS SDK is a JavaScript library for interacting with the Subtopia Platfo
 
 ```bash
 # with npm
-npm install subtopia-js
+npm install subtopia-js-sdk
 
 # or with yarn
-yarn add subtopia-js
+yarn add subtopia-js-sdk
 ```
 
 ### Import the package:
 
 ```ts
-import { SubtopiaClient, SubtopiaRegistryClient } from "subtopia-js";
+import { SubtopiaClient, SubtopiaRegistryClient } from "subtopia-js-sdk";
 ```
 
 ## 🛠️ Usage
@@ -176,4 +176,4 @@ console.log(deleteResult.txID);
 
 Special thanks to everyone who starred the repository ❤️
 
-[![Stargazers repo roster for @subtopia-algo/subtopia-js](https://reporoster.com/stars/dark/subtopia-algo/subtopia-js)](https://github.com/subtopia-algo/subtopia-js/stargazers)
+[![Stargazers repo roster for @subtopia-algo/subtopia-js-sdk](https://reporoster.com/stars/dark/subtopia-algo/subtopia-js-sdk)](https://github.com/subtopia-algo/subtopia-js-sdk/stargazers)

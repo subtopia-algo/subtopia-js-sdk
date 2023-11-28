@@ -39,7 +39,11 @@ yarn add subtopia-js-sdk
 ### Import the package:
 
 ```ts
-import { SubtopiaClient, SubtopiaRegistryClient, ChainType } from "subtopia-js-sdk";
+import {
+  SubtopiaClient,
+  SubtopiaRegistryClient,
+  ChainType,
+} from "subtopia-js-sdk";
 ```
 
 ## 🛠️ Usage

@@ -36,6 +36,7 @@ import {
   MIN_APP_CREATE_MBR,
   MIN_ASA_CREATE_MBR,
   DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
+  SUBTOPIA_REGISTRY_ID,
 } from "../constants";
 import {
   PriceNormalizationType,
@@ -44,6 +45,7 @@ import {
   SubscriptionType,
   LifecycleState,
   LockerType,
+  ChainType,
 } from "../enums";
 
 import {
@@ -129,6 +131,7 @@ export class SubtopiaClient {
    * It retrieves the product's global state, validates it, and instantiates a new SubtopiaClient.
    *
    * @param {AlgodClient} algodClient - The Algod client used for Algorand network interactions.
+   * @param {ChainType} chainType - The type of the blockchain network.
    * @param {number} productID - The unique identifier of the product.
    * @param {TransactionSignerAccount} creator - The account responsible for signing transactions.
    * @param {number} timeout - The transaction timeout duration (default is DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).
@@ -149,17 +152,23 @@ export class SubtopiaClient {
    */
   public static async init({
     algodClient,
+    chainType,
     registryID,
     productID,
     creator,
     timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
   }: {
     algodClient: AlgodClient;
-    registryID: number;
+    chainType: ChainType;
     productID: number;
     creator: TransactionSignerAccount;
+    registryID?: number;
     timeout?: number;
   }): Promise<SubtopiaClient> {
+    const registryId = registryID
+      ? registryID
+      : SUBTOPIA_REGISTRY_ID(chainType);
+
     const productGlobalState = await getAppGlobalState(
       productID,
       algodClient
@@ -242,7 +251,7 @@ export class SubtopiaClient {
       coin,
       version,
       timeout,
-      registryID,
+      registryID: registryId,
     });
   }
 

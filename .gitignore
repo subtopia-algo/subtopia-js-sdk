@@ -30,3 +30,5 @@ lerna-debug.log*
 # misc
 coverage
 docs
+
+.env

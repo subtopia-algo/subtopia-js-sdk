@@ -39,7 +39,7 @@ yarn add subtopia-js-sdk
 ### Import the package:
 
 ```ts
-import { SubtopiaClient, SubtopiaRegistryClient } from "subtopia-js-sdk";
+import { SubtopiaClient, SubtopiaRegistryClient, ChainType } from "subtopia-js-sdk";
 ```
 
 ## 🛠️ Usage
@@ -55,6 +55,7 @@ Example snippets of using the Subtopia JS SDK.
 
 const subtopiaClient = await SubtopiaClient.init({
   algodClient: PUT_ALGOD_INSTANCE_HERE,
+  chainType: PUT_CHAIN_TYPE_ENUM_HERE // 'testnet'|'mainnet'|'localnet'
   productID: PUT_PRODUCT_ID_HERE,
   creator: { addr: PUT_WALLET_ADDRESS, signer: PUT_WALLET_SIGNER },
 });

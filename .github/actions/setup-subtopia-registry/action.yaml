@@ -48,6 +48,7 @@ runs:
         cd registry-infra
         pipx install algokit
         algokit localnet start
+        time sleep 10
 
     - name: Setup localnet registry
       shell: sh

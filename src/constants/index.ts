@@ -8,7 +8,7 @@ import { AssetMetadata } from "../interfaces";
 
 export const DEFAULT_AWAIT_ROUNDS = 10;
 export const SUBTOPIA_TESTNET = 485920861;
-export const SUBTOPIA_MAINNET = 485920861;
+export const SUBTOPIA_MAINNET = 1257359052;
 export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
   if (chainType === ChainType.MAINNET) {
     return SUBTOPIA_TESTNET;

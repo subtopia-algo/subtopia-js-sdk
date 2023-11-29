@@ -11,9 +11,9 @@ export const SUBTOPIA_TESTNET = 485920861;
 export const SUBTOPIA_MAINNET = 1257359052;
 export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
   if (chainType === ChainType.MAINNET) {
-    return SUBTOPIA_TESTNET;
-  } else if (chainType === ChainType.TESTNET) {
     return SUBTOPIA_MAINNET;
+  } else if (chainType === ChainType.TESTNET) {
+    return SUBTOPIA_TESTNET;
   } else {
     // Check if SUBTOPIA_REGISTRY_ID environment variable exists and is a number
     const subtopiaRegistryId =

@@ -1,4 +1,4 @@
-name: Trigger Production Release
+name: Prepare for Release
 
 on:
   workflow_dispatch:

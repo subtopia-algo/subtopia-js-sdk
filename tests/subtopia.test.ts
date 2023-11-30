@@ -136,6 +136,7 @@ describe("subtopia", () => {
         productID: response.productID,
         creator: creatorSignerAccount,
         registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        chainType: ChainType.LOCALNET,
       });
 
       const subscribeResponse = await productClient.createSubscription({
@@ -238,6 +239,7 @@ describe("subtopia", () => {
         productID: response.productID,
         creator: creatorSignerAccount,
         registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        chainType: ChainType.LOCALNET,
       });
       const createDiscountResponse = await productClient.createDiscount({
         duration: Duration.MONTH.valueOf(),
@@ -288,6 +290,7 @@ describe("subtopia", () => {
           newOwner.addr
         ),
         registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        chainType: ChainType.LOCALNET,
       });
 
       const deleteDiscountResponse = await newOwnerProductClient.deleteDiscount(
@@ -356,6 +359,7 @@ describe("subtopia", () => {
         productID: response.productID,
         creator: creatorSignerAccount,
         registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        chainType: ChainType.LOCALNET,
       });
 
       // Subscribe a user to the product
@@ -407,6 +411,7 @@ describe("subtopia", () => {
         productID: response.productID,
         creator: creatorSignerAccount,
         registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        chainType: ChainType.LOCALNET,
       });
 
       // OptIn USDC (if not already opted in)

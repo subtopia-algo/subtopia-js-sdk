@@ -1,6 +1,7 @@
 name: CI / CD
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -100,7 +101,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   deploy-docs:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/release'
     permissions: write-all
     name: Deploy docs
     needs: [build, lint, unit-tests]
@@ -131,7 +132,7 @@ jobs:
           folder: docs # The folder the action should deploy.
 
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release'
     permissions: write-all
     name: Release
     needs: [build, lint, unit-tests, deploy-docs]

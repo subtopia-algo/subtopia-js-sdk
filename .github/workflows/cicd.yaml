@@ -1,0 +1,165 @@
+name: CI / CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - release
+  merge_group:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run build
+        run: npm run build
+
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint:scripts
+
+  unit-tests:
+    name: Integration tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node: [18, 20]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Subtopia Registry
+        uses: ./.github/actions/setup-subtopia-registry
+        with:
+          ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
+          repository: subtopia-algo/subtopia-contracts
+          path: ./registry-infra
+          node-version: 18
+          python-version: ">=3.11 <3.12"
+          poetry-version: 1.7.1
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:integration
+
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v3
+        if: runner.os == 'Linux' && matrix.node == '18'
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  deploy-docs:
+    if: github.ref == 'refs/heads/release'
+    permissions: write-all
+    name: Deploy docs
+    needs: [build, lint, unit-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build docs
+        run: npm run docs
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          commit-message: Refreshing documentation 🚀
+          folder: docs # The folder the action should deploy.
+
+  release:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release'
+    permissions: write-all
+    name: Release
+    needs: [build, lint, unit-tests, deploy-docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false # <--- override default gh token
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          scope: "@subtopia-algo"
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run build
+        run: npm run build
+
+      - name: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm run release

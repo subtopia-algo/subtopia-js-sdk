@@ -4,26 +4,14 @@ import {
   makePaymentTxnWithSuggestedParamsFromObject,
   TransactionSigner,
   AtomicTransactionComposer,
-  makeBasicAccountTransactionSigner,
   makeAssetCreateTxnWithSuggestedParamsFromObject,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
+  Account,
 } from "algosdk";
-import { SandboxAccount } from "beaker-ts/lib/sandbox/accounts";
-import { DEFAULT_AWAIT_ROUNDS } from "../src/common/constants";
-import { PriceNormalizationType } from "../src/common/enums";
-import { normalizePrice, optInAsset } from "../src/common/utils";
+import { DEFAULT_AWAIT_ROUNDS } from "../src/constants";
+import { PriceNormalizationType } from "../src/enums";
+import { normalizePrice, optInAsset } from "../src/utils";
 import { AssetMetadata } from "./interfaces";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function filterAsync(arr: any[], callback: (arg0: any) => any) {
-  const fail = Symbol();
-  return (
-    await Promise.all(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      arr.map(async (item: any) => ((await callback(item)) ? item : fail))
-    )
-  ).filter((i) => i !== fail);
-}
 
 export async function getRandomAccount(
   client: Algodv2,
@@ -38,7 +26,7 @@ export async function getRandomAccount(
     txn: makePaymentTxnWithSuggestedParamsFromObject({
       from: funderAddress,
       to: randomAccount.addr,
-      amount: Number(5e6),
+      amount: Number(500e6),
       suggestedParams: await client.getTransactionParams().do(),
     }),
     signer: funderSigner,
@@ -47,12 +35,11 @@ export async function getRandomAccount(
   await atc.execute(client, DEFAULT_AWAIT_ROUNDS);
 
   if (asset) {
-    await optInAsset(
-      client,
-      randomAccount.addr,
-      makeBasicAccountTransactionSigner(randomAccount),
-      asset.index
-    );
+    await optInAsset({
+      client: client,
+      account: { signer: funderSigner, addr: randomAccount.addr },
+      assetID: asset.index,
+    });
 
     atc = new AtomicTransactionComposer();
     atc.addTransaction({
@@ -60,7 +47,7 @@ export async function getRandomAccount(
         from: funderAddress,
         to: randomAccount.addr,
         amount: normalizePrice(
-          asset.total / 2,
+          asset.total,
           asset.decimals,
           PriceNormalizationType.RAW
         ),
@@ -73,21 +60,18 @@ export async function getRandomAccount(
     await atc.execute(client, DEFAULT_AWAIT_ROUNDS);
   }
 
-  return {
-    address: randomAccount.addr,
-    signer: makeBasicAccountTransactionSigner(randomAccount),
-  };
+  return randomAccount;
 }
 
 export async function generateRandomAsset(
   client: Algodv2,
-  sender: SandboxAccount,
+  sender: Account,
   assetName?: string,
   total?: number,
   decimals?: number
 ) {
-  total = !total ? Math.floor(Math.random() * 100) + 1 : total;
-  decimals = !decimals ? Math.floor(Math.random() * 10) + 1 : decimals;
+  total = !total ? Math.floor(Math.random() * 100) + 20 : total;
+  decimals = !decimals ? Math.floor(Math.random() * 10) + 2 : decimals;
   assetName = !assetName
     ? `ASA ${Math.floor(Math.random() * 100) + 1}_${
         Math.floor(Math.random() * 100) + 1
@@ -111,9 +95,7 @@ export async function generateRandomAsset(
     assetURL: "https://path/to/my/asset/details",
   });
 
-  console.log(txn);
-
-  const stxn = txn.signTxn(sender.privateKey);
+  const stxn = txn.signTxn(sender.sk);
 
   let txid = await client.sendRawTransaction(stxn).do();
   txid = txid["txId"];
@@ -122,12 +104,16 @@ export async function generateRandomAsset(
 
   const assetId = ptx["asset-index"];
 
-  console.log(`\n --- ASA ${assetName} - ${assetId} minted.`);
-
   return {
     index: assetId,
     total: total,
     decimals: decimals,
     name: assetName,
   } as AssetMetadata;
+}
+
+export function getRandomElement<T>(array: T[]): T {
+  const length: number = array.length;
+  const randomIndex: number = Math.floor(Math.random() * length);
+  return array[randomIndex];
 }

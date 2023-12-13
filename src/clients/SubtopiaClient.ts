@@ -738,6 +738,19 @@ export class SubtopiaClient {
       }
     }
 
+    const currentSubscription = await this.getSubscription({
+      algodClient: this.algodClient,
+      subscriberAddress: subscriber.addr,
+    }).catch(() => {
+      return null;
+    });
+    const isHoldingSubscription = currentSubscription !== null;
+    const isActiveSubscriber = await this.isSubscriber({
+      subscriberAddress: subscriber.addr,
+    });
+    const isHoldingExpiredSubscription =
+      isHoldingSubscription && !isActiveSubscriber;
+
     const createSubscriptionAtc = new AtomicTransactionComposer();
     createSubscriptionAtc.addMethodCall({
       appID: this.appID,
@@ -791,9 +804,10 @@ export class SubtopiaClient {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
             from: subscriber.addr,
             to: this.appAddress,
-            amount:
-              calculateProductSubscriptionBoxCreateMbr(subscriber.addr) +
-              algosToMicroalgos(MIN_ASA_CREATE_MBR),
+            amount: isHoldingExpiredSubscription
+              ? 0
+              : calculateProductSubscriptionBoxCreateMbr(subscriber.addr) +
+                algosToMicroalgos(MIN_ASA_CREATE_MBR),
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
           signer: subscriber.signer,

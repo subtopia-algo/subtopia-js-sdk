@@ -462,4 +462,62 @@ describe("subtopia", () => {
       timeout: 10e6,
     }
   );
+
+  it(
+    "should return all subscribers for a product correctly",
+    async () => {
+      const { subtopiaRegistryClient, lockerID } =
+        await setupSubtopiaRegistryClient(creatorSignerAccount);
+
+      const productCreationResponse =
+        await subtopiaRegistryClient.createProduct({
+          productName: "Hooli",
+          subscriptionName: "Pro",
+          price: 10,
+          subType: SubscriptionType.TIME_BASED,
+          maxSubs: 0,
+          coinID: 0,
+          lockerID: lockerID,
+        });
+
+      expect(productCreationResponse.productID).toBeGreaterThan(0);
+
+      const productClient = await SubtopiaClient.init({
+        algodClient: algodClient,
+        productID: productCreationResponse.productID,
+        creator: creatorSignerAccount,
+        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        chainType: ChainType.LOCALNET,
+      });
+
+      const createdSubscribers: Array<string> = [];
+      for (let i = 0; i < 100; i++) {
+        const subscriberAccount = await getRandomAccount(
+          algodClient,
+          dispenserAccount.addr,
+          makeBasicAccountTransactionSigner(dispenserAccount)
+        );
+        createdSubscribers.push(subscriberAccount.addr);
+        const subscriberSigner = transactionSignerAccount(
+          makeBasicAccountTransactionSigner(subscriberAccount),
+          subscriberAccount.addr
+        );
+
+        const subscribeResponse = await productClient.createSubscription({
+          subscriber: subscriberSigner,
+          duration: Duration.MONTH,
+        });
+        expect(subscribeResponse.txID).toBeDefined();
+        console.log(`Created subscriber ${i + 1} of 100`);
+      }
+
+      const subscribers = await productClient.getSubscribers();
+      subscribers.forEach((subscriber) => {
+        expect(createdSubscribers).toContain(subscriber.address);
+      });
+    },
+    {
+      timeout: 10e6,
+    }
+  );
 });

@@ -59,6 +59,7 @@ import {
   AssetMetadata,
   DiscountRecord,
   ProductState,
+  SubscriberRecord,
   SubscriptionRecord,
 } from "interfaces";
 
@@ -871,7 +872,9 @@ export class SubtopiaClient {
       this.timeout,
       this.algodClient,
       10
-    );
+    ).catch((error) => {
+      throw new Error(error);
+    });
 
     return {
       txID: response.txIDs.pop() as string,
@@ -1212,5 +1215,41 @@ export class SubtopiaClient {
       expiresAt: boxContent[3] === 0 ? null : boxContent[3],
       duration: boxContent[4],
     };
+  }
+
+  public async getSubscribers(): Promise<Array<SubscriberRecord>> {
+    const subscriberBoxes = await this.algodClient
+      .getApplicationBoxes(this.appID)
+      .do();
+
+    const promises = subscriberBoxes.boxes.map(async (box) => {
+      const address = encodeAddress(box.name);
+      const subscription = this.getSubscription({
+        algodClient: this.algodClient,
+        subscriberAddress: address,
+      });
+      return {
+        address: address,
+        subscription: await subscription,
+      };
+    });
+
+    const results = await Promise.allSettled(promises);
+
+    const subscriberRecords: Array<SubscriberRecord> = results
+      .filter((result) => result.status === "fulfilled")
+      .map(
+        (result) => (result as PromiseFulfilledResult<SubscriberRecord>).value
+      );
+
+    const rejectedPromises = results
+      .filter((result) => result.status === "rejected")
+      .map((result) => (result as PromiseRejectedResult).reason);
+
+    if (rejectedPromises.length > 0) {
+      throw new Error(`Errors occurred: ${rejectedPromises.join(", ")}`);
+    }
+
+    return subscriberRecords;
   }
 }

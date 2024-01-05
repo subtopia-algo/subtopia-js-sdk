@@ -26,7 +26,7 @@ export async function getRandomAccount(
     txn: makePaymentTxnWithSuggestedParamsFromObject({
       from: funderAddress,
       to: randomAccount.addr,
-      amount: Number(500e6),
+      amount: Number(50e6),
       suggestedParams: await client.getTransactionParams().do(),
     }),
     signer: funderSigner,

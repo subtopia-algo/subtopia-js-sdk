@@ -25,7 +25,7 @@
     "docs": "npx typedoc src/index.ts --excludePrivate --excludeExternals --exclude '**/adminClient.ts'",
     "commit": "cz",
     "release": "semantic-release",
-    "pre-commit": "npm run lint:scripts && npm run format:scripts && npm run test:integration && npm run build"
+    "pre-commit": "npm run lint:scripts && npm run format:scripts && npm run test:integration && npm run build && npm run docs"
   },
   "peerDependencies": {
     "@algorandfoundation/algokit-utils": "^5.0.0",

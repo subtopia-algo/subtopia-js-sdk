@@ -30,6 +30,11 @@ export interface SubscriptionRecord {
   subType: SubscriptionType;
 }
 
+export interface SubscriberRecord {
+  address: string;
+  subscription: SubscriptionRecord;
+}
+
 /**
  * Interface for the base discount record.
  */

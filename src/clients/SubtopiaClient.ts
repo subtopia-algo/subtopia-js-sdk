@@ -11,7 +11,6 @@ import algosdk, {
   decodeAddress,
   decodeObj,
   encodeAddress,
-  encodeUint64,
   getApplicationAddress,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   makeEmptyTransactionSigner,
@@ -28,7 +27,7 @@ import {
   calculateProductSubscriptionBoxCreateMbr,
   optInAsset,
   asyncWithTimeout,
-  durationToMonths,
+  parseTokenProductGlobalState,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
@@ -37,12 +36,11 @@ import {
   MIN_ASA_CREATE_MBR,
   DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
   SUBTOPIA_REGISTRY_ID,
+  ENCODED_DISCOUNT_BOX_KEY,
 } from "../constants";
 import {
   PriceNormalizationType,
   DiscountType,
-  Duration,
-  SubscriptionType,
   LifecycleState,
   LockerType,
   ChainType,
@@ -128,17 +126,17 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method initializes a SubtopiaClient instance.
-   * It retrieves the product's global state, validates it, and instantiates a new SubtopiaClient.
+   * Initializes a SubtopiaClient instance.
+   * Retrieves the product's global state, validates it, and creates a new SubtopiaClient.
    *
-   * @param {AlgodClient} algodClient - The Algod client used for Algorand network interactions.
-   * @param {ChainType} chainType - The type of the blockchain network.
-   * @param {number} productID - The unique identifier of the product.
-   * @param {TransactionSignerAccount} creator - The account responsible for signing transactions.
-   * @param {number} timeout - The transaction timeout duration (default is DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).
-   * @param {number} registryID - The registry's unique identifier (default is SUBTOPIA_TESTNET).
+   * @param {AlgodClient} algodClient - Algod client for Algorand network interactions.
+   * @param {ChainType} chainType - Blockchain network type.
+   * @param {number} productID - Product's unique identifier.
+   * @param {TransactionSignerAccount} creator - Account for signing transactions.
+   * @param {number} timeout - Transaction timeout duration (default is DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).
+   * @param {number} registryID - Registry's unique identifier (default is SUBTOPIA_TESTNET).
    *
-   * @returns {Promise<SubtopiaClient>} A promise that resolves to a SubtopiaClient instance.
+   * @returns {Promise<SubtopiaClient>} Promise resolving to a SubtopiaClient instance.
    *
    * @example
    * ```typescript
@@ -170,27 +168,26 @@ export class SubtopiaClient {
       ? registryID
       : SUBTOPIA_REGISTRY_ID(chainType);
 
-    const productGlobalState = await getAppGlobalState(
+    const rawProductGlobalState = await getAppGlobalState(
       productID,
       algodClient
     ).catch((error) => {
       throw new Error(error);
     });
+    const productGlobalState = parseTokenProductGlobalState(
+      rawProductGlobalState
+    );
 
-    if (
-      !productGlobalState.price ||
-      !productGlobalState.oracle_id ||
-      !productGlobalState.coin_id
-    ) {
-      throw new Error("SMR is not initialized");
+    if (!productGlobalState.oracle_id) {
+      throw new Error("Oracle missing, cannot initialize");
     }
 
-    const oracleID = productGlobalState.oracle_id.value as number;
+    const oracleID = productGlobalState.oracle_id;
     const productAddress = getApplicationAddress(productID);
-    const productPrice = productGlobalState.price.value as number;
+    const productPrice = productGlobalState.price;
     const productSpec = await getAppById(productID, algodClient);
-    const productName = String(productGlobalState.product_name.value);
-    const subscriptionName = String(productGlobalState.subscription_name.value);
+    const productName = productGlobalState.product_name;
+    const subscriptionName = productGlobalState.subscription_name;
 
     const versionAtc = new AtomicTransactionComposer();
 
@@ -224,10 +221,7 @@ export class SubtopiaClient {
 
     const response = await versionAtc.simulate(algodClient, request);
     const version = response.methodResults[0].returnValue as string;
-    const coin = await getAssetByID(
-      algodClient,
-      productGlobalState.coin_id.value as number
-    );
+    const coin = await getAssetByID(algodClient, productGlobalState.coin_id);
 
     return new SubtopiaClient({
       algodClient,
@@ -313,10 +307,10 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method is used to disable the application (updates the lifecycle).
-   * Has to be called before deleting the application. Upon disabling, product will stop allowing
-   * new subscriptions to be sold, existing subscribers will only be able to cancel their subscriptions.
-   * Product can be deleted once all subscriptions are cancelled or expired.
+   * This method is utilized to deactivate the application by updating the lifecycle.
+   * It should be invoked prior to the deletion of the application. Once deactivated, the product will cease to allow
+   * new subscriptions to be purchased, and existing subscribers will only have the option to cancel their subscriptions.
+   * The product can be deleted once all subscriptions have been cancelled or have expired.
    * The method returns the transaction ID.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
@@ -327,74 +321,51 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method is used to get the state of the application.
-   * It returns an object containing the product name, subscription name, manager, price, total subscriptions, maximum subscriptions, coin ID, subscription type, lifecycle, creation time, oracle ID, unit name, image URL, and discounts.
-   * @param {boolean} parseWholeUnits - A boolean indicating whether to parse the whole units (default is true).
-   * @returns {Promise<ProductState>} A promise that resolves to an object containing the state of the application.
+   * Retrieves the current state of the application.
+   * Returns an object containing various details about the product such as product name, subscription name, manager, price, total subscriptions, maximum subscriptions, coin ID, subscription type, lifecycle, creation time, oracle ID, unit name, image URL, and discount.
+   * @param {boolean} parseWholeUnits - Specifies whether to parse the whole units (default is true).
+   * @returns {Promise<ProductState>} A promise that resolves to an object representing the current state of the application.
    */
   public async getAppState(parseWholeUnits = true): Promise<ProductState> {
-    const globalState = await getAppGlobalState(
+    const rawGlobalState = await getAppGlobalState(
       this.appID,
       this.algodClient
     ).catch((error) => {
       throw new Error(error);
     });
+    const globalState = parseTokenProductGlobalState(rawGlobalState);
 
-    const durations = [];
-    if (Number(globalState.sub_type.value) === SubscriptionType.UNLIMITED) {
-      durations.push(Duration.UNLIMITED);
-    } else {
-      durations.push(
-        Duration.MONTH,
-        Duration.QUARTER,
-        Duration.SEMI_ANNUAL,
-        Duration.ANNUAL
-      );
-    }
-
-    const discounts = [];
-    for (const duration of durations) {
-      try {
-        const discount = await this.getDiscount({ duration });
-        discounts.push(discount);
-      } catch (error) {
-        // Ignore
-        continue;
-      }
-    }
+    const discount = await this.getDiscount();
 
     return {
-      productName: String(globalState.product_name.value),
-      subscriptionName: String(globalState.subscription_name.value),
-      manager: encodeAddress(
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        globalState.manager.valueRaw
-      ),
+      productName: String(globalState.product_name),
+      subscriptionName: String(globalState.subscription_name),
+      manager: globalState.manager,
       price: parseWholeUnits
         ? normalizePrice(
-            Number(globalState.price.value),
+            Number(globalState.price),
             this.coin.decimals,
             PriceNormalizationType.PRETTY
           )
-        : Number(globalState.price.value),
-      totalSubs: Number(globalState.total_subs.value),
-      maxSubs: Number(globalState.max_subs.value),
-      coinID: Number(globalState.coin_id.value),
-      subType: Number(globalState.sub_type.value),
-      lifecycle: Number(globalState.lifecycle.value),
-      createdAt: Number(globalState.created_at.value),
-      oracleID: Number(globalState.oracle_id.value),
-      unitName: String(globalState.unit_name.value),
-      imageURL: String(globalState.image_url.value),
-      discounts: discounts,
+        : Number(globalState.price),
+      totalSubs: Number(globalState.total_subscribers),
+      maxSubs: Number(globalState.max_subscribers),
+      coinID: Number(globalState.coin_id),
+      productType: Number(globalState.product_type),
+      lifecycle: Number(globalState.lifecycle),
+      createdAt: Number(globalState.created_at),
+      duration: Number(globalState.duration),
+      oracleID: Number(globalState.oracle_id),
+      unitName: String(globalState.unit_name),
+      imageURL: String(globalState.image_url),
+      discount: discount,
     };
   }
 
   /**
-   * This method is used to calculate the platform fee for a subscription.
-   * The method returns the platform fee as a number.
-   * @returns {Promise<number>} A promise that resolves to a number representing the platform fee.
+   * This method calculates the platform fee for a subscription.
+   * It returns the platform fee as a number.
+   * @returns {Promise<number>} A promise that resolves to the platform fee.
    */
   public async getSubscriptionPlatformFee(): Promise<number> {
     if (this.price === 0) {
@@ -447,10 +418,10 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method is used to calculate the locker creation fee.
-   * It takes the creator's address as an argument and returns a promise that resolves to the fee amount.
-   * @param {string} creatorAddress - The address of the creator.
-   * @returns {Promise<number>} A promise that resolves to the locker creation fee.
+   * This method calculates the locker creation fee.
+   * It requires the creator's address as an input and returns a promise that resolves to the calculated fee amount.
+   * @param {string} creatorAddress - The address of the locker's creator.
+   * @returns {Promise<number>} A promise that resolves to the calculated locker creation fee.
    */
   public async getLockerCreationFee(creatorAddress: string): Promise<number> {
     return (
@@ -461,35 +432,29 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method is used to get the discount based on the duration.
-   * It takes a duration object as an argument and returns a promise that resolves to a DiscountRecord.
-   * @param {Duration} duration - The duration for which the discount is to be calculated.
+   * This method retrieves the discount based on a given duration.
+   * It accepts a duration object as an argument and returns a promise that resolves to a DiscountRecord.
+   * @param {Duration} duration - The duration for which the discount is to be retrieved.
    * @returns {Promise<DiscountRecord>} A promise that resolves to the discount record.
    */
-  public async getDiscount({
-    duration,
-  }: {
-    duration: Duration;
-  }): Promise<DiscountRecord> {
+  public async getDiscount(): Promise<DiscountRecord | undefined> {
     const getDiscountAtc = new AtomicTransactionComposer();
     getDiscountAtc.addMethodCall({
       appID: this.appID,
       method: new ABIMethod({
         name: "get_discount",
-        args: [
-          {
-            type: "uint64",
-            name: "duration",
-            desc: "The duration of the discount.",
-          },
-        ],
-        returns: { type: "(uint64,uint64,uint64,uint64,uint64,uint64)" },
+        args: [],
+        returns: {
+          type: "(uint64,uint64,uint64,uint64,uint64)",
+          desc: "An expression that returns the discount.",
+        },
+        desc: "Returns the discount if exists.",
       }),
-      methodArgs: [duration.valueOf()],
+      methodArgs: [],
       boxes: [
         {
           appIndex: this.appID,
-          name: encodeUint64(duration.valueOf()),
+          name: ENCODED_DISCOUNT_BOX_KEY,
         },
       ],
       sender: this.creator.addr,
@@ -516,42 +481,41 @@ export class SubtopiaClient {
     const response = await getDiscountAtc.simulate(this.algodClient, request);
     const rawContent = response.methodResults[0].returnValue?.valueOf();
 
+    if (!rawContent) {
+      return undefined;
+    }
+
     const boxContent: Array<number> = Array.isArray(rawContent)
       ? rawContent.map((value) => Number(value))
       : [];
 
-    if (boxContent.length !== 6) {
+    if (boxContent.length !== 5) {
       throw new Error("Invalid subscription record");
     }
 
     return {
-      duration: boxContent[0],
-      discountType: boxContent[1],
-      discountValue: boxContent[2],
-      expiresAt: boxContent[3] === 0 ? null : boxContent[3],
-      createdAt: boxContent[4],
-      totalClaims: boxContent[5],
+      discountType: boxContent[0],
+      discountValue: boxContent[1],
+      expiresAt: boxContent[2] === 0 ? null : boxContent[2],
+      createdAt: boxContent[3],
+      totalClaims: boxContent[4],
     };
   }
 
   /**
-   * This method is used to create a discount for a subscription.
-   * The method returns the transaction ID.
-   * @param {Duration} duration - The duration of the discount.
-   * @param {DiscountType} discountType - The type of discount (percentage or amount).
-   * @param {number} discountValue - The discount value in micro ALGOs.
-   * @param {number} expiresIn - The number of seconds to append to creation date.
-   * @param {boolean} parseWholeUnits - A boolean indicating whether to parse the whole units (default is false).
+   * This function creates a discount for a subscription and returns the transaction ID.
+   * @param {DiscountType} discountType - Specifies the type of discount (percentage or amount).
+   * @param {number} discountValue - The value of the discount in micro ALGOs.
+   * @param {number} expiresIn - The duration of the discount in seconds from the creation date.
+   * @param {boolean} parseWholeUnits - Optional. If true, the function parses the whole units. Default is false.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
   public async createDiscount({
-    duration,
     discountType,
     discountValue,
     expiresIn,
     parseWholeUnits = false,
   }: {
-    duration: Duration;
     discountType: DiscountType;
     discountValue: number;
     expiresIn: number;
@@ -565,11 +529,6 @@ export class SubtopiaClient {
       method: new ABIMethod({
         name: "create_discount",
         args: [
-          {
-            type: "uint64",
-            name: "duration",
-            desc: "The duration of the discount.",
-          },
           {
             type: "uint64",
             name: "discount_type",
@@ -594,7 +553,6 @@ export class SubtopiaClient {
         returns: { type: "void" },
       }),
       methodArgs: [
-        duration.valueOf(),
         discountType.valueOf(),
         parseWholeUnits
           ? normalizePrice(
@@ -617,7 +575,7 @@ export class SubtopiaClient {
       boxes: [
         {
           appIndex: this.appID,
-          name: encodeUint64(duration.valueOf()),
+          name: ENCODED_DISCOUNT_BOX_KEY,
         },
       ],
       sender: this.creator.addr,
@@ -639,11 +597,10 @@ export class SubtopiaClient {
 
   /**
    * This method is used to delete a discount.
-   * It takes a duration object as an argument and returns a promise that resolves to an object containing the transaction ID.
-   * @param {Duration} duration - The duration of the discount to be deleted.
+   * Removes active discount from a product contract if exists.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
-  public async deleteDiscount({ duration }: { duration: Duration }): Promise<{
+  public async deleteDiscount(): Promise<{
     txID: string;
   }> {
     const deleteDiscountAtc = new AtomicTransactionComposer();
@@ -651,20 +608,14 @@ export class SubtopiaClient {
       appID: this.appID,
       method: new ABIMethod({
         name: "delete_discount",
-        args: [
-          {
-            type: "uint64",
-            name: "duration",
-            desc: "The duration of the discount.",
-          },
-        ],
+        args: [],
         returns: { type: "void" },
       }),
-      methodArgs: [duration.valueOf()],
+      methodArgs: [],
       boxes: [
         {
           appIndex: this.appID,
-          name: encodeUint64(duration.valueOf()),
+          name: ENCODED_DISCOUNT_BOX_KEY,
         },
       ],
       sender: this.creator.addr,
@@ -685,18 +636,15 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method is used to create a subscription.
-   * It takes a subscriber and a duration as arguments and returns a promise that resolves to an object containing the transaction ID and subscription ID.
-   * @param {TransactionSignerAccount} subscriber - The subscriber's account.
-   * @param {Duration} duration - The duration of the subscription.
+   * This method is utilized to initiate a subscription.
+   * It accepts a subscriber as an argument and returns a promise that resolves to an object containing the transaction ID and subscription ID.
+   * @param {TransactionSignerAccount} subscriber - Account information of the subscriber.
    * @returns {Promise<{txID: string, subscriptionID: number}>} A promise that resolves to an object containing the transaction ID and subscription ID.
    */
   public async createSubscription({
     subscriber,
-    duration,
   }: {
     subscriber: TransactionSignerAccount;
-    duration: Duration;
   }): Promise<{
     txID: string;
     subscriptionID: number;
@@ -710,7 +658,7 @@ export class SubtopiaClient {
       oracleAdminState.valueRaw
     );
     const platformFeeAmount = await this.getSubscriptionPlatformFee();
-    const state = await this.getAppState();
+    const state = await this.getAppState(false);
     const managerLockerID = await SubtopiaRegistryClient.getLocker({
       registryID: this.registryID,
       algodClient: this.algodClient,
@@ -724,18 +672,14 @@ export class SubtopiaClient {
 
     const lockerAddress = getApplicationAddress(managerLockerID);
 
-    let subscriptionPrice = this.price * durationToMonths(duration);
-    for (const discount of state.discounts) {
-      if (discount.duration === duration.valueOf()) {
-        if (discount.discountType === DiscountType.PERCENTAGE) {
-          subscriptionPrice =
-            subscriptionPrice -
-            (subscriptionPrice * discount.discountValue) / 100;
-          break;
-        } else if (discount.discountType === DiscountType.FIXED) {
-          subscriptionPrice = subscriptionPrice - discount.discountValue;
-          break;
-        }
+    let subscriptionPrice = this.price;
+    if (state.discount) {
+      if (state.discount.discountType === DiscountType.PERCENTAGE) {
+        subscriptionPrice =
+          subscriptionPrice -
+          (subscriptionPrice * state.discount.discountValue) / 100;
+      } else if (state.discount.discountType === DiscountType.FIXED) {
+        subscriptionPrice = subscriptionPrice - state.discount.discountValue;
       }
     }
 
@@ -762,11 +706,6 @@ export class SubtopiaClient {
             type: "address",
             name: "subscriber",
             desc: "The subscriber's address.",
-          },
-          {
-            type: "uint64",
-            name: "duration",
-            desc: "The duration of the subscription.",
           },
           {
             type: "application",
@@ -798,7 +737,6 @@ export class SubtopiaClient {
       }),
       methodArgs: [
         subscriber.addr,
-        duration.valueOf(),
         managerLockerID,
         this.oracleID,
         {
@@ -856,7 +794,7 @@ export class SubtopiaClient {
         },
         {
           appIndex: this.appID,
-          name: encodeUint64(duration.valueOf()),
+          name: ENCODED_DISCOUNT_BOX_KEY,
         },
       ],
       sender: subscriber.addr,
@@ -883,12 +821,13 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method is used to transfer a subscription from one subscriber to another.
-   * It takes an old subscriber, a new subscriber address, and a subscription ID as arguments and returns a promise that resolves to an object containing the transaction ID.
-   * @param {TransactionSignerAccount} oldSubscriber - The old subscriber's account.
-   * @param {string} newSubscriberAddress - The new subscriber's address.
-   * @param {number} subscriptionID - The ID of the subscription to be transferred.
-   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
+   * Transfers a subscription from one subscriber to another.
+   *
+   * @param {TransactionSignerAccount} oldSubscriber - Account information of the current subscriber.
+   * @param {string} newSubscriberAddress - Address of the new subscriber.
+   * @param {number} subscriptionID - Unique identifier of the subscription to be transferred.
+   *
+   * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID of the transfer operation.
    */
   public async transferSubscription({
     oldSubscriber,
@@ -1217,11 +1156,9 @@ export class SubtopiaClient {
     };
   }
 
-  public async getSubscribers({
-    filterExpired = false,
-  }: {
-    filterExpired?: boolean;
-  }): Promise<Array<SubscriberRecord>> {
+  public async getSubscribers({ filterExpired = false } = {}): Promise<
+    Array<SubscriberRecord>
+  > {
     const subscriberBoxes = await this.algodClient
       .getApplicationBoxes(this.appID)
       .do();

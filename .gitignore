@@ -32,3 +32,9 @@ coverage
 docs
 
 .env
+
+debug_traces/
+
+.algokit/
+
+.algokit.toml

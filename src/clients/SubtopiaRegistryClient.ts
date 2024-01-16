@@ -26,11 +26,11 @@ import {
   calculateRegistryLockerBoxCreateMbr,
   getLockerBoxPrefix,
   asyncWithTimeout,
+  parseTokenProductGlobalState,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
-  PRODUCT_APPROVAL_KEY,
-  PRODUCT_CLEAR_KEY,
+  TOKEN_PRODUCT_APPROVAL_KEY,
   MIN_APP_OPTIN_MBR,
   MIN_ASA_OPTIN_MBR,
   PRODUCT_CREATION_PLATFORM_FEE_CENTS,
@@ -39,14 +39,17 @@ import {
   SUBTOPIA_REGISTRY_ID,
   MIN_APP_CREATE_MBR,
   DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
-  PRODUCT_VERSION_KEY,
+  TOKEN_PRODUCT_CLEAR_KEY,
+  TOKEN_PRODUCT_VERSION_KEY,
   LOCKER_VERSION_KEY,
+  LEGACY_PRODUCT_VERSION_KEY,
 } from "../constants";
 import {
-  SubscriptionType,
+  ProductType,
   PriceNormalizationType,
   ChainType,
   LockerType,
+  Duration,
 } from "../enums";
 
 import {
@@ -208,11 +211,17 @@ export class SubtopiaRegistryClient {
    * Can be used to check if the current product instance is up to date.
    * @returns {Promise<string>} A promise that resolves to the product version.
    */
-  public async getProductVersion(): Promise<string> {
+  public async getProductVersion(productType: ProductType): Promise<string> {
     const appBoxResponse = await this.algodClient
       .getApplicationBoxByName(
         this.appID,
-        new Uint8Array([...Buffer.from(PRODUCT_VERSION_KEY)])
+        new Uint8Array([
+          ...Buffer.from(
+            productType === ProductType.TOKEN_BASED
+              ? TOKEN_PRODUCT_VERSION_KEY
+              : LEGACY_PRODUCT_VERSION_KEY
+          ),
+        ])
       )
       .do();
     const version = new TextDecoder().decode(appBoxResponse.value);
@@ -247,7 +256,7 @@ export class SubtopiaRegistryClient {
     return (
       algosToMicroalgos(MIN_APP_OPTIN_MBR) +
       algosToMicroalgos(MIN_APP_CREATE_MBR) +
-      (await calculateProductCreationMbr(this.appSpec, 1, 8, 5)) +
+      (await calculateProductCreationMbr(this.appSpec, 1, 9, 7)) +
       (coinID > 0 ? algosToMicroalgos(MIN_ASA_OPTIN_MBR) : 0)
     );
   }
@@ -515,8 +524,13 @@ export class SubtopiaRegistryClient {
       ]);
     }
 
-    const productState = await getAppGlobalState(productID, this.algodClient);
-    const productCoinID = productState.coin_id.value as number;
+    const rawProductState = await getAppGlobalState(
+      productID,
+      this.algodClient
+    );
+    const productState = parseTokenProductGlobalState(rawProductState);
+
+    const productCoinID = productState.coin_id as number;
     const appCallFee =
       (newOwnerLockerID ? 10 : 11) + (productCoinID > 0 ? 3 : 0);
     const payFee = this.getLockerTransferFee(
@@ -597,7 +611,7 @@ export class SubtopiaRegistryClient {
    * @param {string} subscriptionName - The name of the subscription.
    * @param {number} price - The price of the product.
    * @param {number} lockerID - The ID of the locker.
-   * @param {SubscriptionType} subType - The type of the subscription (default is UNLIMITED).
+   * @param {ProductType} subType - The type of the subscription (default is UNLIMITED).
    * @param {number} maxSubs - The maximum number of subscriptions (default is 0).
    * @param {number} coinID - The ID of the coin (default is 0).
    * @param {string} unitName - The name of the unit (default is SUBTOPIA_DEFAULT_UNIT_NAME).
@@ -607,23 +621,25 @@ export class SubtopiaRegistryClient {
    */
   public async createProduct({
     productName,
+    productType,
     subscriptionName,
     price,
     lockerID,
-    subType = SubscriptionType.UNLIMITED,
     maxSubs = 0,
     coinID = 0,
+    duration = Duration.UNLIMITED,
     unitName = SUBTOPIA_DEFAULT_UNIT_NAME,
     imageUrl = SUBTOPIA_DEFAULT_IMAGE_URL,
     parseWholeUnits = false,
   }: {
     productName: string;
+    productType: ProductType;
     subscriptionName: string;
     price: number;
     lockerID: number;
-    subType?: SubscriptionType;
     maxSubs?: number;
     coinID?: number;
+    duration?: Duration;
     unitName?: string;
     imageUrl?: string;
     parseWholeUnits?: boolean;
@@ -634,7 +650,7 @@ export class SubtopiaRegistryClient {
     const asset = await getAssetByID(this.algodClient, coinID);
 
     if (!this.oracleID) {
-      throw new Error("SMR is not initialized");
+      throw new Error("'RegistryClient' is not initialized");
     }
     const oracleAdminState = (
       await getAppGlobalState(this.oracleID, this.algodClient)
@@ -659,14 +675,14 @@ export class SubtopiaRegistryClient {
             desc: "The name of the product (subtopia, netflix, etc)",
           },
           {
+            type: "uint64",
+            name: "product_type",
+            desc: "The type of the Product.",
+          },
+          {
             type: "string",
             name: "subscription_name",
             desc: "The subscription name of the product (pro, etc)",
-          },
-          {
-            type: "uint64",
-            name: "sub_type",
-            desc: "The sub type of the Product.",
           },
           {
             type: "uint64",
@@ -692,6 +708,10 @@ export class SubtopiaRegistryClient {
             type: "string",
             name: "image_url",
             desc: "The image URL of the Product.",
+          },
+          {
+            type: "uint64",
+            name: "duration",
           },
           {
             type: "address",
@@ -723,8 +743,8 @@ export class SubtopiaRegistryClient {
       }),
       methodArgs: [
         productName,
+        productType,
         subscriptionName,
-        subType.valueOf(),
         parseWholeUnits
           ? normalizePrice(
               price,
@@ -736,6 +756,7 @@ export class SubtopiaRegistryClient {
         asset.index,
         unitName,
         imageUrl,
+        duration,
         this.creator.addr,
         lockerID,
         this.oracleID,
@@ -768,19 +789,19 @@ export class SubtopiaRegistryClient {
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(PRODUCT_APPROVAL_KEY),
+          name: encoder.encode(TOKEN_PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(PRODUCT_APPROVAL_KEY),
+          name: encoder.encode(TOKEN_PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(PRODUCT_APPROVAL_KEY),
+          name: encoder.encode(TOKEN_PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(PRODUCT_CLEAR_KEY),
+          name: encoder.encode(TOKEN_PRODUCT_CLEAR_KEY),
         },
       ],
       sender: this.creator.addr,

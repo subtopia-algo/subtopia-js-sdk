@@ -37,10 +37,12 @@ export const ALGO_ASSET = {
   unitName: "ALGO",
 } as AssetMetadata;
 
-export const PRODUCT_STATE_MANAGER_KEY = "manager";
-export const PRODUCT_VERSION_KEY = "product_version";
-export const PRODUCT_APPROVAL_KEY = "product_approval";
-export const PRODUCT_CLEAR_KEY = "product_clear";
+export const LEGACY_PRODUCT_VERSION_KEY = "product_version";
+
+export const TOKEN_PRODUCT_STATE_MANAGER_KEY = "gs_3";
+export const TOKEN_PRODUCT_VERSION_KEY = "token_product_version";
+export const TOKEN_PRODUCT_APPROVAL_KEY = "token_product_approval";
+export const TOKEN_PRODUCT_CLEAR_KEY = "token_product_clear";
 export const LOCKER_VERSION_KEY = "locker_version";
 export const LOCKER_APPROVAL_KEY = "locker_approval";
 export const LOCKER_CLEAR_KEY = "locker_clear";
@@ -55,8 +57,9 @@ export const SUBSCRIPTION_PLATFORM_FEE_CENTS = 10;
 export const PRODUCT_CREATION_PLATFORM_FEE_CENTS = 500;
 
 // Algorand minimum transaction fee
-export const REGISTRY_VERSION = "1.0";
-export const PRODUCT_VERSION = "1.0";
+export const REGISTRY_VERSION = "1.1";
+export const LEGACY_PRODUCT_VERSION = "1.1";
+export const TOKEN_BASED_PRODUCT_VERSION = "1.0";
 export const LOCKER_VERSION = "1.0";
 export const ORACLE_VERSION = "1.0";
 
@@ -69,3 +72,7 @@ export const LOCKER_LOCAL_NUM_BYTE_SLICES = 0;
 
 // Misc
 export const DEFAULT_TXN_SIGN_TIMEOUT_SECONDS = 60;
+export const DISCOUNT_BOX_KEY = "b_d";
+export const ENCODED_DISCOUNT_BOX_KEY = new Uint8Array(
+  Buffer.from(DISCOUNT_BOX_KEY)
+);

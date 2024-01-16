@@ -7,10 +7,9 @@
 
 ## [1.0.1](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v1.0.0...v1.0.1) (2023-12-13)
 
-
 ### Bug Fixes
 
-* bug fixing the renewal flow ([#34](https://github.com/subtopia-algo/subtopia-js-sdk/issues/34)) ([c04285b](https://github.com/subtopia-algo/subtopia-js-sdk/commit/c04285b654c80ae58e7866ab5c98a3c98e04128d))
+- bug fixing the renewal flow ([#34](https://github.com/subtopia-algo/subtopia-js-sdk/issues/34)) ([c04285b](https://github.com/subtopia-algo/subtopia-js-sdk/commit/c04285b654c80ae58e7866ab5c98a3c98e04128d))
 
 # 1.0.0 (2023-11-30)
 

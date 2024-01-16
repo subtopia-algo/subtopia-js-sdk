@@ -3,7 +3,7 @@
 // Copyright (C) 2023 Altynbek Orumbayev
 // =============================================================================
 
-import { DiscountType, Duration, SubscriptionType } from "../enums";
+import { DiscountType, Duration, ProductType } from "../enums";
 
 // === Boxes ===
 
@@ -27,7 +27,7 @@ export interface SubscriptionRecord {
   expiresAt: number | null;
   duration: Duration;
   subID: number;
-  subType: SubscriptionType;
+  subType: ProductType;
 }
 
 export interface SubscriberRecord {
@@ -39,7 +39,6 @@ export interface SubscriberRecord {
  * Interface for the base discount record.
  */
 export interface BaseDiscountRecord {
-  duration: Duration;
   discountType: DiscountType;
   discountValue: number;
 }
@@ -83,7 +82,8 @@ interface ProductGlobalState {
   totalSubs: number;
   maxSubs: number;
   coinID: number;
-  subType: SubscriptionType;
+  productType: ProductType;
+  duration: Duration;
   lifecycle: number;
   createdAt: number;
   oracleID: number;
@@ -95,5 +95,5 @@ interface ProductGlobalState {
  * Interface for the product state.
  */
 export interface ProductState extends ProductGlobalState {
-  discounts: DiscountRecord[];
+  discount?: DiscountRecord;
 }

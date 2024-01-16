@@ -1217,7 +1217,11 @@ export class SubtopiaClient {
     };
   }
 
-  public async getSubscribers(): Promise<Array<SubscriberRecord>> {
+  public async getSubscribers({
+    filterExpired = false,
+  }: {
+    filterExpired?: boolean;
+  }): Promise<Array<SubscriberRecord>> {
     const subscriberBoxes = await this.algodClient
       .getApplicationBoxes(this.appID)
       .do();
@@ -1250,6 +1254,13 @@ export class SubtopiaClient {
       throw new Error(`Errors occurred: ${rejectedPromises.join(", ")}`);
     }
 
-    return subscriberRecords;
+    return filterExpired
+      ? subscriberRecords.filter((record) => {
+          return (
+            record.subscription.expiresAt === null ||
+            record.subscription.expiresAt > Date.now() / 1000
+          );
+        })
+      : subscriberRecords;
   }
 }

@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v1.0.1...v1.1.0) (2024-01-05)
+
+
+### Features
+
+* new method for fetching all subscribers from a product instance ([#38](https://github.com/subtopia-algo/subtopia-js-sdk/issues/38)) ([8fc14db](https://github.com/subtopia-algo/subtopia-js-sdk/commit/8fc14dbdaa2e6d04fb4f470a65d472fbfe3a8b72))
+
 ## [1.0.1](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v1.0.0...v1.0.1) (2023-12-13)
 
 

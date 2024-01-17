@@ -17,7 +17,7 @@ import algosdk, {
   encodeAddress,
 } from "algosdk";
 
-import { ApplicationSpec, AssetMetadata } from "../interfaces";
+import { ApplicationSpec, AssetMetadata } from "../types";
 import {
   DEFAULT_AWAIT_ROUNDS,
   ALGO_ASSET,
@@ -26,7 +26,7 @@ import {
   LOCKER_GLOBAL_NUM_BYTE_SLICES,
   DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 } from "../constants";
-import { Duration, LockerType, PriceNormalizationType } from "../enums";
+import { Duration, LockerType, PriceNormalizationType } from "../types/enums";
 import {
   APP_PAGE_MAX_SIZE,
   AppState,

@@ -47,17 +47,24 @@ import {
 import {
   ProductType,
   PriceNormalizationType,
-  ChainType,
   LockerType,
   Duration,
-} from "../enums";
+} from "../types/enums";
 
 import {
   getAppById,
   getAppGlobalState,
 } from "@algorandfoundation/algokit-utils";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
-import { ApplicationSpec } from "interfaces";
+import { ApplicationSpec } from "types";
+import {
+  RegistryCreateLockerParams,
+  RegistryCreateProductParams,
+  RegistryDeleteProductParams,
+  RegistryGetLockerParams,
+  RegistryInitParams,
+  RegistryTransferProductParams,
+} from "types/registry";
 
 const SUBTOPIA_DEFAULT_IMAGE_URL =
   "ipfs://bafybeicddz7kbuxajj6bob5bjqtweq6wchkdkiq4vvhwrwrne7iz4f25xi";
@@ -108,14 +115,10 @@ export class SubtopiaRegistryClient {
   }
 
   /**
-   * Initializes a new instance of the SubtopiaRegistryClient class with the specified parameters.
+   * This method initializes a new instance of the SubtopiaRegistryClient class using the provided parameters.
    *
-   * @param algodClient - An instance of the AlgodClient class from the algosdk library.
-   * @param creator - An instance of the TransactionSignerAccount class from the algosdk library.
-   * @param chainType - A value from the ChainType enum.
-   * @param timeout - The timeout value in seconds for transaction signing. Defaults to DEFAULT_TXN_SIGN_TIMEOUT_SECONDS.
-   * @param registryID - The ID of the registry application. Defaults to official SUBTOPIA_REGISTRY_ID specific to supplied chainType.
-   * @returns A new instance of the SubtopiaRegistryClient class with the specified parameters.
+   * @param params - An object of type RegistryInitParams.
+   * @returns A new instance of the SubtopiaRegistryClient class initialized with the provided parameters.
    * @example
    * ```typescript
    * import { ChainType, SubtopiaRegistryClient } from "subtopia-js-sdk";
@@ -127,19 +130,16 @@ export class SubtopiaRegistryClient {
    * });
    * ```
    */
-  public static async init({
-    algodClient,
-    creator,
-    chainType,
-    timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
-    registryID,
-  }: {
-    algodClient: AlgodClient;
-    creator: TransactionSignerAccount;
-    chainType: ChainType;
-    timeout?: number;
-    registryID?: number;
-  }): Promise<SubtopiaRegistryClient> {
+  public static async init(
+    params: RegistryInitParams
+  ): Promise<SubtopiaRegistryClient> {
+    const {
+      algodClient,
+      creator,
+      chainType,
+      timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
+      registryID,
+    } = params;
     const registryId = registryID
       ? registryID
       : SUBTOPIA_REGISTRY_ID(chainType);
@@ -351,20 +351,14 @@ export class SubtopiaRegistryClient {
    * This method is used to create a new locker.
    * The locker creation fee is calculated and paid by the creator.
    * The method returns the transaction ID and the locker ID.
-   * @param {TransactionSignerAccount} creator - The account that will create the locker.
-   * @param {LockerType} lockerType - The type of the locker to be created.
+   * @param {RegistryCreateLockerParams} params - An object containing the parameters for locker creation.
    * @returns {Promise<{txID: string, lockerID: number}>} A promise that resolves to an object containing the transaction ID and the locker ID.
    */
-  public async createLocker({
-    creator,
-    lockerType,
-  }: {
-    creator: TransactionSignerAccount;
-    lockerType: LockerType;
-  }): Promise<{
+  public async createLocker(params: RegistryCreateLockerParams): Promise<{
     txID: string;
     lockerID: number;
   }> {
+    const { creator, lockerType } = params;
     const feeAmount = this.getLockerCreationFee(creator.addr);
 
     const createLockerAtc = new AtomicTransactionComposer();
@@ -441,12 +435,7 @@ export class SubtopiaRegistryClient {
     algodClient,
     ownerAddress,
     lockerType,
-  }: {
-    registryID: number;
-    algodClient: AlgodClient;
-    ownerAddress: string;
-    lockerType: LockerType;
-  }): Promise<number | null> {
+  }: RegistryGetLockerParams): Promise<number | null> {
     const boxValue = await algodClient
       .getApplicationBoxByName(
         registryID,
@@ -464,19 +453,13 @@ export class SubtopiaRegistryClient {
   /**
    * This method is used to transfer a product from one owner to another.
    * The method returns the transaction ID of the transfer.
-   * @param {number} productID - The ID of the product to be transferred.
-   * @param {string} newOwnerAddress - The address of the new owner.
+   * @param {RegistryTransferProductParams} params - An object containing the parameters for product transfer.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
-  public async transferProduct({
-    productID,
-    newOwnerAddress,
-  }: {
-    productID: number;
-    newOwnerAddress: string;
-  }): Promise<{
+  public async transferProduct(params: RegistryTransferProductParams): Promise<{
     txID: string;
   }> {
+    const { productID, newOwnerAddress } = params;
     const oldOwnerLockerID = await SubtopiaRegistryClient.getLocker({
       registryID: this.appID,
       algodClient: this.algodClient,
@@ -607,46 +590,26 @@ export class SubtopiaRegistryClient {
   /**
    * This method is used to create a new product.
    * The method returns the transaction ID and the product ID.
-   * @param {string} productName - The name of the product.
-   * @param {string} subscriptionName - The name of the subscription.
-   * @param {number} price - The price of the product.
-   * @param {number} lockerID - The ID of the locker.
-   * @param {ProductType} subType - The type of the subscription (default is UNLIMITED).
-   * @param {number} maxSubs - The maximum number of subscriptions (default is 0).
-   * @param {number} coinID - The ID of the coin (default is 0).
-   * @param {string} unitName - The name of the unit (default is SUBTOPIA_DEFAULT_UNIT_NAME).
-   * @param {string} imageUrl - The URL of the image (default is SUBTOPIA_DEFAULT_IMAGE_URL).
-   * @param {boolean} parseWholeUnits - Whether to parse whole units (default is false).
+   * @param {RegistryCreateProductParams} params - An object containing the parameters for product creation.
    * @returns {Promise<{txID: string, productID: number}>} A promise that resolves to an object containing the transaction ID and the product ID.
    */
-  public async createProduct({
-    productName,
-    productType,
-    subscriptionName,
-    price,
-    lockerID,
-    maxSubs = 0,
-    coinID = 0,
-    duration = Duration.UNLIMITED,
-    unitName = SUBTOPIA_DEFAULT_UNIT_NAME,
-    imageUrl = SUBTOPIA_DEFAULT_IMAGE_URL,
-    parseWholeUnits = false,
-  }: {
-    productName: string;
-    productType: ProductType;
-    subscriptionName: string;
-    price: number;
-    lockerID: number;
-    maxSubs?: number;
-    coinID?: number;
-    duration?: Duration;
-    unitName?: string;
-    imageUrl?: string;
-    parseWholeUnits?: boolean;
-  }): Promise<{
+  public async createProduct(params: RegistryCreateProductParams): Promise<{
     txID: string;
     productID: number;
   }> {
+    const {
+      productName,
+      productType,
+      subscriptionName,
+      price,
+      lockerID,
+      maxSubs = 0,
+      coinID = 0,
+      duration = Duration.UNLIMITED,
+      unitName = SUBTOPIA_DEFAULT_UNIT_NAME,
+      imageUrl = SUBTOPIA_DEFAULT_IMAGE_URL,
+      parseWholeUnits = false,
+    } = params;
     const asset = await getAssetByID(this.algodClient, coinID);
 
     if (!this.oracleID) {
@@ -828,19 +791,13 @@ export class SubtopiaRegistryClient {
   /**
    * This method is used to delete a product.
    * The method returns the transaction ID.
-   * @param {number} productID - The ID of the product to be deleted.
-   * @param {number} lockerID - The ID of the locker where the product is stored.
+   * @param {RegistryDeleteProductParams} params - An object containing the parameters for product deletion.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
-  public async deleteProduct({
-    productID,
-    lockerID,
-  }: {
-    productID: number;
-    lockerID: number;
-  }): Promise<{
+  public async deleteProduct(params: RegistryDeleteProductParams): Promise<{
     txID: string;
   }> {
+    const { productID, lockerID } = params;
     const deleteInfraAtc = new AtomicTransactionComposer();
     deleteInfraAtc.addMethodCall({
       appID: this.appID,

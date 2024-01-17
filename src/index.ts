@@ -22,8 +22,7 @@ export {
   getLockerBoxPrefix,
 };
 
-export * from "./interfaces";
-export * from "./enums";
+export * from "./types";
 export {
   LOCKER_VERSION,
   REGISTRY_VERSION,

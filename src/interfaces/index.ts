@@ -3,7 +3,15 @@
 // Copyright (C) 2023 Altynbek Orumbayev
 // =============================================================================
 
-import { DiscountType, Duration, ProductType } from "../enums";
+import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
+import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
+import {
+  ChainType,
+  DiscountType,
+  Duration,
+  LockerType,
+  ProductType,
+} from "../types/enums";
 
 // === Boxes ===
 
@@ -96,4 +104,40 @@ interface ProductGlobalState {
  */
 export interface ProductState extends ProductGlobalState {
   discount?: DiscountRecord;
+}
+
+/**
+ * Interfaces for the registry client
+ */
+
+export interface RegistryInitParams {
+  algodClient: AlgodClient;
+  creator: TransactionSignerAccount;
+  chainType: ChainType;
+  timeout?: number;
+  registryID?: number;
+}
+
+export interface RegistryCreateLockerParams {
+  creator: TransactionSignerAccount;
+  lockerType: LockerType;
+}
+
+export interface RegistryCreateProductParams {
+  productName: string;
+  productType: ProductType;
+  subscriptionName: string;
+  price: number;
+  lockerID: number;
+  maxSubs?: number;
+  coinID?: number;
+  duration?: Duration;
+  unitName?: string;
+  imageUrl?: string;
+  parseWholeUnits?: boolean;
+}
+
+export interface RegistryDeleteProductParams {
+  productID: number;
+  lockerID: number;
 }

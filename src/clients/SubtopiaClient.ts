@@ -38,13 +38,6 @@ import {
   SUBTOPIA_REGISTRY_ID,
   ENCODED_DISCOUNT_BOX_KEY,
 } from "../constants";
-import {
-  PriceNormalizationType,
-  DiscountType,
-  LifecycleState,
-  LockerType,
-  ChainType,
-} from "../enums";
 
 import {
   getAppById,
@@ -56,10 +49,23 @@ import {
   ApplicationSpec,
   AssetMetadata,
   DiscountRecord,
+  DiscountType,
+  LifecycleState,
+  LockerType,
+  PriceNormalizationType,
+  ProductDiscountCreationParams,
+  ProductInitParams,
+  ProductLifecycleStateUpdate,
   ProductState,
+  ProductSubscriberCheckParams,
+  ProductSubscriptionClaimParams,
+  ProductSubscriptionCreationParams,
+  ProductSubscriptionDeletionParams,
+  ProductSubscriptionRetrievalParams,
+  ProductSubscriptionTransferParams,
   SubscriberRecord,
   SubscriptionRecord,
-} from "interfaces";
+} from "../types";
 
 /**
  * The `SubtopiaClient` class is responsible for interacting with a Subtopia Product contracts on the Algorand blockchain.
@@ -129,12 +135,7 @@ export class SubtopiaClient {
    * Initializes a SubtopiaClient instance.
    * Retrieves the product's global state, validates it, and creates a new SubtopiaClient.
    *
-   * @param {AlgodClient} algodClient - Algod client for Algorand network interactions.
-   * @param {ChainType} chainType - Blockchain network type.
-   * @param {number} productID - Product's unique identifier.
-   * @param {TransactionSignerAccount} creator - Account for signing transactions.
-   * @param {number} timeout - Transaction timeout duration (default is DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).
-   * @param {number} registryID - Registry's unique identifier (default is SUBTOPIA_TESTNET).
+   * @param {ProductInitParams} params - The parameters for initializing the client.
    *
    * @returns {Promise<SubtopiaClient>} Promise resolving to a SubtopiaClient instance.
    *
@@ -149,21 +150,15 @@ export class SubtopiaClient {
    * });
    * ```
    */
-  public static async init({
-    algodClient,
-    chainType,
-    registryID,
-    productID,
-    creator,
-    timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
-  }: {
-    algodClient: AlgodClient;
-    chainType: ChainType;
-    productID: number;
-    creator: TransactionSignerAccount;
-    registryID?: number;
-    timeout?: number;
-  }): Promise<SubtopiaClient> {
+  public static async init(params: ProductInitParams): Promise<SubtopiaClient> {
+    const {
+      algodClient,
+      chainType,
+      registryID,
+      productID,
+      creator,
+      timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
+    } = params;
     const registryId = registryID
       ? registryID
       : SUBTOPIA_REGISTRY_ID(chainType);
@@ -253,16 +248,15 @@ export class SubtopiaClient {
   /**
    * This method is used to update the lifecycle state of the application.
    * The method returns the transaction ID.
-   * @param {LifecycleState} lifecycle - The new lifecycle state.
+   * @param {ProductLifecycleStateUpdate} params - The parameters for updating the lifecycle state.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
-  protected async updateLifecycle({
-    lifecycle,
-  }: {
-    lifecycle: LifecycleState;
-  }): Promise<{
+  protected async updateLifecycle(
+    params: ProductLifecycleStateUpdate
+  ): Promise<{
     txID: string;
   }> {
+    const { lifecycle } = params;
     const updateLifecycleAtc = new AtomicTransactionComposer();
     updateLifecycleAtc.addMethodCall({
       appID: this.appID,
@@ -434,7 +428,6 @@ export class SubtopiaClient {
   /**
    * This method retrieves the discount based on a given duration.
    * It accepts a duration object as an argument and returns a promise that resolves to a DiscountRecord.
-   * @param {Duration} duration - The duration for which the discount is to be retrieved.
    * @returns {Promise<DiscountRecord>} A promise that resolves to the discount record.
    */
   public async getDiscount(): Promise<DiscountRecord | undefined> {
@@ -504,25 +497,18 @@ export class SubtopiaClient {
 
   /**
    * This function creates a discount for a subscription and returns the transaction ID.
-   * @param {DiscountType} discountType - Specifies the type of discount (percentage or amount).
-   * @param {number} discountValue - The value of the discount in micro ALGOs.
-   * @param {number} expiresIn - The duration of the discount in seconds from the creation date.
-   * @param {boolean} parseWholeUnits - Optional. If true, the function parses the whole units. Default is false.
+   * @param {ProductDiscountCreationParams} params - The parameters for creating a discount.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
-  public async createDiscount({
-    discountType,
-    discountValue,
-    expiresIn,
-    parseWholeUnits = false,
-  }: {
-    discountType: DiscountType;
-    discountValue: number;
-    expiresIn: number;
-    parseWholeUnits?: boolean;
-  }): Promise<{
+  public async createDiscount(params: ProductDiscountCreationParams): Promise<{
     txID: string;
   }> {
+    const {
+      discountType,
+      discountValue,
+      expiresIn,
+      parseWholeUnits = false,
+    } = params;
     const createDiscountAtc = new AtomicTransactionComposer();
     createDiscountAtc.addMethodCall({
       appID: this.appID,
@@ -638,17 +624,16 @@ export class SubtopiaClient {
   /**
    * This method is utilized to initiate a subscription.
    * It accepts a subscriber as an argument and returns a promise that resolves to an object containing the transaction ID and subscription ID.
-   * @param {TransactionSignerAccount} subscriber - Account information of the subscriber.
+   * @param {ProductSubscriptionCreationParams} params - The parameters for creating a subscription.
    * @returns {Promise<{txID: string, subscriptionID: number}>} A promise that resolves to an object containing the transaction ID and subscription ID.
    */
-  public async createSubscription({
-    subscriber,
-  }: {
-    subscriber: TransactionSignerAccount;
-  }): Promise<{
+  public async createSubscription(
+    params: ProductSubscriptionCreationParams
+  ): Promise<{
     txID: string;
     subscriptionID: number;
   }> {
+    const { subscriber } = params;
     const oracleAdminState = (
       await getAppGlobalState(this.oracleID, this.algodClient)
     ).admin;
@@ -823,23 +808,16 @@ export class SubtopiaClient {
   /**
    * Transfers a subscription from one subscriber to another.
    *
-   * @param {TransactionSignerAccount} oldSubscriber - Account information of the current subscriber.
-   * @param {string} newSubscriberAddress - Address of the new subscriber.
-   * @param {number} subscriptionID - Unique identifier of the subscription to be transferred.
+   * @param {ProductSubscriptionTransferParams} params - The parameters for transferring a subscription.
    *
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID of the transfer operation.
    */
-  public async transferSubscription({
-    oldSubscriber,
-    newSubscriberAddress,
-    subscriptionID,
-  }: {
-    oldSubscriber: TransactionSignerAccount;
-    newSubscriberAddress: string;
-    subscriptionID: number;
-  }): Promise<{
+  public async transferSubscription(
+    params: ProductSubscriptionTransferParams
+  ): Promise<{
     txID: string;
   }> {
+    const { oldSubscriber, newSubscriberAddress, subscriptionID } = params;
     const transferSubscriptionAtc = new AtomicTransactionComposer();
     transferSubscriptionAtc.addMethodCall({
       appID: this.appID,
@@ -890,19 +868,15 @@ export class SubtopiaClient {
   /**
    * Claims a subscription for a given subscriber.
    *
-   * @param {Object} subscriber - The account of the subscriber, containing the address and signer.
-   * @param {number} subscriptionID - The ID of the subscription asset.
+   * @param {ProductSubscriptionClaimParams} params - The parameters for claiming a subscription.
    * @returns {Promise<Object>} - The transaction ID of the executed transaction.
    */
-  public async claimSubscription({
-    subscriber,
-    subscriptionID,
-  }: {
-    subscriber: TransactionSignerAccount;
-    subscriptionID: number;
-  }): Promise<{
+  public async claimSubscription(
+    params: ProductSubscriptionClaimParams
+  ): Promise<{
     txID: string;
   }> {
+    const { subscriber, subscriptionID } = params;
     const assetInfo = await this.algodClient
       .accountAssetInformation(subscriber.addr, subscriptionID)
       .do()
@@ -957,21 +931,15 @@ export class SubtopiaClient {
   }
 
   /**
-   * This method is used to delete a subscription.
-   * It takes a subscriber and a subscription ID as arguments and returns a promise that resolves to an object containing the transaction ID.
-   * @param {TransactionSignerAccount} subscriber - The subscriber's account.
-   * @param {number} subscriptionID - The ID of the subscription to be deleted.
+   * @param {ProductSubscriptionDeletionParams} params - The parameters for deleting a subscription.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
-  public async deleteSubscription({
-    subscriber,
-    subscriptionID,
-  }: {
-    subscriber: TransactionSignerAccount;
-    subscriptionID: number;
-  }): Promise<{
+  public async deleteSubscription(
+    params: ProductSubscriptionDeletionParams
+  ): Promise<{
     txID: string;
   }> {
+    const { subscriber, subscriptionID } = params;
     let isHoldingSubscription = false;
     const assetInfo = await this.algodClient
       .accountAssetInformation(subscriber.addr, subscriptionID)
@@ -1027,14 +995,13 @@ export class SubtopiaClient {
   /**
    * Checks if a given address is a subscriber.
    *
-   * @param {Object} subscriberAddress - The address of the potential subscriber.
+   * @param {ProductSubscriberCheckParams} params - The parameters for checking if an address is a subscriber.
    * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the address is a subscriber.
    */
-  public async isSubscriber({
-    subscriberAddress,
-  }: {
-    subscriberAddress: string;
-  }): Promise<boolean> {
+  public async isSubscriber(
+    params: ProductSubscriberCheckParams
+  ): Promise<boolean> {
+    const { subscriberAddress } = params;
     const isSubscriberAtc = new AtomicTransactionComposer();
     isSubscriberAtc.addMethodCall({
       appID: this.appID,
@@ -1085,17 +1052,13 @@ export class SubtopiaClient {
   /**
    * This method is used to get a subscription.
    * It takes an AlgodClient and a subscriber address as arguments and returns a promise that resolves to a SubscriptionRecord.
-   * @param {AlgodClient} algodClient - The AlgodClient to use for the transaction.
-   * @param {string} subscriberAddress - The address of the subscriber.
+   * @param {ProductSubscriptionRetrievalParams} params - The parameters for retrieving a subscription.
    * @returns {Promise<SubscriptionRecord>} A promise that resolves to a SubscriptionRecord.
    */
-  public async getSubscription({
-    algodClient,
-    subscriberAddress,
-  }: {
-    algodClient: AlgodClient;
-    subscriberAddress: string;
-  }): Promise<SubscriptionRecord> {
+  public async getSubscription(
+    params: ProductSubscriptionRetrievalParams
+  ): Promise<SubscriptionRecord> {
+    const { algodClient, subscriberAddress } = params;
     const getSubscriptionAtc = new AtomicTransactionComposer();
     getSubscriptionAtc.addMethodCall({
       appID: this.appID,
@@ -1148,8 +1111,8 @@ export class SubtopiaClient {
     }
 
     return {
-      subType: boxContent[0],
-      subID: boxContent[1],
+      subscriptionID: boxContent[0],
+      productType: boxContent[1],
       createdAt: boxContent[2],
       expiresAt: boxContent[3] === 0 ? null : boxContent[3],
       duration: boxContent[4],

@@ -1,0 +1,10 @@
+# .prettierignore
+node_modules
+dist
+dist-ssr
+*.log
+coverage
+debug_traces
+*.local
+docs
+changelog.md

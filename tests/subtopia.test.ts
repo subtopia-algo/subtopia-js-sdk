@@ -17,7 +17,7 @@ import {
   Duration,
   DiscountType,
   ProductType,
-} from "../src/enums";
+} from "../src/types/enums";
 import {
   algos,
   getAlgoClient,
@@ -159,7 +159,7 @@ describe("subtopia", () => {
         algodClient: algodClient,
       });
 
-      expect(getSubscriptionResponse.subID).toBe(
+      expect(getSubscriptionResponse.subscriptionID).toBe(
         subscribeResponse.subscriptionID
       );
 
@@ -275,6 +275,9 @@ describe("subtopia", () => {
 
       const getDiscountResponse = await productClient.getDiscount();
 
+      if (!getDiscountResponse) {
+        throw new Error("Discount not found");
+      }
       expect(getDiscountResponse.discountValue).toBe(algos(1).microAlgos);
 
       const transferResponse = await subtopiaRegistryClient.transferProduct({

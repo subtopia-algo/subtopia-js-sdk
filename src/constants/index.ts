@@ -3,8 +3,8 @@
 // Copyright (C) 2023 Altynbek Orumbayev
 // =============================================================================
 
-import { ChainType } from "../enums";
-import { AssetMetadata } from "../interfaces";
+import { ChainType } from "../types/enums";
+import { AssetMetadata } from "types";
 
 export const DEFAULT_AWAIT_ROUNDS = 10;
 export const SUBTOPIA_TESTNET = 485920861;

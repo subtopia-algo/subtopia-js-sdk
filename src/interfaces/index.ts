@@ -3,7 +3,15 @@
 // Copyright (C) 2023 Altynbek Orumbayev
 // =============================================================================
 
-import { DiscountType, Duration, SubscriptionType } from "../enums";
+import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
+import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
+import {
+  ChainType,
+  DiscountType,
+  Duration,
+  LockerType,
+  ProductType,
+} from "../types/enums";
 
 // === Boxes ===
 
@@ -27,7 +35,7 @@ export interface SubscriptionRecord {
   expiresAt: number | null;
   duration: Duration;
   subID: number;
-  subType: SubscriptionType;
+  subType: ProductType;
 }
 
 export interface SubscriberRecord {
@@ -39,7 +47,6 @@ export interface SubscriberRecord {
  * Interface for the base discount record.
  */
 export interface BaseDiscountRecord {
-  duration: Duration;
   discountType: DiscountType;
   discountValue: number;
 }
@@ -83,7 +90,8 @@ interface ProductGlobalState {
   totalSubs: number;
   maxSubs: number;
   coinID: number;
-  subType: SubscriptionType;
+  productType: ProductType;
+  duration: Duration;
   lifecycle: number;
   createdAt: number;
   oracleID: number;
@@ -95,5 +103,41 @@ interface ProductGlobalState {
  * Interface for the product state.
  */
 export interface ProductState extends ProductGlobalState {
-  discounts: DiscountRecord[];
+  discount?: DiscountRecord;
+}
+
+/**
+ * Interfaces for the registry client
+ */
+
+export interface RegistryInitParams {
+  algodClient: AlgodClient;
+  creator: TransactionSignerAccount;
+  chainType: ChainType;
+  timeout?: number;
+  registryID?: number;
+}
+
+export interface RegistryCreateLockerParams {
+  creator: TransactionSignerAccount;
+  lockerType: LockerType;
+}
+
+export interface RegistryCreateProductParams {
+  productName: string;
+  productType: ProductType;
+  subscriptionName: string;
+  price: number;
+  lockerID: number;
+  maxSubs?: number;
+  coinID?: number;
+  duration?: Duration;
+  unitName?: string;
+  imageUrl?: string;
+  parseWholeUnits?: boolean;
+}
+
+export interface RegistryDeleteProductParams {
+  productID: number;
+  lockerID: number;
 }

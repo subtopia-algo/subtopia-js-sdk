@@ -9,7 +9,7 @@ import {
   Account,
 } from "algosdk";
 import { DEFAULT_AWAIT_ROUNDS } from "../src/constants";
-import { PriceNormalizationType } from "../src/enums";
+import { PriceNormalizationType } from "../src/types/enums";
 import { normalizePrice, optInAsset } from "../src/utils";
 import { AssetMetadata } from "./interfaces";
 

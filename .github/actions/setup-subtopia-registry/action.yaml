@@ -29,7 +29,7 @@ runs:
         ssh-key: ${{ inputs.ssh-key }}
         repository: ${{ inputs.repository }}
         path: ${{ inputs.path }}
-        ref: refactor/improvements
+        ref: main
         fetch-depth: 1
 
     - name: Set up Python

@@ -27,6 +27,7 @@ import {
   getLockerBoxPrefix,
   asyncWithTimeout,
   parseTokenProductGlobalState,
+  encodeStringKey,
 } from "../utils";
 import { getAssetByID } from "../utils";
 import {
@@ -69,7 +70,6 @@ import {
 const SUBTOPIA_DEFAULT_IMAGE_URL =
   "ipfs://bafybeicddz7kbuxajj6bob5bjqtweq6wchkdkiq4vvhwrwrne7iz4f25xi";
 const SUBTOPIA_DEFAULT_UNIT_NAME = "STP";
-const encoder = new TextEncoder();
 
 /**
  * SubtopiaRegistryClient is a class that provides methods to interact with the Subtopia Registry contract.
@@ -219,7 +219,8 @@ export class SubtopiaRegistryClient {
           ...Buffer.from(
             productType === ProductType.TOKEN_BASED
               ? TOKEN_PRODUCT_VERSION_KEY
-              : LEGACY_PRODUCT_VERSION_KEY
+              : LEGACY_PRODUCT_VERSION_KEY,
+            "utf-8"
           ),
         ])
       )
@@ -235,10 +236,7 @@ export class SubtopiaRegistryClient {
    */
   public async getLockerVersion(): Promise<string> {
     const appBoxResponse = await this.algodClient
-      .getApplicationBoxByName(
-        this.appID,
-        new Uint8Array([...Buffer.from(LOCKER_VERSION_KEY)])
-      )
+      .getApplicationBoxByName(this.appID, encodeStringKey(LOCKER_VERSION_KEY))
       .do();
     const version = new TextDecoder().decode(appBoxResponse.value);
     return version;
@@ -405,11 +403,11 @@ export class SubtopiaRegistryClient {
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(LOCKER_APPROVAL_KEY),
+          name: encodeStringKey(LOCKER_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(LOCKER_CLEAR_KEY),
+          name: encodeStringKey(LOCKER_CLEAR_KEY),
         },
       ],
       sender: creator.addr,
@@ -498,11 +496,11 @@ export class SubtopiaRegistryClient {
       boxes.push.apply(boxes, [
         {
           appIndex: this.appID,
-          name: encoder.encode(LOCKER_APPROVAL_KEY),
+          name: encodeStringKey(LOCKER_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(LOCKER_CLEAR_KEY),
+          name: encodeStringKey(LOCKER_CLEAR_KEY),
         },
       ]);
     }
@@ -746,25 +744,25 @@ export class SubtopiaRegistryClient {
         {
           appIndex: this.appID,
           name: new Uint8Array([
-            ...Buffer.from("cl-"),
+            ...Buffer.from("cl-", "utf-8"),
             ...decodeAddress(this.creator.addr).publicKey,
           ]),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(TOKEN_PRODUCT_APPROVAL_KEY),
+          name: encodeStringKey(TOKEN_PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(TOKEN_PRODUCT_APPROVAL_KEY),
+          name: encodeStringKey(TOKEN_PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(TOKEN_PRODUCT_APPROVAL_KEY),
+          name: encodeStringKey(TOKEN_PRODUCT_APPROVAL_KEY),
         },
         {
           appIndex: this.appID,
-          name: encoder.encode(TOKEN_PRODUCT_CLEAR_KEY),
+          name: encodeStringKey(TOKEN_PRODUCT_CLEAR_KEY),
         },
       ],
       sender: this.creator.addr,
@@ -822,7 +820,7 @@ export class SubtopiaRegistryClient {
         {
           appIndex: this.appID,
           name: new Uint8Array([
-            ...Buffer.from("cl-"),
+            ...Buffer.from("cl-", "utf-8"),
             ...decodeAddress(this.creator.addr).publicKey,
           ]),
         },

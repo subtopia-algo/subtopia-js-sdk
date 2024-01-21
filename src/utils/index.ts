@@ -446,3 +446,7 @@ export function parseTokenProductGlobalState(input: AppState) {
 
   return output;
 }
+
+export function encodeStringKey(key: string): Uint8Array {
+  return new Uint8Array(Buffer.from(key, "utf-8"));
+}

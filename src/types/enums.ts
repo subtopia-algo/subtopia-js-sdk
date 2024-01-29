@@ -1,15 +1,17 @@
-// =============================================================================
-// Subtopia JS SDK
-// Copyright (C) 2023 Altynbek Orumbayev
-// =============================================================================
-
 /**
  * Enum for subscription types.
  * @enum {number}
  */
-export enum SubscriptionType {
-  UNLIMITED = 0,
-  TIME_BASED = 1,
+export enum ProductType {
+  /**
+   * @deprecated LEGACY_UNLIMITED is deprecated. Use TOKEN_BASED instead.
+   */
+  LEGACY_UNLIMITED = 0,
+  /**
+   * @deprecated LEGACY_TIME_BASED is deprecated. Use TOKEN_BASED instead.
+   */
+  LEGACY_TIME_BASED = 1,
+  TOKEN_BASED = 2,
 }
 
 /**
@@ -18,6 +20,7 @@ export enum SubscriptionType {
  */
 export enum Duration {
   UNLIMITED = 0,
+  DAY = 86400,
   MONTH = 2592000,
   QUARTER = 7776000,
   SEMI_ANNUAL = 15552000,

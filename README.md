@@ -39,11 +39,7 @@ yarn add subtopia-js-sdk
 ### Import the package:
 
 ```ts
-import {
-  SubtopiaClient,
-  SubtopiaRegistryClient,
-  ChainType,
-} from "subtopia-js-sdk";
+import { SubtopiaClient, SubtopiaRegistryClient } from "subtopia-js-sdk";
 ```
 
 ## 🛠️ Usage
@@ -55,18 +51,24 @@ Example snippets of using the Subtopia JS SDK.
 ### Purchasing a subscription:
 
 ```ts
+import {
+  SubtopiaClient,
+  SubtopiaRegistryClient,
+  ChainType,
+  SUBTOPIA_REGISTRY_ID
+} from "subtopia-js-sdk";
 // ... your code
 
 const subtopiaClient = await SubtopiaClient.init({
   algodClient: PUT_ALGOD_INSTANCE_HERE,
   chainType: PUT_CHAIN_TYPE_ENUM_HERE // 'testnet'|'mainnet'|'localnet'
   productID: PUT_PRODUCT_ID_HERE,
+  registryID: SUBTOPIA_REGISTRY_ID(ChainType.{YOUR_CHAIN_TYPE_HERE}),
   creator: { addr: PUT_WALLET_ADDRESS, signer: PUT_WALLET_SIGNER },
 });
 
 const response = await subtopiaClient.createSubscription(
-  { addr: PUT_WALLET_ADDRESS, signer: PUT_WALLET_SIGNER },
-  PUT_DURATION_HERE // pick duration from Duration enum. If there is a discount available for this duration, it will be auto applied.
+  { subscriber: { addr: PUT_WALLET_ADDRESS, signer: PUT_WALLET_SIGNER } },
 );
 
 console.log(response.txID); // response is of type string
@@ -80,6 +82,7 @@ console.log(response.txID); // response is of type string
 // ... your code
 const subscriptionRecord = await subtopiaClient.getSubscription({
   subscriberAddress: PUT_SUBSCRIBER_ADDRESS,
+  algodClient: PUT_ALGOD_INSTANCE_HERE,
 });
 
 // SubscriptionRecord (throws Error if not subscribed)
@@ -91,11 +94,12 @@ console.log(subscriptionRecord);
 
 ```ts
 // ... your code
-const deleteResult = await subtopiaClient.unsubscribe({
+const deleteResult = await subtopiaClient.deleteSubscription({
   subscriber: {
     addr: PUT_SUBSCRIBER_ADDRESS,
     signer: PUT_SUBSCRIBER_SIGNER,
   },
+  subscriptionID: PUT_SUBSCRIPTION_ID,
 });
 
 // Transaction ID of the unsubscribe transaction
@@ -135,8 +139,6 @@ const subtopiaRegistryClient = await SubtopiaRegistryClient.init({
 });
 
 const discount = await subtopiaRegistryClient.createDiscount({
-  productID: PUT_PRODUCT_ID_HERE, // number - the ID of the Product instance you want to create a discount for
-  duration: PUT_DURATION_HERE, // number - the type of duration to apply. Also serves as static id for the discount.
   discountType: PUT_DISCOUNT_TYPE_HERE, // number - the type of discount to apply. FIXED or PERCENTAGE
   discountValue: PUT_DISCOUNT_VALUE_HERE, // number - the discount to be deducted from the subscription price
   expiresIn: PUT_EXPIRATION_TIME_HERE, // (Optional) Set 0 for discount to never expire. Else set number of seconds to append to unix timestamp at time of creation.
@@ -152,12 +154,9 @@ console.log(discount.txID); // response is of type string
 ```ts
 // ... your code
 
-const discount = await subtopiaRegistryClient.getDiscount(
-  productID: PUT_PRODUCT_ID_HERE,
-  duration: PUT_DURATION_HERE,
-);
+const discount = await subtopiaClient.getDiscount();
 
-// DiscountRecord (throws Error if not found)
+// DiscountRecord (throws Error if no active discount)
 console.log(discount);
 // ... rest of your code
 ```
@@ -167,10 +166,7 @@ console.log(discount);
 ```ts
 // ... your code
 
-const deleteResult = await subtopiaRegistryClient.deleteDiscount({
-  productID: PUT_PRODUCT_ID,
-  duration: PUT_DURATION_HERE,
-});
+const deleteResult = await subtopiaRegistryClient.deleteDiscount();
 
 // Transaction ID of the delete discount transaction
 console.log(deleteResult.txID);

@@ -2,7 +2,7 @@ import { makeBasicAccountTransactionSigner } from "algosdk";
 import "dotenv/config";
 import {
   LOCKER_VERSION,
-  PRODUCT_VERSION,
+  TOKEN_BASED_PRODUCT_VERSION,
   SUBTOPIA_REGISTRY_ID,
   optInAsset,
   optOutAsset,
@@ -16,19 +16,23 @@ import {
   LockerType,
   Duration,
   DiscountType,
-  SubscriptionType,
-} from "../src/enums";
+  ProductType,
+} from "../src/types/enums";
 import {
   algos,
   getAlgoClient,
-  getAppGlobalState,
   transactionSignerAccount,
+  Config,
   getDefaultLocalNetConfig,
   getLocalNetDispenserAccount,
 } from "@algorandfoundation/algokit-utils";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 import { transferAsset } from "../src/utils";
 import { generateRandomAsset, getRandomAccount } from "./utils";
+
+Config.configure({
+  debug: true,
+});
 
 const algodClient = getAlgoClient(getDefaultLocalNetConfig("algod"));
 
@@ -97,12 +101,14 @@ describe("subtopia", () => {
     );
 
     // Test
-    const productVersion = await subtopiaRegistryClient.getProductVersion();
+    const productVersion = await subtopiaRegistryClient.getProductVersion(
+      ProductType.TOKEN_BASED
+    );
     const lockerVersion = await subtopiaRegistryClient.getLockerVersion();
 
     // Assert
     expect(lockerVersion).toBe(LOCKER_VERSION);
-    expect(productVersion).toBe(PRODUCT_VERSION);
+    expect(productVersion).toBe(TOKEN_BASED_PRODUCT_VERSION);
   }, 10e6);
 
   it(
@@ -115,9 +121,9 @@ describe("subtopia", () => {
       // Test
       const response = await subtopiaRegistryClient.createProduct({
         productName: "Notflix",
+        productType: ProductType.TOKEN_BASED,
         subscriptionName: "Premium",
-        price: 1,
-        subType: SubscriptionType.UNLIMITED,
+        price: algos(1).microAlgos,
         maxSubs: 0,
         coinID: 0,
         lockerID: lockerID,
@@ -141,7 +147,6 @@ describe("subtopia", () => {
 
       const subscribeResponse = await productClient.createSubscription({
         subscriber: subscriberSigner,
-        duration: Duration.UNLIMITED,
       });
 
       const productClientGlobalState = await productClient.getAppState();
@@ -154,7 +159,7 @@ describe("subtopia", () => {
         algodClient: algodClient,
       });
 
-      expect(getSubscriptionResponse.subID).toBe(
+      expect(getSubscriptionResponse.subscriptionID).toBe(
         subscribeResponse.subscriptionID
       );
 
@@ -194,10 +199,10 @@ describe("subtopia", () => {
 
       expect(deleteSubscriptionResponse.txID).toBeDefined();
 
-      const content = await getAppGlobalState(response.productID, algodClient);
+      const content = await productClient.getAppState();
 
       // Assert
-      expect(content.price.value).toBe(algos(1).algos);
+      expect(content.price).toBe(algos(1).algos);
 
       const disableProductResponse = await productClient.disable();
 
@@ -224,9 +229,9 @@ describe("subtopia", () => {
       // Test
       const response = await subtopiaRegistryClient.createProduct({
         productName: "Hooli",
+        productType: ProductType.TOKEN_BASED,
         subscriptionName: "Pro",
-        price: 1,
-        subType: SubscriptionType.TIME_BASED,
+        price: algos(2).microAlgos,
         maxSubs: 0,
         coinID: 0,
         lockerID: lockerID,
@@ -241,10 +246,10 @@ describe("subtopia", () => {
         registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
         chainType: ChainType.LOCALNET,
       });
+
       const createDiscountResponse = await productClient.createDiscount({
-        duration: Duration.MONTH.valueOf(),
         discountType: DiscountType.FIXED,
-        discountValue: 1,
+        discountValue: algos(1).microAlgos,
         expiresIn: 0,
       });
 
@@ -252,7 +257,6 @@ describe("subtopia", () => {
 
       const purchaseResponse = await productClient.createSubscription({
         subscriber: creatorSignerAccount,
-        duration: Duration.MONTH,
       });
       expect(purchaseResponse.txID).toBeDefined();
 
@@ -266,14 +270,15 @@ describe("subtopia", () => {
       );
       expect(deleteSubscriptionResponse.txID).toBeDefined();
 
-      expect(productState.discounts.length).toBe(1);
-      expect(productState.discounts[0].duration).toBe(Duration.MONTH.valueOf());
+      expect(productState.discount).toBeDefined();
+      expect(productState.discount.expiresIn).toBeFalsy();
 
-      const getDiscountResponse = await productClient.getDiscount({
-        duration: Duration.MONTH.valueOf(),
-      });
+      const getDiscountResponse = await productClient.getDiscount();
 
-      expect(getDiscountResponse.discountValue).toBe(1);
+      if (!getDiscountResponse) {
+        throw new Error("Discount not found");
+      }
+      expect(getDiscountResponse.discountValue).toBe(algos(1).microAlgos);
 
       const transferResponse = await subtopiaRegistryClient.transferProduct({
         productID: response.productID,
@@ -293,11 +298,8 @@ describe("subtopia", () => {
         chainType: ChainType.LOCALNET,
       });
 
-      const deleteDiscountResponse = await newOwnerProductClient.deleteDiscount(
-        {
-          duration: Duration.MONTH.valueOf(),
-        }
-      );
+      const deleteDiscountResponse =
+        await newOwnerProductClient.deleteDiscount();
 
       expect(deleteDiscountResponse.txID).toBeDefined();
 
@@ -345,9 +347,9 @@ describe("subtopia", () => {
       // Create a new product with price 0
       const response = await subtopiaRegistryClient.createProduct({
         productName: "Freeflix",
+        productType: ProductType.TOKEN_BASED,
         subscriptionName: "Free",
         price: 0,
-        subType: SubscriptionType.UNLIMITED,
         maxSubs: 0,
         coinID: 0,
         lockerID: lockerID,
@@ -370,7 +372,6 @@ describe("subtopia", () => {
 
       const subscribeResponse = await productClient.createSubscription({
         subscriber: subscriberSigner,
-        duration: Duration.UNLIMITED,
       });
 
       expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
@@ -397,12 +398,13 @@ describe("subtopia", () => {
       // Create a new product with the ASA as the price
       const response = await subtopiaRegistryClient.createProduct({
         productName: "ASAFlix",
+        productType: ProductType.TOKEN_BASED,
         subscriptionName: "Premium",
         price: 1,
-        subType: SubscriptionType.TIME_BASED,
         maxSubs: 0,
         coinID: LOCALNET_USDC_ASA_ID,
         lockerID: lockerID,
+        duration: Duration.MONTH.valueOf(),
       });
 
       // Initialize a new SubtopiaClient
@@ -452,7 +454,6 @@ describe("subtopia", () => {
 
       const subscribeResponse = await productClient.createSubscription({
         subscriber: subscriberSigner,
-        duration: Duration.MONTH,
       });
 
       expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
@@ -472,9 +473,9 @@ describe("subtopia", () => {
       const productCreationResponse =
         await subtopiaRegistryClient.createProduct({
           productName: "Hooli",
+          productType: ProductType.TOKEN_BASED,
           subscriptionName: "Pro",
           price: 10,
-          subType: SubscriptionType.TIME_BASED,
           maxSubs: 0,
           coinID: 0,
           lockerID: lockerID,
@@ -505,13 +506,14 @@ describe("subtopia", () => {
 
         const subscribeResponse = await productClient.createSubscription({
           subscriber: subscriberSigner,
-          duration: Duration.MONTH,
         });
         expect(subscribeResponse.txID).toBeDefined();
         console.log(`Created subscriber ${i + 1} of 100`);
       }
 
-      const subscribers = await productClient.getSubscribers();
+      const subscribers = await productClient.getSubscribers({
+        filterExpired: true,
+      });
       subscribers.forEach((subscriber) => {
         expect(createdSubscribers).toContain(subscriber.address);
       });

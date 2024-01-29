@@ -135,7 +135,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release'
     permissions: write-all
     name: Release
-    needs: [build, lint, unit-tests, deploy-docs]
+    needs: [build, lint, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

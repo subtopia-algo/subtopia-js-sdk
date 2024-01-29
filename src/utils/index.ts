@@ -14,9 +14,10 @@ import algosdk, {
   ABIArrayDynamicType,
   ABIUintType,
   decodeAddress,
+  encodeAddress,
 } from "algosdk";
 
-import { ApplicationSpec, AssetMetadata } from "../interfaces";
+import { ApplicationSpec, AssetMetadata } from "../types";
 import {
   DEFAULT_AWAIT_ROUNDS,
   ALGO_ASSET,
@@ -25,8 +26,11 @@ import {
   LOCKER_GLOBAL_NUM_BYTE_SLICES,
   DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 } from "../constants";
-import { Duration, LockerType, PriceNormalizationType } from "../enums";
-import { APP_PAGE_MAX_SIZE } from "@algorandfoundation/algokit-utils/types/app";
+import { Duration, LockerType, PriceNormalizationType } from "../types/enums";
+import {
+  APP_PAGE_MAX_SIZE,
+  AppState,
+} from "@algorandfoundation/algokit-utils/types/app";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 
@@ -266,7 +270,7 @@ export function calculateRegistryLockerBoxCreateMbr(
 
 export function calculateProductDiscountBoxCreateMbr(): number {
   const uint64TypeByteLen = new ABIUintType(64).byteLen();
-  const discountTypeByteLen = uint64TypeByteLen * 6; // 6 Uint64s in Discount tuple
+  const discountTypeByteLen = uint64TypeByteLen * 5; // 5 Uint64s in Discount tuple
   return calculateBoxMbr(uint64TypeByteLen, discountTypeByteLen, "create");
 }
 
@@ -401,4 +405,48 @@ export function durationToMonths(duration: Duration | null): number {
   } else {
     throw new Error("Invalid expiration type");
   }
+}
+
+export function parseTokenProductGlobalState(input: AppState) {
+  const keyMap: { [key: string]: string } = {
+    gs_1: "product_name",
+    gs_2: "subscription_name",
+    gs_3: "manager",
+    gs_4: "price",
+    gs_5: "total_subscribers",
+    gs_6: "max_subscribers",
+    gs_7: "coin_id",
+    gs_8: "product_type",
+    gs_9: "lifecycle",
+    gs_10: "created_at",
+    gs_11: "oracle_id",
+    gs_12: "unit_name",
+    gs_13: "image_url",
+    gs_14: "duration",
+    gs_15: "extra_slot_1",
+    gs_16: "extra_slot_2",
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const output: { [key: string]: any } = {};
+
+  for (const key in input) {
+    if (keyMap[key]) {
+      if (keyMap[key] === "manager") {
+        output[keyMap[key]] = encodeAddress(
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          input[key].valueRaw
+        );
+      } else {
+        output[keyMap[key]] = input[key].value;
+      }
+    }
+  }
+
+  return output;
+}
+
+export function encodeStringKey(key: string): Uint8Array {
+  return new Uint8Array(Buffer.from(key, "utf-8"));
 }

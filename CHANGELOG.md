@@ -1,3 +1,19 @@
+# [2.0.0](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v1.1.0...v2.0.0) (2024-01-29)
+
+
+### Features
+
+* refactoring contracts to support latest 'token-based' types ([#39](https://github.com/subtopia-algo/subtopia-js-sdk/issues/39)) ([604becc](https://github.com/subtopia-algo/subtopia-js-sdk/commit/604beccc4fc2800b4859368aebf3228b6122dd8f))
+
+
+### BREAKING CHANGES
+
+* Deprecating interface for old contracts, adding a refined and more flexible setup with Token Based subscriptions.
+
+* refactor: improving project structure; minor refinements
+
+* chore: testing ci
+
 # [2.0.0-beta.4](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.3...v2.0.0-beta.4) (2024-01-21)
 
 # [2.0.0-beta.3](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.2...v2.0.0-beta.3) (2024-01-21)

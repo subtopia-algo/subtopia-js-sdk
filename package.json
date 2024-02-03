@@ -28,7 +28,7 @@
     "pre-commit": "npm run lint:scripts && npm run format:scripts && npm run test:integration && npm run build && npm run docs"
   },
   "peerDependencies": {
-    "@algorandfoundation/algokit-utils": "5.0.1",
+    "@algorandfoundation/algokit-utils": "5.3.2",
     "algosdk": "^2.7.0"
   },
   "devDependencies": {

@@ -170,6 +170,7 @@ export class SubtopiaRegistryClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
@@ -292,6 +293,7 @@ export class SubtopiaRegistryClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object

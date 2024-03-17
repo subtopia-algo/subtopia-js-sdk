@@ -84,3 +84,7 @@ export interface ProductInitParams {
   registryID?: number;
   timeout?: number;
 }
+export interface ProductExtraParams {
+  creator: TransactionSignerAccount;
+  [key: string]: string | number | object;
+}

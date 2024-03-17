@@ -54,6 +54,7 @@ import {
   LockerType,
   PriceNormalizationType,
   ProductDiscountCreationParams,
+  ProductExtraParams,
   ProductInitParams,
   ProductLifecycleStateUpdate,
   ProductState,
@@ -253,7 +254,9 @@ export class SubtopiaClient {
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
   protected async updateLifecycle(
-    params: ProductLifecycleStateUpdate
+    params: ProductLifecycleStateUpdate,
+
+    extraParams?: ProductExtraParams
   ): Promise<{
     txID: string;
   }> {
@@ -273,8 +276,8 @@ export class SubtopiaClient {
         returns: { type: "void" },
       }),
       methodArgs: [lifecycle],
-      sender: this.creator.addr,
-      signer: this.creator.signer,
+      sender: extraParams?.creator.addr ?? this.creator.addr,
+      signer: extraParams?.creator.signer ?? this.creator.signer,
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
@@ -288,6 +291,15 @@ export class SubtopiaClient {
     return {
       txID: response.txIDs.pop() as string,
     };
+  }
+
+  /**
+   * Updates the creator account for the SubtopiaClient instance.
+   * This method sets a new creator account, which is used for signing transactions.
+   * @param {TransactionSignerAccount} newCreator - The new creator account to be set.
+   */
+  public updateCreator(newCreator: TransactionSignerAccount): void {
+    this.creator = newCreator;
   }
 
   /**
@@ -362,7 +374,9 @@ export class SubtopiaClient {
    * It returns the platform fee as a number.
    * @returns {Promise<number>} A promise that resolves to the platform fee.
    */
-  public async getSubscriptionPlatformFee(): Promise<number> {
+  public async getSubscriptionPlatformFee(
+    extraParams?: ProductExtraParams
+  ): Promise<number> {
     if (this.price === 0) {
       return new Promise((resolve) => resolve(0));
     }
@@ -383,8 +397,8 @@ export class SubtopiaClient {
         returns: { type: "uint64" },
       }),
       methodArgs: [priceInCents],
-      sender: this.creator.addr,
-      signer: makeEmptyTransactionSigner(),
+      sender: extraParams?.creator.addr ?? this.creator.addr,
+      signer: extraParams?.creator.signer ?? this.creator.signer,
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
@@ -432,7 +446,9 @@ export class SubtopiaClient {
    * It accepts a duration object as an argument and returns a promise that resolves to a DiscountRecord.
    * @returns {Promise<DiscountRecord>} A promise that resolves to the discount record.
    */
-  public async getDiscount(): Promise<DiscountRecord | undefined> {
+  public async getDiscount(
+    extraParams?: ProductExtraParams
+  ): Promise<DiscountRecord | undefined> {
     const getDiscountAtc = new AtomicTransactionComposer();
     getDiscountAtc.addMethodCall({
       appID: this.appID,
@@ -452,8 +468,8 @@ export class SubtopiaClient {
           name: ENCODED_DISCOUNT_BOX_KEY,
         },
       ],
-      sender: this.creator.addr,
-      signer: makeEmptyTransactionSigner(),
+      sender: extraParams?.creator.addr ?? this.creator.addr,
+      signer: extraParams?.creator.signer ?? this.creator.signer,
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
     });
 
@@ -503,7 +519,10 @@ export class SubtopiaClient {
    * @param {ProductDiscountCreationParams} params - The parameters for creating a discount.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
-  public async createDiscount(params: ProductDiscountCreationParams): Promise<{
+  public async createDiscount(
+    params: ProductDiscountCreationParams,
+    extraParams?: ProductExtraParams
+  ): Promise<{
     txID: string;
   }> {
     const {
@@ -553,12 +572,12 @@ export class SubtopiaClient {
         expiresIn,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: this.creator.addr,
+            from: extraParams?.creator.addr ?? this.creator.addr,
             to: this.appAddress,
             amount: calculateProductDiscountBoxCreateMbr(),
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
-          signer: this.creator.signer,
+          signer: extraParams?.creator.signer ?? this.creator.signer,
         },
       ],
       boxes: [
@@ -567,8 +586,8 @@ export class SubtopiaClient {
           name: ENCODED_DISCOUNT_BOX_KEY,
         },
       ],
-      sender: this.creator.addr,
-      signer: this.creator.signer,
+      sender: extraParams?.creator.addr ?? this.creator.addr,
+      signer: extraParams?.creator.signer ?? this.creator.signer,
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
     });
 
@@ -589,7 +608,7 @@ export class SubtopiaClient {
    * Removes active discount from a product contract if exists.
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
-  public async deleteDiscount(): Promise<{
+  public async deleteDiscount(extraParams?: ProductExtraParams): Promise<{
     txID: string;
   }> {
     const deleteDiscountAtc = new AtomicTransactionComposer();
@@ -607,8 +626,8 @@ export class SubtopiaClient {
           name: ENCODED_DISCOUNT_BOX_KEY,
         },
       ],
-      sender: this.creator.addr,
-      signer: this.creator.signer,
+      sender: extraParams?.creator.addr ?? this.creator.addr,
+      signer: extraParams?.creator.signer ?? this.creator.signer,
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 2),
     });
 
@@ -1002,7 +1021,9 @@ export class SubtopiaClient {
    * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the address is a subscriber.
    */
   public async isSubscriber(
-    params: ProductSubscriberCheckParams
+    params: ProductSubscriberCheckParams,
+
+    extraParams?: ProductExtraParams
   ): Promise<boolean> {
     const { subscriberAddress } = params;
     const isSubscriberAtc = new AtomicTransactionComposer();
@@ -1020,8 +1041,8 @@ export class SubtopiaClient {
         returns: { type: "uint64" },
       }),
       methodArgs: [subscriberAddress],
-      sender: this.creator.addr,
-      signer: makeEmptyTransactionSigner(),
+      sender: extraParams?.creator.addr ?? this.creator.addr,
+      signer: extraParams?.creator.signer ?? makeEmptyTransactionSigner(),
       boxes: [
         {
           appIndex: this.appID,
@@ -1060,7 +1081,8 @@ export class SubtopiaClient {
    * @returns {Promise<SubscriptionRecord>} A promise that resolves to a SubscriptionRecord.
    */
   public async getSubscription(
-    params: ProductSubscriptionRetrievalParams
+    params: ProductSubscriptionRetrievalParams,
+    extraParams?: ProductExtraParams
   ): Promise<SubscriptionRecord> {
     const { algodClient, subscriberAddress } = params;
     const getSubscriptionAtc = new AtomicTransactionComposer();
@@ -1078,7 +1100,7 @@ export class SubtopiaClient {
         returns: { type: "(uint64,uint64,uint64,uint64,uint64)" },
       }),
       methodArgs: [subscriberAddress],
-      sender: this.creator.addr,
+      sender: extraParams?.creator.addr ?? this.creator.addr,
       signer: makeEmptyTransactionSigner(),
       boxes: [
         {

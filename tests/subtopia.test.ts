@@ -31,7 +31,7 @@ import { transferAsset } from "../src/utils";
 import { generateRandomAsset, getRandomAccount } from "./utils";
 
 Config.configure({
-  debug: true,
+  debug: false,
 });
 
 const algodClient = getAlgoClient(getDefaultLocalNetConfig("algod"));

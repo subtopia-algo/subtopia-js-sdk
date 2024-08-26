@@ -11,7 +11,13 @@ import {
 import { DEFAULT_AWAIT_ROUNDS } from "../src/constants";
 import { PriceNormalizationType } from "../src/types/enums";
 import { normalizePrice, optInAsset } from "../src/utils";
-import { AssetMetadata } from "./interfaces";
+
+export interface AssetMetadata {
+  index: number;
+  name: string;
+  total: number;
+  decimals: number;
+}
 
 export async function getRandomAccount(
   client: Algodv2,

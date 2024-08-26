@@ -32,7 +32,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           scope: "@subtopia-algo"
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml
@@ -60,7 +60,7 @@ jobs:
           ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
           repository: subtopia-algo/subtopia-contracts
           path: ./registry-infra
-          node-version: 18
+          node-version: 20
           python-version: ">=3.11 <3.12"
           poetry-version: 1.7.1
 
@@ -107,7 +107,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           scope: "@subtopia-algo"
           cache: "npm"
           cache-dependency-path: ./package-lock.json
@@ -144,7 +144,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           scope: "@subtopia-algo"
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml

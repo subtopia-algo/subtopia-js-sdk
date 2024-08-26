@@ -53,8 +53,8 @@ devDependencies:
     specifier: ^16.4.5
     version: 16.4.5
   dts-bundle-generator:
-    specifier: ^8.1.2
-    version: 8.1.2
+    specifier: ^9.0.0
+    version: 9.5.1
   eslint:
     specifier: ^8.57.0
     version: 8.57.0
@@ -2164,8 +2164,8 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
-  /dts-bundle-generator@8.1.2:
-    resolution: {integrity: sha512-/yvy9Xw0cfFodA8n6jEq8/COZ/WXgJtPabnLBAzIfP/TfxWbD/0a0dvfqNHneNqswQrH0kUcaAfGJC9UNvH97w==}
+  /dts-bundle-generator@9.5.1:
+    resolution: {integrity: sha512-DxpJOb2FNnEyOzMkG11sxO2dmxPjthoVWxfKqWYJ/bI/rT1rvTMktF5EKjAYrRZu6Z6t3NhOUZ0sZ5ZXevOfbA==}
     engines: {node: '>=14.0.0'}
     hasBin: true
     dependencies:

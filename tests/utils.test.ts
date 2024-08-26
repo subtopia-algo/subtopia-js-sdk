@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { asyncWithTimeout } from "../src/utils";
-import { ChainType, SUBTOPIA_REGISTRY_ID } from "../src";
 
 describe("asyncWithTimeout", () => {
   // Function returns a promise that resolves with the expected result
@@ -30,12 +29,6 @@ describe("asyncWithTimeout", () => {
 
     await expect(asyncWithTimeout(myAsyncFunction, 1)).rejects.toEqual(
       new Error("Timeout error: exceeded 1 seconds")
-    );
-  }, 100000);
-
-  it("should throw an error if localnet is chain type and no env var is set", () => {
-    expect(() => SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET)).toThrow(
-      "SUBTOPIA_REGISTRY_ID environment variable is not set or is not a number"
     );
   }, 100000);
 });

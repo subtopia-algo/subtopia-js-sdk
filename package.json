@@ -88,7 +88,6 @@
         }
       ],
       "@semantic-release/release-notes-generator",
-      "@feki.de/semantic-release-yarn",
       "@semantic-release/github"
     ],
     "branches": [
@@ -102,12 +101,10 @@
     ],
     "verifyConditions": [
       "@semantic-release/changelog",
-      "@feki.de/semantic-release-yarn",
       "@semantic-release/git"
     ],
     "prepare": [
       "@semantic-release/changelog",
-      "@feki.de/semantic-release-yarn",
       "@semantic-release/git"
     ]
   },

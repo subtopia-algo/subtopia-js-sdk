@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build
+  build-and-lint:
+    name: Build and Lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -27,6 +27,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+          run_install: true
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -41,24 +42,6 @@ jobs:
 
       - name: Run build
         run: pnpm run build
-
-  lint:
-    name: Linting
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          scope: "@subtopia-algo"
-          cache: "pnpm"
-          cache-dependency-path: ./pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: pnpm ci
 
       - name: Lint
         run: pnpm run lint:scripts
@@ -100,7 +83,7 @@ jobs:
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
-        if: runner.os == 'Linux' && matrix.node == '18'
+        if: runner.os == 'Linux' && matrix.node == '20'
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -119,6 +102,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+          run_install: true
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -158,6 +142,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+          run_install: true
 
       - name: Setup node
         uses: actions/setup-node@v4

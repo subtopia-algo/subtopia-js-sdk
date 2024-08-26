@@ -16,47 +16,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build
+  build-and-lint:
+    name: Build and Lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: true
 
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 18
           scope: "@subtopia-algo"
-          cache: "npm"
-          cache-dependency-path: ./package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
+          cache: "pnpm"
+          cache-dependency-path: ./pnpm-lock.yaml
 
       - name: Run build
-        run: npm run build
-
-  lint:
-    name: Linting
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          scope: "@subtopia-algo"
-          cache: "npm"
-          cache-dependency-path: ./package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
+        run: pnpm run build
 
       - name: Lint
-        run: npm run lint:scripts
+        run: pnpm run lint:scripts
 
   unit-tests:
     name: Integration tests
@@ -79,23 +64,26 @@ jobs:
           python-version: ">=3.11 <3.12"
           poetry-version: 1.7.1
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: true
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           scope: "@subtopia-algo"
-          cache: "npm"
-          cache-dependency-path: ./package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
+          cache: "pnpm"
+          cache-dependency-path: ./pnpm-lock.yaml
 
       - name: Run tests
-        run: npm run test:integration
+        run: pnpm run test:integration
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
-        if: runner.os == 'Linux' && matrix.node == '18'
+        if: runner.os == 'Linux' && matrix.node == '20'
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -104,11 +92,17 @@ jobs:
     if: github.ref == 'refs/heads/release'
     permissions: write-all
     name: Deploy docs
-    needs: [build, lint, unit-tests]
+    needs: [build-and-lint, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: true
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -118,11 +112,8 @@ jobs:
           cache: "npm"
           cache-dependency-path: ./package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Build docs
-        run: npm run docs
+        run: pnpm run docs
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
@@ -135,7 +126,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release'
     permissions: write-all
     name: Release
-    needs: [build, lint, unit-tests]
+    needs: [build-and-lint, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -144,22 +135,25 @@ jobs:
           fetch-depth: 0
           persist-credentials: false # <--- override default gh token
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: true
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 18
           scope: "@subtopia-algo"
-          cache: "npm"
-          cache-dependency-path: ./package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
+          cache: "pnpm"
+          cache-dependency-path: ./pnpm-lock.yaml
 
       - name: Run build
-        run: npm run build
+        run: pnpm run build
 
       - name: release
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm run release
+        run: pnpm run release

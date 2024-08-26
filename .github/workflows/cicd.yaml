@@ -37,9 +37,6 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml
 
-      - name: Install dependencies
-        run: pnpm ci
-
       - name: Run build
         run: pnpm run build
 
@@ -75,9 +72,6 @@ jobs:
           cache: "npm"
           cache-dependency-path: ./package-lock.json
 
-      - name: Install dependencies
-        run: pnpm ci
-
       - name: Run tests
         run: pnpm run test:integration
 
@@ -111,9 +105,6 @@ jobs:
           scope: "@subtopia-algo"
           cache: "npm"
           cache-dependency-path: ./package-lock.json
-
-      - name: Install dependencies
-        run: pnpm ci
 
       - name: Build docs
         run: pnpm run docs
@@ -151,9 +142,6 @@ jobs:
           scope: "@subtopia-algo"
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: pnpm ci
 
       - name: Run build
         run: pnpm run build

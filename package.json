@@ -88,6 +88,7 @@
         }
       ],
       "@semantic-release/release-notes-generator",
+      "semantic-release/npm",
       "@semantic-release/github"
     ],
     "branches": [
@@ -101,10 +102,12 @@
     ],
     "verifyConditions": [
       "@semantic-release/changelog",
+      "semantic-release/npm",
       "@semantic-release/git"
     ],
     "prepare": [
       "@semantic-release/changelog",
+      "semantic-release/npm",
       "@semantic-release/git"
     ]
   },

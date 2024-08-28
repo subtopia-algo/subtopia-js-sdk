@@ -15,13 +15,13 @@ describe("Constants", () => {
   describe("SUBTOPIA_REGISTRY_ID", () => {
     it("should return SUBTOPIA_MAINNET for ChainType.MAINNET", () => {
       expect(constants.SUBTOPIA_REGISTRY_ID(ChainType.MAINNET)).toBe(
-        constants.SUBTOPIA_MAINNET
+        constants.SUBTOPIA_MAINNET,
       );
     });
 
     it("should return SUBTOPIA_TESTNET for ChainType.TESTNET", () => {
       expect(constants.SUBTOPIA_REGISTRY_ID(ChainType.TESTNET)).toBe(
-        constants.SUBTOPIA_TESTNET
+        constants.SUBTOPIA_TESTNET,
       );
     });
 
@@ -30,7 +30,7 @@ describe("Constants", () => {
       vi.stubEnv("SUBTOPIA_REGISTRY_ID", "123456789");
 
       expect(constants.SUBTOPIA_REGISTRY_ID("devnet" as ChainType)).toBe(
-        123456789
+        123456789,
       );
 
       process.env = originalEnv;
@@ -42,9 +42,9 @@ describe("Constants", () => {
       delete process.env.NEXT_PUBLIC_SUBTOPIA_REGISTRY_ID;
 
       expect(() =>
-        constants.SUBTOPIA_REGISTRY_ID("blanet" as ChainType)
+        constants.SUBTOPIA_REGISTRY_ID("blanet" as ChainType),
       ).toThrow(
-        "SUBTOPIA_REGISTRY_ID environment variable is not set or is not a number"
+        "SUBTOPIA_REGISTRY_ID environment variable is not set or is not a number",
       );
 
       process.env = originalEnv;
@@ -104,7 +104,7 @@ describe("Constants", () => {
     expect(constants.DEFAULT_TXN_SIGN_TIMEOUT_SECONDS).toBe(60);
     expect(constants.DISCOUNT_BOX_KEY).toBe("b_d");
     expect(constants.ENCODED_DISCOUNT_BOX_KEY).toEqual(
-      new Uint8Array(Buffer.from("b_d"))
+      new Uint8Array(Buffer.from("b_d")),
     );
   });
 });

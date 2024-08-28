@@ -23,7 +23,7 @@ export async function getRandomAccount(
   client: Algodv2,
   funderAddress: string,
   funderSigner: TransactionSigner,
-  asset?: AssetMetadata
+  asset?: AssetMetadata,
 ) {
   const randomAccount = generateAccount();
 
@@ -55,7 +55,7 @@ export async function getRandomAccount(
         amount: normalizePrice(
           asset.total,
           asset.decimals,
-          PriceNormalizationType.RAW
+          PriceNormalizationType.RAW,
         ),
         suggestedParams: await client.getTransactionParams().do(),
         assetIndex: asset.index,
@@ -74,7 +74,7 @@ export async function generateRandomAsset(
   sender: Account,
   assetName?: string,
   total?: number,
-  decimals?: number
+  decimals?: number,
 ) {
   total = !total ? Math.floor(Math.random() * 100) + 20 : total;
   decimals = !decimals ? Math.floor(Math.random() * 10) + 2 : decimals;

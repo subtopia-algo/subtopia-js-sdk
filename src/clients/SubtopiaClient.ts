@@ -165,12 +165,12 @@ export class SubtopiaClient {
 
     const rawProductGlobalState = await getAppGlobalState(
       productID,
-      algodClient
+      algodClient,
     ).catch((error) => {
       throw new Error(error);
     });
     const productGlobalState = parseTokenProductGlobalState(
-      rawProductGlobalState
+      rawProductGlobalState,
     );
 
     if (!productGlobalState.oracle_id) {
@@ -204,11 +204,12 @@ export class SubtopiaClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn)
+            decodeObj(txn),
           ) as EncodedSignedTransaction[],
         }),
       ],
@@ -252,7 +253,7 @@ export class SubtopiaClient {
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
   protected async updateLifecycle(
-    params: ProductLifecycleStateUpdate
+    params: ProductLifecycleStateUpdate,
   ): Promise<{
     txID: string;
   }> {
@@ -281,7 +282,7 @@ export class SubtopiaClient {
       updateLifecycleAtc.execute.bind(updateLifecycleAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -323,7 +324,7 @@ export class SubtopiaClient {
   public async getAppState(parseWholeUnits = true): Promise<ProductState> {
     const rawGlobalState = await getAppGlobalState(
       this.appID,
-      this.algodClient
+      this.algodClient,
     ).catch((error) => {
       throw new Error(error);
     });
@@ -339,7 +340,7 @@ export class SubtopiaClient {
         ? normalizePrice(
             Number(globalState.price),
             this.coin.decimals,
-            PriceNormalizationType.PRETTY
+            PriceNormalizationType.PRETTY,
           )
         : Number(globalState.price),
       totalSubs: Number(globalState.total_subscribers),
@@ -393,11 +394,12 @@ export class SubtopiaClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn)
+            decodeObj(txn),
           ) as EncodedSignedTransaction[],
         }),
       ],
@@ -405,7 +407,7 @@ export class SubtopiaClient {
 
     const response = await computePlatformFeeAtc.simulate(
       this.algodClient,
-      request
+      request,
     );
 
     return Number(response.methodResults[0].returnValue);
@@ -461,11 +463,12 @@ export class SubtopiaClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn)
+            decodeObj(txn),
           ) as EncodedSignedTransaction[],
         }),
       ],
@@ -544,7 +547,7 @@ export class SubtopiaClient {
           ? normalizePrice(
               discountValue,
               this.coin.decimals,
-              PriceNormalizationType.RAW
+              PriceNormalizationType.RAW,
             )
           : discountValue,
         expiresIn,
@@ -573,7 +576,7 @@ export class SubtopiaClient {
       createDiscountAtc.execute.bind(createDiscountAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -613,7 +616,7 @@ export class SubtopiaClient {
       deleteDiscountAtc.execute.bind(deleteDiscountAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -628,7 +631,7 @@ export class SubtopiaClient {
    * @returns {Promise<{txID: string, subscriptionID: number}>} A promise that resolves to an object containing the transaction ID and subscription ID.
    */
   public async createSubscription(
-    params: ProductSubscriptionCreationParams
+    params: ProductSubscriptionCreationParams,
   ): Promise<{
     txID: string;
     subscriptionID: number;
@@ -640,7 +643,7 @@ export class SubtopiaClient {
     const adminAddress = encodeAddress(
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      oracleAdminState.valueRaw
+      oracleAdminState.valueRaw,
     );
     const platformFeeAmount = await this.getSubscriptionPlatformFee();
     const state = await this.getAppState(false);
@@ -753,7 +756,7 @@ export class SubtopiaClient {
                 amount: subscriptionPrice,
                 suggestedParams: await getParamsWithFeeCount(
                   this.algodClient,
-                  0
+                  0,
                 ),
               }),
               signer: subscriber.signer,
@@ -766,7 +769,7 @@ export class SubtopiaClient {
                 assetIndex: this.coin.index,
                 suggestedParams: await getParamsWithFeeCount(
                   this.algodClient,
-                  0
+                  0,
                 ),
               }),
               signer: subscriber.signer,
@@ -786,7 +789,7 @@ export class SubtopiaClient {
       signer: subscriber.signer,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,
-        this.coin.index > 0 ? 6 : 5
+        this.coin.index > 0 ? 6 : 5,
       ),
     });
 
@@ -794,7 +797,7 @@ export class SubtopiaClient {
       createSubscriptionAtc.execute.bind(createSubscriptionAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     ).catch((error) => {
       throw new Error(error);
     });
@@ -813,7 +816,7 @@ export class SubtopiaClient {
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID of the transfer operation.
    */
   public async transferSubscription(
-    params: ProductSubscriptionTransferParams
+    params: ProductSubscriptionTransferParams,
   ): Promise<{
     txID: string;
   }> {
@@ -857,7 +860,7 @@ export class SubtopiaClient {
       transferSubscriptionAtc.execute.bind(transferSubscriptionAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -872,7 +875,7 @@ export class SubtopiaClient {
    * @returns {Promise<Object>} - The transaction ID of the executed transaction.
    */
   public async claimSubscription(
-    params: ProductSubscriptionClaimParams
+    params: ProductSubscriptionClaimParams,
   ): Promise<{
     txID: string;
   }> {
@@ -922,7 +925,7 @@ export class SubtopiaClient {
       claimSubscriptionAtc.execute.bind(claimSubscriptionAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -935,7 +938,7 @@ export class SubtopiaClient {
    * @returns {Promise<{txID: string}>} A promise that resolves to an object containing the transaction ID.
    */
   public async deleteSubscription(
-    params: ProductSubscriptionDeletionParams
+    params: ProductSubscriptionDeletionParams,
   ): Promise<{
     txID: string;
   }> {
@@ -976,7 +979,7 @@ export class SubtopiaClient {
       signer: subscriber.signer,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,
-        isHoldingSubscription ? 4 : 3
+        isHoldingSubscription ? 4 : 3,
       ),
     });
 
@@ -984,7 +987,7 @@ export class SubtopiaClient {
       deleteSubscriptionAtc.execute.bind(deleteSubscriptionAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -999,7 +1002,7 @@ export class SubtopiaClient {
    * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the address is a subscriber.
    */
   public async isSubscriber(
-    params: ProductSubscriberCheckParams
+    params: ProductSubscriberCheckParams,
   ): Promise<boolean> {
     const { subscriberAddress } = params;
     const isSubscriberAtc = new AtomicTransactionComposer();
@@ -1034,11 +1037,12 @@ export class SubtopiaClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn)
+            decodeObj(txn),
           ) as EncodedSignedTransaction[],
         }),
       ],
@@ -1056,7 +1060,7 @@ export class SubtopiaClient {
    * @returns {Promise<SubscriptionRecord>} A promise that resolves to a SubscriptionRecord.
    */
   public async getSubscription(
-    params: ProductSubscriptionRetrievalParams
+    params: ProductSubscriptionRetrievalParams,
   ): Promise<SubscriptionRecord> {
     const { algodClient, subscriberAddress } = params;
     const getSubscriptionAtc = new AtomicTransactionComposer();
@@ -1091,11 +1095,12 @@ export class SubtopiaClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn)
+            decodeObj(txn),
           ) as EncodedSignedTransaction[],
         }),
       ],
@@ -1143,7 +1148,7 @@ export class SubtopiaClient {
     const subscriberRecords: Array<SubscriberRecord> = results
       .filter((result) => result.status === "fulfilled")
       .map(
-        (result) => (result as PromiseFulfilledResult<SubscriberRecord>).value
+        (result) => (result as PromiseFulfilledResult<SubscriberRecord>).value,
       );
 
     const rejectedPromises = results

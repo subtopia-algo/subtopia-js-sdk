@@ -1,18 +1,32 @@
-# [2.0.0](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v1.1.0...v2.0.0) (2024-01-29)
+# [2.0.0-beta.18](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.17...v2.0.0-beta.18) (2024-08-28)
 
+# [2.0.0-beta.17](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.16...v2.0.0-beta.17) (2024-08-28)
 
-### Features
+# [2.0.0-beta.16](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.15...v2.0.0-beta.16) (2024-08-28)
 
-* refactoring contracts to support latest 'token-based' types ([#39](https://github.com/subtopia-algo/subtopia-js-sdk/issues/39)) ([604becc](https://github.com/subtopia-algo/subtopia-js-sdk/commit/604beccc4fc2800b4859368aebf3228b6122dd8f))
+# [2.0.0-beta.15](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.14...v2.0.0-beta.15) (2024-08-27)
 
+# [2.0.0-beta.14](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.13...v2.0.0-beta.14) (2024-08-26)
 
-### BREAKING CHANGES
+# [2.0.0-beta.13](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.12...v2.0.0-beta.13) (2024-08-26)
 
-* Deprecating interface for old contracts, adding a refined and more flexible setup with Token Based subscriptions.
+# [2.0.0-beta.12](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.11...v2.0.0-beta.12) (2024-08-26)
 
-* refactor: improving project structure; minor refinements
+# [2.0.0-beta.11](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.10...v2.0.0-beta.11) (2024-03-18)
 
-* chore: testing ci
+# [2.0.0-beta.10](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.9...v2.0.0-beta.10) (2024-03-18)
+
+# [2.0.0-beta.10](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.9...v2.0.0-beta.10) (2024-03-18)
+
+# [2.0.0-beta.9](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.8...v2.0.0-beta.9) (2024-03-17)
+
+# [2.0.0-beta.8](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.7...v2.0.0-beta.8) (2024-03-17)
+
+# [2.0.0-beta.7](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.6...v2.0.0-beta.7) (2024-03-01)
+
+# [2.0.0-beta.6](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.5...v2.0.0-beta.6) (2024-03-01)
+
+# [2.0.0-beta.5](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.4...v2.0.0-beta.5) (2024-02-03)
 
 # [2.0.0-beta.4](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.3...v2.0.0-beta.4) (2024-01-21)
 

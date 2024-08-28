@@ -57,7 +57,7 @@ import {
   ChainType,
   SUBTOPIA_REGISTRY_ID
 } from "subtopia-js-sdk";
-// ... your code
+// ...  your code
 
 const subtopiaClient = await SubtopiaClient.init({
   algodClient: PUT_ALGOD_INSTANCE_HERE,

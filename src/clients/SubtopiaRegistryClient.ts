@@ -131,7 +131,7 @@ export class SubtopiaRegistryClient {
    * ```
    */
   public static async init(
-    params: RegistryInitParams
+    params: RegistryInitParams,
   ): Promise<SubtopiaRegistryClient> {
     const {
       algodClient,
@@ -148,7 +148,7 @@ export class SubtopiaRegistryClient {
 
     const registryGlobalState = await getAppGlobalState(
       registryId,
-      algodClient
+      algodClient,
     );
     const oracleID = registryGlobalState.oracle_id.value as number;
 
@@ -170,11 +170,12 @@ export class SubtopiaRegistryClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn)
+            decodeObj(txn),
           ) as EncodedSignedTransaction[],
         }),
       ],
@@ -220,9 +221,9 @@ export class SubtopiaRegistryClient {
             productType === ProductType.TOKEN_BASED
               ? TOKEN_PRODUCT_VERSION_KEY
               : LEGACY_PRODUCT_VERSION_KEY,
-            "utf-8"
+            "utf-8",
           ),
-        ])
+        ]),
       )
       .do();
     const version = new TextDecoder().decode(appBoxResponse.value);
@@ -292,11 +293,12 @@ export class SubtopiaRegistryClient {
 
     const request = new modelsv2.SimulateRequest({
       allowEmptySignatures: true,
+      allowMoreLogging: true,
       txnGroups: [
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn)
+            decodeObj(txn),
           ) as EncodedSignedTransaction[],
         }),
       ],
@@ -304,7 +306,7 @@ export class SubtopiaRegistryClient {
 
     const response = await computePlatformFeeAtc.simulate(
       this.algodClient,
-      request
+      request,
     );
 
     return Number(response.methodResults[0].returnValue);
@@ -338,7 +340,7 @@ export class SubtopiaRegistryClient {
   public getLockerTransferFee(
     creatorAddress: string,
     isNewLocker: boolean,
-    coinID: number
+    coinID: number,
   ): number {
     let fee = algosToMicroalgos(MIN_APP_OPTIN_MBR);
     fee = coinID ? fee + algosToMicroalgos(MIN_ASA_OPTIN_MBR) : fee;
@@ -419,7 +421,7 @@ export class SubtopiaRegistryClient {
       createLockerAtc.execute.bind(createLockerAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -440,7 +442,7 @@ export class SubtopiaRegistryClient {
         new Uint8Array([
           ...getLockerBoxPrefix(lockerType),
           ...decodeAddress(ownerAddress).publicKey,
-        ])
+        ]),
       )
       .do()
       .catch(() => null);
@@ -507,7 +509,7 @@ export class SubtopiaRegistryClient {
 
     const rawProductState = await getAppGlobalState(
       productID,
-      this.algodClient
+      this.algodClient,
     );
     const productState = parseTokenProductGlobalState(rawProductState);
 
@@ -517,7 +519,7 @@ export class SubtopiaRegistryClient {
     const payFee = this.getLockerTransferFee(
       newOwnerAddress,
       !newOwnerLockerID,
-      productCoinID
+      productCoinID,
     );
     const transferInfraAtc = new AtomicTransactionComposer();
     transferInfraAtc.addMethodCall({
@@ -569,7 +571,7 @@ export class SubtopiaRegistryClient {
       appForeignApps: newOwnerLockerID ? [newOwnerLockerID] : undefined,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,
-        appCallFee
+        appCallFee,
       ),
     });
 
@@ -577,7 +579,7 @@ export class SubtopiaRegistryClient {
       transferInfraAtc.execute.bind(transferInfraAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -619,7 +621,7 @@ export class SubtopiaRegistryClient {
     const adminAddress = encodeAddress(
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      oracleAdminState.valueRaw
+      oracleAdminState.valueRaw,
     );
     const feeAmount = await this.getProductCreationFee(coinID);
     const platformFeeAmount = await this.getProductCreationPlatformFee();
@@ -710,7 +712,7 @@ export class SubtopiaRegistryClient {
           ? normalizePrice(
               price,
               asset.decimals,
-              PriceNormalizationType.RAW
+              PriceNormalizationType.RAW,
             ).valueOf()
           : price,
         maxSubs,
@@ -769,7 +771,7 @@ export class SubtopiaRegistryClient {
       signer: this.creator.signer,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,
-        coinID > 0 ? 11 : 8
+        coinID > 0 ? 11 : 8,
       ),
     });
 
@@ -777,7 +779,7 @@ export class SubtopiaRegistryClient {
       createInfraAtc.execute.bind(createInfraAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {
@@ -834,7 +836,7 @@ export class SubtopiaRegistryClient {
       deleteInfraAtc.execute.bind(deleteInfraAtc),
       this.timeout,
       this.algodClient,
-      10
+      10,
     );
 
     return {

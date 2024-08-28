@@ -23,7 +23,7 @@ export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
       return subtopiaRegistryId;
     } else {
       throw new Error(
-        "SUBTOPIA_REGISTRY_ID environment variable is not set or is not a number"
+        "SUBTOPIA_REGISTRY_ID environment variable is not set or is not a number",
       );
     }
   }
@@ -74,5 +74,5 @@ export const LOCKER_LOCAL_NUM_BYTE_SLICES = 0;
 export const DEFAULT_TXN_SIGN_TIMEOUT_SECONDS = 60;
 export const DISCOUNT_BOX_KEY = "b_d";
 export const ENCODED_DISCOUNT_BOX_KEY = new Uint8Array(
-  Buffer.from(DISCOUNT_BOX_KEY)
+  Buffer.from(DISCOUNT_BOX_KEY),
 );

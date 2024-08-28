@@ -145,3 +145,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm run release
+
+      - name: Merge release -> main
+        uses: devmasx/merge-branch@6ec8363d74aad4f1615d1234ae1908b4185c4313
+        if: github.ref == 'refs/heads/release'
+        with:
+          type: now
+          from_branch: release
+          target_branch: main
+          message: Merge release back to main to get version increment [no ci]
+          github_token: ${{ secrets.GITHUB_TOKEN }}

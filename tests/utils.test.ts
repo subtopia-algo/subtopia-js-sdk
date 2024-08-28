@@ -28,7 +28,7 @@ describe("asyncWithTimeout", () => {
     };
 
     await expect(asyncWithTimeout(myAsyncFunction, 1)).rejects.toEqual(
-      new Error("Timeout error: exceeded 1 seconds")
+      new Error("Timeout error: exceeded 1 seconds"),
     );
   }, 100000);
 });

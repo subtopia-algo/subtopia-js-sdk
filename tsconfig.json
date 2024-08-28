@@ -7,9 +7,8 @@
       "@/*": ["./src/*"]
     },
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "jsx": "react-jsx",
-    "types": ["vite/client", "node", "react"],
+    "moduleResolution": "Bundler",
+    "types": ["vite/client", "node"],
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "allowJs": true,
     "allowSyntheticDefaultImports": true,

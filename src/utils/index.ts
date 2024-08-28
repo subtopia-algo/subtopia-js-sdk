@@ -42,7 +42,7 @@ export async function transferAsset(
     amount: number;
   },
   client: Algodv2,
-  timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS
+  timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 ): Promise<{
   confirmedRound: number;
   txIDs: string[];
@@ -69,7 +69,7 @@ export async function transferAsset(
     transferAtc.execute.bind(transferAtc),
     timeout,
     client,
-    DEFAULT_AWAIT_ROUNDS
+    DEFAULT_AWAIT_ROUNDS,
   );
 
   return transferResult;
@@ -105,7 +105,7 @@ export async function optInAsset({
     optInAtc.execute.bind(optInAtc),
     timeout,
     client,
-    DEFAULT_AWAIT_ROUNDS
+    DEFAULT_AWAIT_ROUNDS,
   );
 
   return optInResult;
@@ -142,7 +142,7 @@ export async function optOutAsset({
     optInAtc.execute.bind(optInAtc),
     timeout,
     client,
-    DEFAULT_AWAIT_ROUNDS
+    DEFAULT_AWAIT_ROUNDS,
   );
 
   return optInResult;
@@ -162,7 +162,7 @@ export function normalizePrice(
   price: number,
   decimals: number,
   direction = PriceNormalizationType.RAW, // RAW = multiply by decimals, PRETTY = divide by decimals
-  precision?: number
+  precision?: number,
 ): number {
   let result =
     direction === PriceNormalizationType.RAW
@@ -181,7 +181,7 @@ export function normalizePrice(
 
 export async function getAssetByID(
   client: Algodv2,
-  assetID: number
+  assetID: number,
 ): Promise<AssetMetadata> {
   if (assetID === 0) {
     return ALGO_ASSET;
@@ -213,7 +213,7 @@ export function getTxnFeeCount(txnNumber: number): number {
 
 export async function getParamsWithFeeCount(
   client: Algodv2,
-  txnNumber: number
+  txnNumber: number,
 ): Promise<algosdk.SuggestedParams> {
   // Get suggested params with a specific fee.
   const params: SuggestedParams = await client.getTransactionParams().do();
@@ -226,7 +226,7 @@ export async function getParamsWithFeeCount(
 
 export async function calculateExtraPages(
   approval: Uint8Array,
-  clear: Uint8Array
+  clear: Uint8Array,
 ): Promise<number> {
   return Math.floor((approval.length + clear.length) / APP_PAGE_MAX_SIZE);
 }
@@ -235,7 +235,7 @@ export function calculateBoxMbr(
   name: string | number | Uint8Array,
   size: number,
   action: string,
-  abiType: ABIType | null = null
+  abiType: ABIType | null = null,
 ): number {
   if (action !== "create" && action !== "destroy") {
     throw new Error("Action must be 'create' or 'destroy'");
@@ -255,7 +255,7 @@ export function calculateBoxMbr(
 }
 
 export function calculateRegistryLockerBoxCreateMbr(
-  locker_owner: string
+  locker_owner: string,
 ): number {
   const uint64Type = new ABIUintType(64);
   return calculateBoxMbr(
@@ -264,7 +264,7 @@ export function calculateRegistryLockerBoxCreateMbr(
       ...decodeAddress(locker_owner).publicKey,
     ]),
     uint64Type.byteLen(), // UInt64 is 8 bytes - 800 is microalgos
-    "create"
+    "create",
   );
 }
 
@@ -275,21 +275,21 @@ export function calculateProductDiscountBoxCreateMbr(): number {
 }
 
 export function calculateProductSubscriptionBoxCreateMbr(
-  subscriberAddress: string
+  subscriberAddress: string,
 ): number {
   const uint64TypeByteLen = new ABIUintType(64).byteLen();
   const subscriptionTypeByteLen = uint64TypeByteLen * 5; // 5 Uint64s in Subscription tuple
   return calculateBoxMbr(
     decodeAddress(subscriberAddress).publicKey,
     subscriptionTypeByteLen,
-    "create"
+    "create",
   );
 }
 
 export function calculateCreationMbr(
   extraProgramPages: number,
   globalNumUint: number,
-  globalNumByteSlice: number
+  globalNumByteSlice: number,
 ): number {
   return (
     100_000 * (1 + extraProgramPages) +
@@ -302,19 +302,19 @@ export async function calculateProductCreationMbr(
   applicationSpec: ApplicationSpec,
   extraPages = 0,
   globalNumUint = 0,
-  globalNumByteSlice = 0
+  globalNumByteSlice = 0,
 ): Promise<number> {
   const computedExtraPages = extraPages
     ? extraPages
     : await calculateExtraPages(
         applicationSpec.approval,
-        applicationSpec.clear
+        applicationSpec.clear,
       );
 
   return calculateCreationMbr(
     computedExtraPages,
     globalNumUint ?? applicationSpec.globalNumUint,
-    globalNumByteSlice ?? applicationSpec.globalNumByteSlice
+    globalNumByteSlice ?? applicationSpec.globalNumByteSlice,
   );
 }
 
@@ -322,7 +322,7 @@ export function calculateLockerCreationMbr(): number {
   return calculateCreationMbr(
     LOCKER_EXTRA_PAGES,
     LOCKER_GLOBAL_NUM_UINTS,
-    LOCKER_GLOBAL_NUM_BYTE_SLICES
+    LOCKER_GLOBAL_NUM_BYTE_SLICES,
   );
 }
 
@@ -349,7 +349,7 @@ export function getLockerBoxPrefix(lockerType: LockerType): Buffer {
 
 export function wait(ms: number) {
   const resp = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("TRANSACTION_SIGNING_TIMED_OUT")), ms)
+    setTimeout(() => reject(new Error("TRANSACTION_SIGNING_TIMED_OUT")), ms),
   );
 
   return resp;
@@ -436,7 +436,7 @@ export function parseTokenProductGlobalState(input: AppState) {
         output[keyMap[key]] = encodeAddress(
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          input[key].valueRaw
+          input[key].valueRaw,
         );
       } else {
         output[keyMap[key]] = input[key].value;

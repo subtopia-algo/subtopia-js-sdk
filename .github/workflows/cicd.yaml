@@ -38,7 +38,7 @@ jobs:
         run: npm run build
 
       - name: Lint
-        run: npm run lint:scripts
+        run: npm run lint
 
   unit-tests:
     name: Integration tests
@@ -73,7 +73,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm run test:integration
+        run: npm run test
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v4

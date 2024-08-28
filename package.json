@@ -6,21 +6,14 @@
   "author": "info@subtopia.io",
   "type": "module",
   "scripts": {
-    "start": "vite --host --open",
     "build": "tsc -p tsconfig.build.json && vite build && cpy package.json README.md dist",
-    "watch": "tsc -p tsconfig.build.json && vite build --watch",
-    "test": "vitest run",
-    "test:integration": "vitest run --coverage",
-    "localnet:start": "pipx run algokit localnet start",
-    "localnet:stop": "pipx run algokit localnet start",
-    "lint:scripts": "eslint src --ext .ts",
-    "lint:styles": "stylelint ./**/*.{css,scss}",
-    "format:scripts": "prettier . --write",
-    "format:styles": "stylelint ./**/*.{css,scss} --fix",
+    "test": "vitest run --coverage",
+    "lint": "eslint src --ext .ts && stylelint ./**/*.{css,scss}",
+    "format": "prettier . --write && stylelint ./**/*.{css,scss} --fix",
     "docs": "npx typedoc src/index.ts --excludePrivate --excludeExternals --exclude '**/adminClient.ts'",
     "commit": "cz",
     "release": "semantic-release",
-    "pre-commit": "npm run lint:scripts && npm run format:scripts && npm run test:integration && npm run build && npm run docs"
+    "pre-commit": "npm run lint && npm run format && npm run test && npm run build && npm run docs"
   },
   "peerDependencies": {
     "@algorandfoundation/algokit-utils": "^6.2.1",

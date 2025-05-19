@@ -1,6 +1,6 @@
 {
   "name": "subtopia-js-sdk",
-  "version": "3.0.0-beta.4",
+  "version": "3.0.0",
   "description": "Subtopia SDK for JavaScript",
   "license": "SEE LICENSE IN LICENSE.md",
   "author": "info@subtopia.io",

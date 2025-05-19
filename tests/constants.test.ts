@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import * as constants from "../src/constants";
 import { ChainType } from "../src/types/enums";
+import { Address } from "algosdk";
 
 describe("Constants", () => {
   it("should have correct DEFAULT_AWAIT_ROUNDS", () => {
@@ -54,7 +55,9 @@ describe("Constants", () => {
   it("should have correct ALGO_ASSET", () => {
     expect(constants.ALGO_ASSET).toEqual({
       index: 0,
-      creator: "",
+      creator: Address.fromString(
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+      ),
       name: "ALGO",
       decimals: 6,
       unitName: "ALGO",

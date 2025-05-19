@@ -23,22 +23,18 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          scope: "@subtopia-algo"
-          cache: "npm"
-          cache-dependency-path: ./package-lock.json
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
       - name: Run build
-        run: npm run build
+        run: bun run build
 
       - name: Lint
-        run: npm run lint
+        run: bun run lint
 
   unit-tests:
     name: Integration tests
@@ -61,22 +57,18 @@ jobs:
           python-version: ">=3.11 <3.12"
           poetry-version: 1.7.1
 
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ matrix.node }}
-          scope: "@subtopia-algo"
-          cache: "npm"
-          cache-dependency-path: ./package-lock.json
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
       - name: Run tests
-        run: npm run test
+        run: bun run test
 
       - name: "Upload coverage to Codecov"
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: runner.os == 'Linux' && matrix.node == '20'
         with:
           fail_ci_if_error: true
@@ -92,19 +84,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          scope: "@subtopia-algo"
-          cache: "npm"
-          cache-dependency-path: ./package-lock.json
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
       - name: Build docs
-        run: npm run docs
+        run: bun run docs
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
@@ -126,25 +114,21 @@ jobs:
           fetch-depth: 0
           persist-credentials: false # <--- override default gh token
 
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          scope: "@subtopia-algo"
-          cache: "npm"
-          cache-dependency-path: ./package-lock.json
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
       - name: Run build
-        run: npm run build
+        run: bun run build
 
       - name: release
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm run release
+        run: bun run release
 
       - name: Merge release -> main
         uses: devmasx/merge-branch@6ec8363d74aad4f1615d1234ae1908b4185c4313

@@ -1,4 +1,4 @@
-import { makeBasicAccountTransactionSigner } from "algosdk";
+import algosdk from "algosdk";
 import "dotenv/config";
 import {
   LOCKER_VERSION,
@@ -7,7 +7,7 @@ import {
   optInAsset,
   optOutAsset,
 } from "../src/index";
-import { it, describe, expect, beforeAll } from "vitest";
+import { it, describe, expect } from "vitest";
 
 import { SubtopiaRegistryClient } from "../src/clients/SubtopiaRegistryClient";
 import { SubtopiaClient } from "../src/clients/SubtopiaClient";
@@ -20,11 +20,8 @@ import {
 } from "../src/types/enums";
 import {
   algos,
-  getAlgoClient,
-  transactionSignerAccount,
   Config,
-  getDefaultLocalNetConfig,
-  getLocalNetDispenserAccount,
+  AlgorandClient,
 } from "@algorandfoundation/algokit-utils";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
 import { transferAsset } from "../src/utils";
@@ -34,23 +31,23 @@ Config.configure({
   debug: false,
 });
 
-const algodClient = getAlgoClient(getDefaultLocalNetConfig("algod"));
+const algorandClient = AlgorandClient.defaultLocalNet();
+const algodClient = algorandClient.client.algod;
 
-let LOCALNET_USDC_ASA_ID = -1;
-const dispenserAccount = await getLocalNetDispenserAccount(algodClient);
+const dispenserAccount =
+  await algorandClient.account.kmd.getLocalNetDispenserAccount();
 const creatorAccount = await getRandomAccount(
-  algodClient,
+  algorandClient,
   dispenserAccount.addr,
-  makeBasicAccountTransactionSigner(dispenserAccount),
+  dispenserAccount.account.signer,
 );
 const bobTestAccount = await getRandomAccount(
-  algodClient,
+  algorandClient,
   dispenserAccount.addr,
-  makeBasicAccountTransactionSigner(dispenserAccount),
+  dispenserAccount.account.signer,
 );
 
-const creatorSignerAccount = transactionSignerAccount(
-  makeBasicAccountTransactionSigner(creatorAccount),
+const creatorSignerAccount = algorandClient.account.getAccount(
   creatorAccount.addr,
 );
 
@@ -81,19 +78,7 @@ async function setupSubtopiaRegistryClient(
   return { subtopiaRegistryClient, lockerID };
 }
 
-describe("subtopia", () => {
-  beforeAll(async () => {
-    const metadata = await generateRandomAsset(
-      algodClient,
-      creatorAccount,
-      "USDC",
-      1000000000,
-      6,
-    );
-
-    LOCALNET_USDC_ASA_ID = metadata.index;
-  });
-
+describe("subtopia", function () {
   it("should match latest precompiled versions of locker and product contracts", async () => {
     // Setup
     const { subtopiaRegistryClient } =
@@ -112,6 +97,7 @@ describe("subtopia", () => {
 
   it(
     "should manage product and subscription lifecycle correctly",
+    { timeout: 10e6 },
     async () => {
       // Setup
       const { subtopiaRegistryClient, lockerID } =
@@ -131,9 +117,8 @@ describe("subtopia", () => {
       expect(response.productID).toBeGreaterThan(0);
 
       const subscriberAccount = bobTestAccount;
-      const subscriberSigner = transactionSignerAccount(
-        makeBasicAccountTransactionSigner(subscriberAccount),
-        subscriberAccount.addr,
+      const subscriberSigner = algorandClient.account.getAccount(
+        subscriberAccount.addr.toString(),
       );
 
       const productClient = await SubtopiaClient.init({
@@ -201,7 +186,7 @@ describe("subtopia", () => {
       const content = await productClient.getAppState();
 
       // Assert
-      expect(content.price).toBe(algos(1).algos);
+      expect(content.price).toBe(1);
 
       const disableProductResponse = await productClient.disable();
 
@@ -214,11 +199,11 @@ describe("subtopia", () => {
 
       expect(deleteProductResponse.txID).toBeDefined();
     },
-    { timeout: 10e6 },
   );
 
   it(
     "should handle product and discount operations correctly",
+    { timeout: 10e6 },
     async () => {
       const { subtopiaRegistryClient, lockerID } =
         await setupSubtopiaRegistryClient(creatorSignerAccount);
@@ -248,7 +233,7 @@ describe("subtopia", () => {
 
       const createDiscountResponse = await productClient.createDiscount({
         discountType: DiscountType.FIXED,
-        discountValue: algos(1).microAlgos,
+        discountValue: Number(algos(1).microAlgos),
         expiresIn: 0,
       });
 
@@ -277,7 +262,9 @@ describe("subtopia", () => {
       if (!getDiscountResponse) {
         throw new Error("Discount not found");
       }
-      expect(getDiscountResponse.discountValue).toBe(algos(1).microAlgos);
+      expect(getDiscountResponse.discountValue).toBe(
+        Number(algos(1).microAlgos),
+      );
 
       const transferResponse = await subtopiaRegistryClient.transferProduct({
         productID: response.productID,
@@ -289,10 +276,7 @@ describe("subtopia", () => {
       const newOwnerProductClient = await SubtopiaClient.init({
         algodClient: algodClient,
         productID: response.productID,
-        creator: transactionSignerAccount(
-          makeBasicAccountTransactionSigner(newOwner),
-          newOwner.addr,
-        ),
+        creator: newOwner,
         registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
         chainType: ChainType.LOCALNET,
       });
@@ -317,10 +301,7 @@ describe("subtopia", () => {
 
       const newOwnerRegistryClient = await SubtopiaRegistryClient.init({
         algodClient: algodClient,
-        creator: transactionSignerAccount(
-          makeBasicAccountTransactionSigner(newOwner),
-          newOwner.addr,
-        ),
+        creator: newOwner,
         chainType: ChainType.LOCALNET,
       });
 
@@ -331,13 +312,11 @@ describe("subtopia", () => {
 
       expect(deleteProductResponse.txID).toBeDefined();
     },
-    {
-      timeout: 10e6,
-    },
   );
 
   it(
     "should not withdraw platform fee for free subscription",
+    { timeout: 10e6 },
     async () => {
       // Setup
       const { subtopiaRegistryClient, lockerID } =
@@ -364,10 +343,7 @@ describe("subtopia", () => {
       });
 
       // Subscribe a user to the product
-      const subscriberSigner = transactionSignerAccount(
-        makeBasicAccountTransactionSigner(bobTestAccount),
-        bobTestAccount.addr,
-      );
+      const subscriberSigner = bobTestAccount;
 
       const subscribeResponse = await productClient.createSubscription({
         subscriber: subscriberSigner,
@@ -382,17 +358,24 @@ describe("subtopia", () => {
       // Assert that the platform fee is 0
       expect(platformFee).toBe(0);
     },
-    {
-      timeout: 10e6,
-    },
   );
 
   it(
     "should handle time-based subscriptions with ASA correctly",
-    async () => {
+    { timeout: 10e6 },
+    async function () {
       // Setup
       const { subtopiaRegistryClient, lockerID } =
         await setupSubtopiaRegistryClient(creatorSignerAccount);
+
+      const metadata = await generateRandomAsset(
+        algodClient,
+        creatorAccount.account,
+        "USDC",
+        1000000000,
+        6,
+      );
+      const localnetUsdcAsaID = metadata.index;
 
       // Create a new product with the ASA as the price
       const response = await subtopiaRegistryClient.createProduct({
@@ -401,7 +384,7 @@ describe("subtopia", () => {
         subscriptionName: "Premium",
         price: 1,
         maxSubs: 0,
-        coinID: LOCALNET_USDC_ASA_ID,
+        coinID: localnetUsdcAsaID,
         lockerID: lockerID,
         duration: Duration.MONTH.valueOf(),
       });
@@ -416,19 +399,16 @@ describe("subtopia", () => {
       });
 
       // OptIn USDC (if not already opted in)
-      const subscriberSigner = transactionSignerAccount(
-        makeBasicAccountTransactionSigner(bobTestAccount),
-        bobTestAccount.addr,
-      );
+      const subscriberSigner = bobTestAccount;
 
       const accountInfo = await algodClient
         .accountInformation(subscriberSigner.addr)
         .do();
 
       const isOptedIn = Boolean(
-        accountInfo["assets"].some(
-          (asset: { "asset-id": number }) =>
-            asset["asset-id"] === LOCALNET_USDC_ASA_ID,
+        accountInfo.assets?.some(
+          (asset: algosdk.modelsv2.AssetHolding) =>
+            asset.assetId === BigInt(localnetUsdcAsaID),
         ),
       );
 
@@ -436,7 +416,7 @@ describe("subtopia", () => {
         await optInAsset({
           client: algodClient,
           account: subscriberSigner,
-          assetID: LOCALNET_USDC_ASA_ID,
+          assetID: localnetUsdcAsaID,
         });
       }
 
@@ -445,7 +425,7 @@ describe("subtopia", () => {
         {
           sender: creatorSignerAccount,
           recipient: subscriberSigner.addr,
-          assetID: LOCALNET_USDC_ASA_ID,
+          assetID: localnetUsdcAsaID,
           amount: 1,
         },
         algodClient,
@@ -458,13 +438,11 @@ describe("subtopia", () => {
       expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
       expect(subscribeResponse.txID).toBeDefined();
     },
-    {
-      timeout: 10e6,
-    },
   );
 
   it(
     "should return all subscribers for a product correctly",
+    { timeout: 10e6 },
     async () => {
       const { subtopiaRegistryClient, lockerID } =
         await setupSubtopiaRegistryClient(creatorSignerAccount);
@@ -493,15 +471,12 @@ describe("subtopia", () => {
       const createdSubscribers: Array<string> = [];
       for (let i = 0; i < 100; i++) {
         const subscriberAccount = await getRandomAccount(
-          algodClient,
+          algorandClient,
           dispenserAccount.addr,
-          makeBasicAccountTransactionSigner(dispenserAccount),
+          dispenserAccount.signer,
         );
-        createdSubscribers.push(subscriberAccount.addr);
-        const subscriberSigner = transactionSignerAccount(
-          makeBasicAccountTransactionSigner(subscriberAccount),
-          subscriberAccount.addr,
-        );
+        createdSubscribers.push(subscriberAccount.addr.toString());
+        const subscriberSigner = subscriberAccount;
 
         const subscribeResponse = await productClient.createSubscription({
           subscriber: subscriberSigner,
@@ -514,11 +489,8 @@ describe("subtopia", () => {
         filterExpired: true,
       });
       subscribers.forEach((subscriber) => {
-        expect(createdSubscribers).toContain(subscriber.address);
+        expect(createdSubscribers).toContain(subscriber.address.toString());
       });
-    },
-    {
-      timeout: 10e6,
     },
   );
 });

@@ -1,5 +1,6 @@
 // === Boxes ===
 
+import { Address } from "algosdk";
 import { Duration, ProductType, DiscountType } from "./enums";
 
 /**
@@ -29,7 +30,7 @@ export interface SubscriptionRecord {
  * Interface for the subscriber record.
  */
 export interface SubscriberRecord {
-  address: string;
+  address: Address;
   subscription: SubscriptionRecord;
 }
 

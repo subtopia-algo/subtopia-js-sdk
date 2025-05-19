@@ -7,7 +7,7 @@ import {
   ChainType,
 } from "./enums";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
-import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
+import algosdk, { Address } from "algosdk";
 
 /**
  * Interface for the product global state.
@@ -15,7 +15,7 @@ import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 interface ProductGlobalState {
   productName: string;
   subscriptionName: string;
-  manager: string;
+  manager: Address;
   price: number;
   totalSubs: number;
   maxSubs: number;
@@ -53,7 +53,7 @@ export interface ProductSubscriptionCreationParams {
 
 export interface ProductSubscriptionTransferParams {
   oldSubscriber: TransactionSignerAccount;
-  newSubscriberAddress: string;
+  newSubscriberAddress: Address;
   subscriptionID: number;
 }
 
@@ -68,16 +68,16 @@ export interface ProductSubscriptionDeletionParams {
 }
 
 export interface ProductSubscriberCheckParams {
-  subscriberAddress: string;
+  subscriberAddress: Address;
 }
 
 export interface ProductSubscriptionRetrievalParams {
-  algodClient: AlgodClient;
-  subscriberAddress: string;
+  algodClient: algosdk.Algodv2;
+  subscriberAddress: Address;
 }
 
 export interface ProductInitParams {
-  algodClient: AlgodClient;
+  algodClient: algosdk.Algodv2;
   chainType: ChainType;
   productID: number;
   creator: TransactionSignerAccount;

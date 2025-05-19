@@ -3,14 +3,6 @@
  * @enum {number}
  */
 export enum ProductType {
-  /**
-   * @deprecated LEGACY_UNLIMITED is deprecated. Use TOKEN_BASED instead.
-   */
-  LEGACY_UNLIMITED = 0,
-  /**
-   * @deprecated LEGACY_TIME_BASED is deprecated. Use TOKEN_BASED instead.
-   */
-  LEGACY_TIME_BASED = 1,
   TOKEN_BASED = 2,
 }
 

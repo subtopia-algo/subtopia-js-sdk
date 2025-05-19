@@ -1,3 +1,10 @@
+# [3.0.0-beta.3](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.0-beta.2...v3.0.0-beta.3) (2025-05-19)
+
+
+### Bug Fixes
+
+* semantic release tagging ([eb12565](https://github.com/subtopia-algo/subtopia-js-sdk/commit/eb12565df8c95fe0db4cf0ef1ccd657d3256230b))
+
 # [3.0.0-beta.2](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.0-beta.1...v3.0.0-beta.2) (2025-05-19)
 
 

@@ -3,6 +3,7 @@
 // Copyright (C) 2023 Altynbek Orumbayev
 // =============================================================================
 
+import { Address } from "algosdk";
 import { ChainType } from "../types/enums";
 import { AssetMetadata } from "types";
 
@@ -31,7 +32,9 @@ export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
 
 export const ALGO_ASSET = {
   index: 0,
-  creator: "",
+  creator: Address.fromString(
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+  ),
   name: "ALGO",
   decimals: 6,
   unitName: "ALGO",

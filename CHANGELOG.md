@@ -1,3 +1,41 @@
+# [3.0.0-beta.4](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.0-beta.3...v3.0.0-beta.4) (2025-05-19)
+
+# [3.0.0-beta.3](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.0-beta.2...v3.0.0-beta.3) (2025-05-19)
+
+
+### Bug Fixes
+
+* semantic release tagging ([eb12565](https://github.com/subtopia-algo/subtopia-js-sdk/commit/eb12565df8c95fe0db4cf0ef1ccd657d3256230b))
+
+# [3.0.0-beta.2](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.0-beta.1...v3.0.0-beta.2) (2025-05-19)
+
+
+### Bug Fixes
+
+* semantic release tagging ([afe9275](https://github.com/subtopia-algo/subtopia-js-sdk/commit/afe92752d5ba67835b09f09ba38dbe94aa76bde6))
+
+# [3.0.0-beta.1](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.3-beta.4...v3.0.0-beta.1) (2025-05-19)
+
+
+### Features
+
+* algosdk v3 support ([#77](https://github.com/subtopia-algo/subtopia-js-sdk/issues/77)) ([b4d932f](https://github.com/subtopia-algo/subtopia-js-sdk/commit/b4d932fb0a77f295815bdf9a94851b0961d9bf2a))
+
+
+### BREAKING CHANGES
+
+* Migrating to algosdk v3. Using dedicated Address type for all address fields instead of string
+
+* chore: switch to bun
+
+## [2.0.3-beta.4](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.3-beta.3...v2.0.3-beta.4) (2024-11-04)
+
+## [2.0.3-beta.3](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.3-beta.2...v2.0.3-beta.3) (2024-10-01)
+
+## [2.0.3-beta.2](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.3-beta.1...v2.0.3-beta.2) (2024-09-17)
+
+## [2.0.3-beta.1](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.2...v2.0.3-beta.1) (2024-09-01)
+
 ## [2.0.1](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0...v2.0.1) (2024-08-28)
 
 # [2.0.0-beta.18](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.0-beta.17...v2.0.0-beta.18) (2024-08-28)

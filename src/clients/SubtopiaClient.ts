@@ -5,19 +5,17 @@
 
 import algosdk, {
   ABIMethod,
+  Address,
   AtomicTransactionComposer,
-  EncodedSignedTransaction,
   algosToMicroalgos,
-  decodeAddress,
-  decodeObj,
   encodeAddress,
   getApplicationAddress,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   makeEmptyTransactionSigner,
   makePaymentTxnWithSuggestedParamsFromObject,
   modelsv2,
+  msgpackRawDecode,
 } from "algosdk";
-import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
   normalizePrice,
   getParamsWithFeeCount,
@@ -82,7 +80,7 @@ export class SubtopiaClient {
   oracleID: number;
   version: string;
   appID: number;
-  appAddress: string;
+  appAddress: Address;
   appSpec: ApplicationSpec;
   timeout: number;
   registryID: number;
@@ -102,13 +100,13 @@ export class SubtopiaClient {
     timeout,
     registryID,
   }: {
-    algodClient: AlgodClient;
+    algodClient: algosdk.Algodv2;
     productName: string;
     subscriptionName: string;
     creator: TransactionSignerAccount;
     appSpec: ApplicationSpec;
     appID: number;
-    appAddress: string;
+    appAddress: Address;
     oracleID: number;
     price: number;
     coin: AssetMetadata;
@@ -179,7 +177,7 @@ export class SubtopiaClient {
 
     const oracleID = productGlobalState.oracle_id;
     const productAddress = getApplicationAddress(productID);
-    const productPrice = productGlobalState.price;
+    const productPrice = Number(productGlobalState.price);
     const productSpec = await getAppById(productID, algodClient);
     const productName = productGlobalState.product_name;
     const subscriptionName = productGlobalState.subscription_name;
@@ -209,8 +207,8 @@ export class SubtopiaClient {
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn),
-          ) as EncodedSignedTransaction[],
+            msgpackRawDecode(txn),
+          ) as algosdk.SignedTransaction[],
         }),
       ],
     });
@@ -342,7 +340,7 @@ export class SubtopiaClient {
             this.coin.decimals,
             PriceNormalizationType.PRETTY,
           )
-        : Number(globalState.price),
+        : globalState.price,
       totalSubs: Number(globalState.total_subscribers),
       maxSubs: Number(globalState.max_subscribers),
       coinID: Number(globalState.coin_id),
@@ -399,8 +397,8 @@ export class SubtopiaClient {
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn),
-          ) as EncodedSignedTransaction[],
+            msgpackRawDecode(txn),
+          ) as algosdk.SignedTransaction[],
         }),
       ],
     });
@@ -419,7 +417,7 @@ export class SubtopiaClient {
    * @param {string} creatorAddress - The address of the locker's creator.
    * @returns {Promise<number>} A promise that resolves to the calculated locker creation fee.
    */
-  public async getLockerCreationFee(creatorAddress: string): Promise<number> {
+  public async getLockerCreationFee(creatorAddress: Address): Promise<number> {
     return (
       algosToMicroalgos(MIN_APP_CREATE_MBR) +
       calculateLockerCreationMbr() +
@@ -468,8 +466,8 @@ export class SubtopiaClient {
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn),
-          ) as EncodedSignedTransaction[],
+            msgpackRawDecode(txn),
+          ) as algosdk.SignedTransaction[],
         }),
       ],
     });
@@ -553,8 +551,8 @@ export class SubtopiaClient {
         expiresIn,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: this.creator.addr,
-            to: this.appAddress,
+            sender: this.creator.addr,
+            receiver: this.appAddress,
             amount: calculateProductDiscountBoxCreateMbr(),
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
@@ -729,8 +727,8 @@ export class SubtopiaClient {
         this.oracleID,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: subscriber.addr,
-            to: this.appAddress,
+            sender: subscriber.addr,
+            receiver: this.appAddress,
             amount: isHoldingExpiredSubscription
               ? 0
               : calculateProductSubscriptionBoxCreateMbr(subscriber.addr) +
@@ -741,8 +739,8 @@ export class SubtopiaClient {
         },
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: subscriber.addr,
-            to: adminAddress,
+            sender: subscriber.addr,
+            receiver: adminAddress,
             amount: this.price > 0 ? platformFeeAmount : 0,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
@@ -751,8 +749,8 @@ export class SubtopiaClient {
         this.coin.index === 0
           ? {
               txn: makePaymentTxnWithSuggestedParamsFromObject({
-                from: subscriber.addr,
-                to: lockerAddress,
+                sender: subscriber.addr,
+                receiver: lockerAddress,
                 amount: subscriptionPrice,
                 suggestedParams: await getParamsWithFeeCount(
                   this.algodClient,
@@ -763,8 +761,8 @@ export class SubtopiaClient {
             }
           : {
               txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
-                from: subscriber.addr,
-                to: lockerAddress,
+                sender: subscriber.addr,
+                receiver: lockerAddress,
                 amount: subscriptionPrice,
                 assetIndex: this.coin.index,
                 suggestedParams: await getParamsWithFeeCount(
@@ -778,7 +776,7 @@ export class SubtopiaClient {
       boxes: [
         {
           appIndex: this.appID,
-          name: decodeAddress(subscriber.addr).publicKey,
+          name: subscriber.addr.publicKey,
         },
         {
           appIndex: this.appID,
@@ -843,11 +841,11 @@ export class SubtopiaClient {
       boxes: [
         {
           appIndex: this.appID,
-          name: decodeAddress(oldSubscriber.addr).publicKey,
+          name: oldSubscriber.addr.publicKey,
         },
         {
           appIndex: this.appID,
-          name: decodeAddress(newSubscriberAddress).publicKey,
+          name: newSubscriberAddress.publicKey,
         },
       ],
       methodArgs: [newSubscriberAddress, subscriptionID],
@@ -913,7 +911,7 @@ export class SubtopiaClient {
       boxes: [
         {
           appIndex: this.appID,
-          name: decodeAddress(subscriber.addr).publicKey,
+          name: subscriber.addr.publicKey,
         },
       ],
       sender: subscriber.addr,
@@ -950,8 +948,8 @@ export class SubtopiaClient {
       .catch(() => {
         isHoldingSubscription = false;
       });
-    if (assetInfo) {
-      isHoldingSubscription = assetInfo["asset-holding"].amount > 0;
+    if (assetInfo && assetInfo.assetHolding) {
+      isHoldingSubscription = assetInfo.assetHolding.amount > 0;
     }
 
     const deleteSubscriptionAtc = new AtomicTransactionComposer();
@@ -972,7 +970,7 @@ export class SubtopiaClient {
       boxes: [
         {
           appIndex: this.appID,
-          name: decodeAddress(subscriber.addr).publicKey,
+          name: subscriber.addr.publicKey,
         },
       ],
       sender: subscriber.addr,
@@ -1025,7 +1023,7 @@ export class SubtopiaClient {
       boxes: [
         {
           appIndex: this.appID,
-          name: decodeAddress(subscriberAddress).publicKey,
+          name: subscriberAddress.publicKey,
         },
       ],
       suggestedParams: await getParamsWithFeeCount(this.algodClient, 1),
@@ -1042,8 +1040,8 @@ export class SubtopiaClient {
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn),
-          ) as EncodedSignedTransaction[],
+            msgpackRawDecode(txn),
+          ) as algosdk.SignedTransaction[],
         }),
       ],
     });
@@ -1083,7 +1081,7 @@ export class SubtopiaClient {
       boxes: [
         {
           appIndex: this.appID,
-          name: decodeAddress(subscriberAddress).publicKey,
+          name: subscriberAddress.publicKey,
         },
       ],
       suggestedParams: await getParamsWithFeeCount(algodClient, 1),
@@ -1100,8 +1098,8 @@ export class SubtopiaClient {
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn),
-          ) as EncodedSignedTransaction[],
+            msgpackRawDecode(txn),
+          ) as algosdk.SignedTransaction[],
         }),
       ],
     });
@@ -1132,7 +1130,7 @@ export class SubtopiaClient {
       .do();
 
     const promises = subscriberBoxes.boxes.map(async (box) => {
-      const address = encodeAddress(box.name);
+      const address = Address.fromString(encodeAddress(box.name));
       const subscription = this.getSubscription({
         algodClient: this.algodClient,
         subscriberAddress: address,

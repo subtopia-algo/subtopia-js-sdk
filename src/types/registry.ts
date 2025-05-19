@@ -1,13 +1,12 @@
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
-import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import { ChainType, LockerType, Duration, ProductType } from "./enums";
-
+import algosdk, { Address } from "algosdk";
 /**
  * Parameters required for initializing the registry.
  */
 export interface RegistryInitParams {
   /** Algod client instance */
-  algodClient: AlgodClient;
+  algodClient: algosdk.Algodv2;
   /** Account of the creator */
   creator: TransactionSignerAccount;
   /** Type of the blockchain network */
@@ -73,7 +72,7 @@ export interface RegistryTransferProductParams {
   /** ID of the product */
   productID: number;
   /** Address of the new owner */
-  newOwnerAddress: string;
+  newOwnerAddress: Address;
 }
 
 /**
@@ -83,9 +82,9 @@ export interface RegistryGetLockerParams {
   /** ID of the registry */
   registryID: number;
   /** Algod client instance */
-  algodClient: AlgodClient;
+  algodClient: algosdk.Algodv2;
   /** Address of the owner */
-  ownerAddress: string;
+  ownerAddress: Address;
   /** Type of the locker */
   lockerType: LockerType;
 }

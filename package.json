@@ -78,16 +78,16 @@
       ],
       "@semantic-release/release-notes-generator",
       "@semantic-release/changelog",
-      "@semantic-release/npm",
       [
         "@semantic-release/exec",
         {
-          "prepareCmd": "npm run build"
+          "publishCmd": "bun run build"
         }
       ],
       [
         "@semantic-release/npm",
         {
+          "npmPublish": true,
           "pkgRoot": "dist"
         }
       ],
@@ -110,6 +110,7 @@
     ],
     "prepare": [
       "@semantic-release/changelog",
+      "@semantic-release/exec",
       "@semantic-release/npm",
       "@semantic-release/git"
     ]

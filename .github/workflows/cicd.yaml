@@ -121,9 +121,6 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Run build
-        run: bun run build
-
       - name: release
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GH_TOKEN }}

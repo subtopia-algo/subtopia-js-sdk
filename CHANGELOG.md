@@ -1,3 +1,17 @@
+# [3.0.0-beta.1](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.3-beta.4...v3.0.0-beta.1) (2025-05-19)
+
+
+### Features
+
+* algosdk v3 support ([#77](https://github.com/subtopia-algo/subtopia-js-sdk/issues/77)) ([b4d932f](https://github.com/subtopia-algo/subtopia-js-sdk/commit/b4d932fb0a77f295815bdf9a94851b0961d9bf2a))
+
+
+### BREAKING CHANGES
+
+* Migrating to algosdk v3. Using dedicated Address type for all address fields instead of string
+
+* chore: switch to bun
+
 ## [2.0.3-beta.4](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.3-beta.3...v2.0.3-beta.4) (2024-11-04)
 
 ## [2.0.3-beta.3](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.3-beta.2...v2.0.3-beta.3) (2024-10-01)

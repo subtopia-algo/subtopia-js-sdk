@@ -60,6 +60,7 @@ runs:
         cp .env.template .env
         cd registry-infra
         poetry install --no-interaction
+        poetry run pip install setuptools
         cat ${{ github.workspace }}/.env
         poetry run python3 admin_scripts/deploy_localnet_infra.py
         cat ${{ github.workspace }}/.env

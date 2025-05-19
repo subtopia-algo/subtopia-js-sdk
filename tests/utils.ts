@@ -1,16 +1,17 @@
 import {
   Algodv2,
-  generateAccount,
   makePaymentTxnWithSuggestedParamsFromObject,
   TransactionSigner,
   AtomicTransactionComposer,
   makeAssetCreateTxnWithSuggestedParamsFromObject,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   Account,
+  Address,
 } from "algosdk";
 import { DEFAULT_AWAIT_ROUNDS } from "../src/constants";
 import { PriceNormalizationType } from "../src/types/enums";
 import { normalizePrice, optInAsset } from "../src/utils";
+import { AlgorandClient } from "@algorandfoundation/algokit-utils";
 
 export interface AssetMetadata {
   index: number;
@@ -20,18 +21,19 @@ export interface AssetMetadata {
 }
 
 export async function getRandomAccount(
-  client: Algodv2,
-  funderAddress: string,
+  algorandClient: AlgorandClient,
+  funderAddress: Address,
   funderSigner: TransactionSigner,
   asset?: AssetMetadata,
 ) {
-  const randomAccount = generateAccount();
+  const randomAccount = algorandClient.account.random();
+  const client = algorandClient.client.algod;
 
   let atc = new AtomicTransactionComposer();
   atc.addTransaction({
     txn: makePaymentTxnWithSuggestedParamsFromObject({
-      from: funderAddress,
-      to: randomAccount.addr,
+      sender: funderAddress,
+      receiver: randomAccount.addr,
       amount: Number(50e6),
       suggestedParams: await client.getTransactionParams().do(),
     }),
@@ -50,8 +52,8 @@ export async function getRandomAccount(
     atc = new AtomicTransactionComposer();
     atc.addTransaction({
       txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
-        from: funderAddress,
-        to: randomAccount.addr,
+        sender: funderAddress,
+        receiver: randomAccount.addr,
         amount: normalizePrice(
           asset.total,
           asset.decimals,
@@ -87,7 +89,7 @@ export async function generateRandomAsset(
   const params = await client.getTransactionParams().do();
 
   const txn = makeAssetCreateTxnWithSuggestedParamsFromObject({
-    from: sender.addr,
+    sender: sender.addr,
     suggestedParams: params,
     total: normalizePrice(total, decimals, PriceNormalizationType.RAW),
     decimals: decimals,
@@ -103,12 +105,12 @@ export async function generateRandomAsset(
 
   const stxn = txn.signTxn(sender.sk);
 
-  let txid = await client.sendRawTransaction(stxn).do();
-  txid = txid["txId"];
+  const txidResponse = await client.sendRawTransaction(stxn).do();
+  const txid = txidResponse.txid;
 
   const ptx = await client.pendingTransactionInformation(txid).do();
 
-  const assetId = ptx["asset-index"];
+  const assetId = Number(ptx.assetIndex!);
 
   return {
     index: assetId,

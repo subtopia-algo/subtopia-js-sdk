@@ -14,10 +14,9 @@ import algosdk, {
   getApplicationAddress,
   makeEmptyTransactionSigner,
   modelsv2,
-  decodeObj,
-  EncodedSignedTransaction,
+  msgpackRawDecode,
+  Address,
 } from "algosdk";
-import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
   normalizePrice,
   getParamsWithFeeCount,
@@ -80,7 +79,7 @@ export class SubtopiaRegistryClient {
   creator: TransactionSignerAccount;
   version: string;
   appID: number;
-  appAddress: string;
+  appAddress: Address;
   appSpec: ApplicationSpec;
   oracleID: number;
   timeout: number;
@@ -95,10 +94,10 @@ export class SubtopiaRegistryClient {
     version,
     timeout,
   }: {
-    algodClient: AlgodClient;
+    algodClient: algosdk.Algodv2;
     creator: TransactionSignerAccount;
     appID: number;
-    appAddress: string;
+    appAddress: Address;
     appSpec: ApplicationSpec;
     oracleID: number;
     version: string;
@@ -150,7 +149,7 @@ export class SubtopiaRegistryClient {
       registryId,
       algodClient,
     );
-    const oracleID = registryGlobalState.oracle_id.value as number;
+    const oracleID = Number(registryGlobalState.oracle_id.value);
 
     const versionAtc = new AtomicTransactionComposer();
     versionAtc.addMethodCall({
@@ -175,8 +174,8 @@ export class SubtopiaRegistryClient {
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn),
-          ) as EncodedSignedTransaction[],
+            msgpackRawDecode(txn),
+          ) as algosdk.SignedTransaction[],
         }),
       ],
     });
@@ -201,7 +200,7 @@ export class SubtopiaRegistryClient {
         localNumByteSlice:
           Number(registrySpec.params.localStateSchema?.numByteSlice) || 0,
       },
-      oracleID: oracleID,
+      oracleID: Number(oracleID),
       version: version,
       timeout: timeout,
     });
@@ -298,8 +297,8 @@ export class SubtopiaRegistryClient {
         new modelsv2.SimulateRequestTransactionGroup({
           // Must decode the signed txn bytes into an object
           txns: group.map((txn) =>
-            decodeObj(txn),
-          ) as EncodedSignedTransaction[],
+            msgpackRawDecode(txn),
+          ) as algosdk.SignedTransaction[],
         }),
       ],
     });
@@ -319,7 +318,7 @@ export class SubtopiaRegistryClient {
    * @param {string} creatorAddress - The address of the creator.
    * @returns {number} The locker creation fee.
    */
-  public getLockerCreationFee(creatorAddress: string): number {
+  public getLockerCreationFee(creatorAddress: Address): number {
     return (
       algosToMicroalgos(MIN_APP_CREATE_MBR) +
       calculateLockerCreationMbr() +
@@ -338,7 +337,7 @@ export class SubtopiaRegistryClient {
    * @returns {number} The locker transfer fee.
    */
   public getLockerTransferFee(
-    creatorAddress: string,
+    creatorAddress: Address,
     isNewLocker: boolean,
     coinID: number,
   ): number {
@@ -387,8 +386,8 @@ export class SubtopiaRegistryClient {
         lockerType.valueOf(),
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: creator.addr,
-            to: this.appAddress,
+            sender: creator.addr,
+            receiver: this.appAddress,
             amount: feeAmount,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
@@ -400,7 +399,7 @@ export class SubtopiaRegistryClient {
           appIndex: this.appID,
           name: new Uint8Array([
             ...getLockerBoxPrefix(lockerType),
-            ...decodeAddress(creator.addr).publicKey,
+            ...creator.addr.publicKey,
           ]),
         },
         {
@@ -441,7 +440,7 @@ export class SubtopiaRegistryClient {
         registryID,
         new Uint8Array([
           ...getLockerBoxPrefix(lockerType),
-          ...decodeAddress(ownerAddress).publicKey,
+          ...decodeAddress(String(ownerAddress)).publicKey,
         ]),
       )
       .do()
@@ -482,14 +481,14 @@ export class SubtopiaRegistryClient {
         appIndex: this.appID,
         name: new Uint8Array([
           ...getLockerBoxPrefix(LockerType.CREATOR),
-          ...decodeAddress(this.creator.addr).publicKey,
+          ...this.creator.addr.publicKey,
         ]),
       },
       {
         appIndex: this.appID,
         name: new Uint8Array([
           ...getLockerBoxPrefix(LockerType.CREATOR),
-          ...decodeAddress(newOwnerAddress).publicKey,
+          ...decodeAddress(String(newOwnerAddress)).publicKey,
         ]),
       },
     ];
@@ -556,8 +555,8 @@ export class SubtopiaRegistryClient {
         newOwnerAddress,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: this.creator.addr,
-            to: this.appAddress,
+            sender: this.creator.addr,
+            receiver: this.appAddress,
             amount: payFee,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
@@ -725,8 +724,8 @@ export class SubtopiaRegistryClient {
         this.oracleID,
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: this.creator.addr,
-            to: this.appAddress,
+            sender: this.creator.addr,
+            receiver: this.appAddress,
             amount: feeAmount,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
@@ -734,8 +733,8 @@ export class SubtopiaRegistryClient {
         },
         {
           txn: makePaymentTxnWithSuggestedParamsFromObject({
-            from: this.creator.addr,
-            to: adminAddress,
+            sender: this.creator.addr,
+            receiver: adminAddress,
             amount: platformFeeAmount,
             suggestedParams: await getParamsWithFeeCount(this.algodClient, 0),
           }),
@@ -747,7 +746,7 @@ export class SubtopiaRegistryClient {
           appIndex: this.appID,
           name: new Uint8Array([
             ...Buffer.from("cl-", "utf-8"),
-            ...decodeAddress(this.creator.addr).publicKey,
+            ...this.creator.addr.publicKey,
           ]),
         },
         {
@@ -823,7 +822,7 @@ export class SubtopiaRegistryClient {
           appIndex: this.appID,
           name: new Uint8Array([
             ...Buffer.from("cl-", "utf-8"),
-            ...decodeAddress(this.creator.addr).publicKey,
+            ...this.creator.addr.publicKey,
           ]),
         },
       ],

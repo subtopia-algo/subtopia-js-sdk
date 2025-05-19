@@ -7,14 +7,13 @@ import algosdk, {
   AtomicTransactionComposer,
   makeAssetTransferTxnWithSuggestedParamsFromObject,
   Algodv2,
-  ALGORAND_MIN_TX_FEE,
   SuggestedParams,
   ABIResult as SdkABIResult,
   ABIType,
   ABIArrayDynamicType,
   ABIUintType,
-  decodeAddress,
   encodeAddress,
+  Address,
 } from "algosdk";
 
 import { ApplicationSpec, AssetMetadata } from "../types";
@@ -32,19 +31,19 @@ import {
   AppState,
 } from "@algorandfoundation/algokit-utils/types/app";
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
-import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
+import { ALGORAND_MIN_TX_FEE } from "@algorandfoundation/algokit-utils";
 
 export async function transferAsset(
   transfer: {
     sender: TransactionSignerAccount;
-    recipient: string;
+    recipient: Address;
     assetID: number;
     amount: number;
   },
   client: Algodv2,
   timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 ): Promise<{
-  confirmedRound: number;
+  confirmedRound: bigint;
   txIDs: string[];
   methodResults: algosdk.ABIResult[];
   timeout?: number;
@@ -53,8 +52,8 @@ export async function transferAsset(
   const transferAtc = new AtomicTransactionComposer();
   transferAtc.addTransaction({
     txn: algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: sender.addr,
-      to: recipient,
+      sender: sender.addr,
+      receiver: recipient,
       closeRemainderTo: undefined,
       amount: amount,
       assetIndex: assetID,
@@ -81,20 +80,20 @@ export async function optInAsset({
   assetID,
   timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
 }: {
-  client: AlgodClient | Algodv2;
+  client: Algodv2;
   account: TransactionSignerAccount;
   assetID: number;
   timeout?: number;
 }): Promise<{
-  confirmedRound: number;
+  confirmedRound: bigint;
   txIDs: string[];
   methodResults: SdkABIResult[];
 }> {
   const optInAtc = new AtomicTransactionComposer();
   optInAtc.addTransaction({
     txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: account.addr,
-      to: account.addr,
+      sender: account.addr,
+      receiver: account.addr,
       amount: 0,
       suggestedParams: await getParamsWithFeeCount(client, 1),
       assetIndex: assetID,
@@ -122,15 +121,15 @@ export async function optOutAsset({
   assetID: number;
   timeout?: number;
 }): Promise<{
-  confirmedRound: number;
+  confirmedRound: bigint;
   txIDs: string[];
   methodResults: SdkABIResult[];
 }> {
   const optInAtc = new AtomicTransactionComposer();
   optInAtc.addTransaction({
     txn: makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: account.addr,
-      to: account.addr,
+      sender: account.addr,
+      receiver: account.addr,
       closeRemainderTo: account.addr,
       amount: 0,
       suggestedParams: await getParamsWithFeeCount(client, 1),
@@ -183,23 +182,21 @@ export async function getAssetByID(
   client: Algodv2,
   assetID: number,
 ): Promise<AssetMetadata> {
-  if (assetID === 0) {
+  if (Number(assetID) === 0) {
     return ALGO_ASSET;
   }
 
   // Fetch the asset by ID
-  const assetResponse = await client.getAssetByID(assetID).do();
-  const assetParams = assetResponse["params"];
+  const assetResponse = await client.getAssetByID(BigInt(assetID)).do();
+  const assetParams = assetResponse.params;
 
   // Extract asset details
   const asset: AssetMetadata = {
-    creator: assetParams["creator"],
+    creator: Address.fromString(assetParams.creator),
     index: assetID,
-    name: Object.prototype.hasOwnProperty.call(assetParams, "name")
-      ? assetParams["name"]
-      : "",
-    decimals: assetParams["decimals"],
-    unitName: assetParams["unit-name"],
+    name: assetParams.name ?? "N/A",
+    decimals: assetParams.decimals,
+    unitName: assetParams.unitName ?? "N/A",
   };
 
   return asset;
@@ -207,7 +204,7 @@ export async function getAssetByID(
 
 export function getTxnFeeCount(txnNumber: number): number {
   // Get suggested params with a specific fee.
-  const fee = ALGORAND_MIN_TX_FEE * txnNumber;
+  const fee = Number(ALGORAND_MIN_TX_FEE.microAlgos) * txnNumber;
   return fee;
 }
 
@@ -255,14 +252,11 @@ export function calculateBoxMbr(
 }
 
 export function calculateRegistryLockerBoxCreateMbr(
-  locker_owner: string,
+  locker_owner: Address,
 ): number {
   const uint64Type = new ABIUintType(64);
   return calculateBoxMbr(
-    new Uint8Array([
-      ...Buffer.from("cl-"),
-      ...decodeAddress(locker_owner).publicKey,
-    ]),
+    new Uint8Array([...Buffer.from("cl-"), ...locker_owner.publicKey]),
     uint64Type.byteLen(), // UInt64 is 8 bytes - 800 is microalgos
     "create",
   );
@@ -275,12 +269,12 @@ export function calculateProductDiscountBoxCreateMbr(): number {
 }
 
 export function calculateProductSubscriptionBoxCreateMbr(
-  subscriberAddress: string,
+  subscriberAddress: Address,
 ): number {
   const uint64TypeByteLen = new ABIUintType(64).byteLen();
   const subscriptionTypeByteLen = uint64TypeByteLen * 5; // 5 Uint64s in Subscription tuple
   return calculateBoxMbr(
-    decodeAddress(subscriberAddress).publicKey,
+    subscriberAddress.publicKey,
     subscriptionTypeByteLen,
     "create",
   );
@@ -447,6 +441,12 @@ export function parseTokenProductGlobalState(input: AppState) {
   return output;
 }
 
-export function encodeStringKey(key: string): Uint8Array {
-  return new Uint8Array(Buffer.from(key, "utf-8"));
+// Cast the resulting buffer to `Uint8Array<ArrayBuffer>` to satisfy
+// the stricter type expected by the SDK (i.e. `Uint8Array<ArrayBuffer>`).
+// This avoids the mismatch between `Uint8Array<ArrayBufferLike>` (default)
+// and the required `Uint8Array<ArrayBuffer>`.
+export function encodeStringKey(key: string): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(
+    Buffer.from(key, "utf-8"),
+  ) as unknown as Uint8Array<ArrayBuffer>;
 }

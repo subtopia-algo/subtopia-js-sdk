@@ -4,7 +4,6 @@
 // =============================================================================
 
 import { TransactionSignerAccount } from "@algorandfoundation/algokit-utils/types/account";
-import AlgodClient from "algosdk/dist/types/client/v2/algod/algod";
 import {
   ChainType,
   DiscountType,
@@ -12,6 +11,7 @@ import {
   LockerType,
   ProductType,
 } from "../types/enums";
+import algosdk, { Address } from "algosdk";
 
 // === Boxes ===
 
@@ -39,7 +39,7 @@ export interface SubscriptionRecord {
 }
 
 export interface SubscriberRecord {
-  address: string;
+  address: Address;
   subscription: SubscriptionRecord;
 }
 
@@ -66,7 +66,7 @@ export interface DiscountRecord extends BaseDiscountRecord {
  */
 export interface AssetMetadata {
   index: number;
-  creator: string;
+  creator: Address;
   name: string;
   decimals: number;
   unitName: string;
@@ -85,7 +85,7 @@ export interface DiscountMetadata extends BaseDiscountRecord {
 interface ProductGlobalState {
   productName: string;
   subscriptionName: string;
-  manager: string;
+  manager: Address;
   price: number;
   totalSubs: number;
   maxSubs: number;
@@ -111,7 +111,7 @@ export interface ProductState extends ProductGlobalState {
  */
 
 export interface RegistryInitParams {
-  algodClient: AlgodClient;
+  algodClient: algosdk.Algodv2;
   creator: TransactionSignerAccount;
   chainType: ChainType;
   timeout?: number;

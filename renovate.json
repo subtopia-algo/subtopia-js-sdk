@@ -1,49 +1,32 @@
 {
-  "extends": [
-    "config:recommended"
-  ],
+  "extends": ["config:recommended"],
   "semanticCommits": "enabled",
   "ignoreDeps": [],
   "schedule": "before 3am on the first day of the month",
-  "assignees": [
-    "aorumbayev"
-  ],
-  "baseBranches": [
-    "main"
-  ],
+  "assignees": ["aorumbayev"],
+  "baseBranches": ["main"],
   "separateMajorMinor": true,
   "rebaseWhen": "behind-base-branch",
   "lockFileMaintenance": {
     "enabled": true,
-    "extends": [
-      "schedule:monthly"
-    ],
+    "extends": ["schedule:monthly"],
     "automerge": true
   },
   "packageRules": [
     {
-      "matchCategories": [
-        "python"
-      ],
+      "matchCategories": ["python"],
       "enabled": false
     },
     {
-      "matchCategories": [
-        "docker"
-      ],
+      "matchCategories": ["docker"],
       "enabled": true
     },
     {
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
+      "matchUpdateTypes": ["minor", "patch"],
       "groupName": "all non-major dependencies",
       "groupSlug": "all-minor-patch",
       "automerge": true,
-      "matchPackageNames": [
-        "*"
-      ]
+      "matchPackageNames": ["*"]
     }
   ]
 }

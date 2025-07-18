@@ -5,6 +5,22 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "author": "info@subtopia.io",
   "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./core": {
+      "types": "./dist/types/core/index.d.ts",
+      "import": "./dist/esm/core/index.js",
+      "require": "./dist/cjs/core/index.js"
+    }
+  },
+  "sideEffects": false,
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build && cpy package.json README.md dist",
     "test": "vitest run --coverage",
@@ -20,16 +36,18 @@
     "algosdk": "^3.2.0"
   },
   "devDependencies": {
-    "ajv": "^8.5.0",
+    "@algorandfoundation/algokit-utils-debug": "^1.0.4",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/exec": "6.0.3",
     "@semantic-release/git": "10.0.1",
     "@semantic-release/npm": "12.0.1",
     "@semantic-release/release-notes-generator": "14.0.3",
     "@types/node": "^20.17.48",
+    "@types/react": "^19.1.8",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
     "@vitest/coverage-v8": "^3.1.4",
+    "ajv": "^8.5.0",
     "commitizen": "4.3.1",
     "conventional-changelog-conventionalcommits": "^8.0.0",
     "cpy-cli": "^5.0.0",
@@ -41,6 +59,7 @@
     "glob": "^11.0.2",
     "globals": "^15.15.0",
     "prettier": "^3.5.3",
+    "react": "^19.1.0",
     "semantic-release": "24.2.5",
     "tslib": "^2.8.1",
     "typescript": "^5.8.3",

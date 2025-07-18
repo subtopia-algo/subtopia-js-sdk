@@ -1,180 +1,210 @@
-<p align="center"><img  width=100%  src="https://bafybeietopj64xoicecmuruwcn7n2vijfgffrcv3ur4vw3qh477ezllchm.ipfs.nftstorage.link/" /></p>
+# Subtopia JavaScript SDK
 
-<p align="center">
-    <a href="https://www.npmjs.com/package/subtopia-js-sdk"><img src="https://badge.fury.io/js/subtopia-js-sdk.svg" alt="npm version"></a>
-    <a href="https://www.npmjs.com/package/subtopia-js-sdk" >
-    <img src="https://img.shields.io/npm/types/subtopia-js-sdk"/>
-    </a>
-    <a href="https://codecov.io/gh/subtopia-algo/subtopia-js-sdk" >
-    <img src="https://codecov.io/gh/subtopia-algo/subtopia-js-sdk/branch/main/graph/badge.svg?token=FEJBE5IAW5"/>
-    </a>
-    <a href="https://subtopia.io"><img src="https://img.shields.io/badge/platform-link-cyan.svg" /></a>
-    <a href="https://algorand.com"><img src="https://img.shields.io/badge/Powered by-Algorand-black.svg" /></a>
-</p>
+[![npm version](https://badge.fury.io/js/subtopia-js-sdk.svg)](https://badge.fury.io/js/subtopia-js-sdk)
+[![types included](https://badgen.net/npm/types/subtopia-js-sdk)](https://www.npmjs.com/package/subtopia-js-sdk)
+[![codecov](https://codecov.io/gh/subtopia-algo/subtopia-js-sdk/branch/main/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/subtopia-algo/subtopia-js-sdk)
+
+A TypeScript SDK for interacting with Subtopia on the Algorand blockchain. This SDK provides pure, stateless functions that wrap the typed clients for easy integration with any JavaScript framework.
+
+## Features
+
+- 🏗️ **Pure Functions**: Stateless functions that work with any state management solution
+- 🌳 **Tree-Shakable**: Import only what you need for smaller bundle sizes
+- 🔄 **Auto Resource Population**: Leverages AlgoKit Utils for automatic resource management
+- 💰 **Automatic Fee Calculation**: Built-in support for inner transaction fees
+- 🔥 **Type Safety**: Full TypeScript support with generated typed clients
+- 🚀 **Optimized for Public Gateways**: Batch operations to minimize HTTP calls
+
+## Installation
+
+```bash
+# npm
+npm install subtopia-js-sdk @algorandfoundation/algokit-utils algosdk
+
+# yarn
+yarn add subtopia-js-sdk @algorandfoundation/algokit-utils algosdk
+
+# pnpm
+pnpm add subtopia-js-sdk @algorandfoundation/algokit-utils algosdk
+```
+
+### Peer Dependencies
+
+- `@algorandfoundation/algokit-utils`: ^9.1.0
+- `algosdk`: ^3.2.0
+
+## Quick Start
+
+```typescript
+import { AlgorandClient } from "@algorandfoundation/algokit-utils";
+import * as Subtopia from "subtopia-js-sdk/core";
+
+// Initialize
+const algorand = AlgorandClient.fromEnvironment();
+const config = {
+  algorand,
+  chainType: Subtopia.ChainType.TESTNET,
+};
+
+// Create a product
+const product = await Subtopia.createProduct(config, {
+  creator: "CREATOR_ADDRESS",
+  name: "Premium Subscription",
+  subscriptionName: "Pro Plan",
+  price: 1000000n, // 1 ALGO
+  duration: 2592000n, // 30 days
+});
+
+// Subscribe to a product
+const subscription = await Subtopia.subscribe(config, {
+  productId: product.productId,
+  subscriber: "SUBSCRIBER_ADDRESS",
+});
+
+// Check subscription status
+const isActive = await Subtopia.isActiveSubscriber(
+  config,
+  product.productId,
+  "SUBSCRIBER_ADDRESS",
+);
+```
+
+## Core API Reference
+
+### Configuration
+
+```typescript
+interface SubtopiaConfig {
+  algorand: AlgorandClient;
+  registryId?: bigint;
+  chainType?: ChainType;
+  timeout?: number;
+}
+```
+
+### Product Management
+
+- `createProduct(config, params)` - Create a new subscription product
+- `getProductState(config, productId)` - Get product details
+- `enableProduct(config, params)` - Enable a product (manager only)
+- `disableProduct(config, params)` - Disable a product (manager only)
+- `transferProduct(config, params)` - Transfer ownership
+- `deleteProduct(config, params)` - Delete a product
+
+### Subscription Management
+
+- `subscribe(config, params)` - Subscribe to a product
+- `getSubscription(config, productId, subscriber)` - Get subscription details
+- `isActiveSubscriber(config, productId, subscriber)` - Check subscription status
+- `claimSubscription(config, params)` - Claim a subscription NFT
+- `transferSubscription(config, params)` - Transfer a subscription
+- `deleteSubscription(config, params)` - Cancel a subscription
+
+### Batch Operations (Optimized for Public Gateways)
+
+- `getSubscriptionBatch(config, productIds, subscriber)` - Get subscriptions for multiple products
+- `isActiveSubscriberBatch(config, productIds, subscriber)` - Check active status for multiple products
+- `getProductSubscriptions(config, productId, activeOnly?)` - Get all subscriptions for a product
+
+### Locker Management
+
+- `getLocker(config, creator, type?)` - Get locker for a creator
+- `createLocker(config, creator, type?)` - Create a new locker
+- `getOrCreateLocker(config, creator)` - Get existing or create new locker
+
+## Usage with State Management
+
+The SDK is designed to work with any state management solution. Here are examples with popular libraries:
+
+### With SWR
+
+```typescript
+import useSWR from "swr";
+import * as Subtopia from "subtopia-js-sdk/core";
+
+function useProduct(productId: bigint) {
+  const { data, error, mutate } = useSWR(["product", productId], () =>
+    Subtopia.getProductState(config, productId),
+  );
+
+  return {
+    product: data,
+    isLoading: !error && !data,
+    isError: error,
+    refresh: mutate,
+  };
+}
+```
+
+### With React Query
+
+```typescript
+import { useQuery } from "@tanstack/react-query";
+import * as Subtopia from "subtopia-js-sdk/core";
+
+function useProduct(productId: bigint) {
+  return useQuery({
+    queryKey: ["product", productId],
+    queryFn: () => Subtopia.getProductState(config, productId),
+  });
+}
+```
+
+### With Redux Toolkit
+
+```typescript
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import * as Subtopia from "subtopia-js-sdk/core";
+
+export const fetchProduct = createAsyncThunk(
+  "products/fetch",
+  async (productId: bigint) => {
+    return await Subtopia.getProductState(config, productId);
+  },
+);
+```
+
+## Direct Client Access
+
+For advanced use cases, you can access the typed clients directly:
+
+```typescript
+import { TokenBasedProductClient } from "subtopia-js-sdk";
+
+const client = new TokenBasedProductClient({
+  algorand,
+  appId: 123456n,
+});
+
+// Direct ABI method calls
+const state = await client.state.global.getAll();
+const version = await client.getVersion();
+```
+
+## Best Practices
+
+1. **Use Batch Operations**: When fetching data for multiple products, use batch operations to minimize HTTP calls.
+
+2. **Error Handling**: All async operations can throw errors. Use try-catch blocks appropriately.
+
+3. **Type Safety**: Leverage TypeScript's type system for better development experience.
+
+4. **Tree Shaking**: Import only the functions you need to keep bundle sizes small.
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## License
+
+See [LICENSE](LICENSE.md) file for details.
+
+## Support
+
+- Documentation: [https://docs.subtopia.io](https://docs.subtopia.io)
+- Discord: [Join our community](https://discord.gg/subtopia)
+- GitHub Issues: [Report bugs or request features](https://github.com/subtopia-algo/subtopia-js-sdk/issues)
 
 ---
 
-## 🌟 About
-
-Subtopia JS SDK is a JavaScript library for interacting with the Subtopia Platform. It provides a simple interface for creating and managing `Products` (Contracts that are responsible for subscription management).
-
-> For detailed documentation, refer to [sdk.subtopia.io](https://sdk.subtopia.io).
-
-### ⚡ Examples
-
-- [subtopia-js-examples](https://github.com/subtopia-algo/subtopia-js-examples) - A separate repository with examples of using the Subtopia JS SDK in React, Svelte, Vue and NextJS.
-
-## 📦 Installation
-
-### Install the package:
-
-```bash
-# with npm
-npm install subtopia-js-sdk
-
-# or with yarn
-yarn add subtopia-js-sdk
-```
-
-### Import the package:
-
-```ts
-import { SubtopiaClient, SubtopiaRegistryClient } from "subtopia-js-sdk";
-```
-
-## 🛠️ Usage
-
-Example snippets of using the Subtopia JS SDK.
-
-### **Subscriptions**
-
-### Purchasing a subscription:
-
-```ts
-import {
-  SubtopiaClient,
-  SubtopiaRegistryClient,
-  ChainType,
-  SUBTOPIA_REGISTRY_ID
-} from "subtopia-js-sdk";
-// ...  your code
-
-const subtopiaClient = await SubtopiaClient.init({
-  algodClient: PUT_ALGOD_INSTANCE_HERE,
-  chainType: PUT_CHAIN_TYPE_ENUM_HERE // 'testnet'|'mainnet'|'localnet'
-  productID: PUT_PRODUCT_ID_HERE,
-  registryID: SUBTOPIA_REGISTRY_ID(ChainType.{YOUR_CHAIN_TYPE_HERE}),
-  creator: { addr: PUT_WALLET_ADDRESS, signer: PUT_WALLET_SIGNER },
-});
-
-const response = await subtopiaClient.createSubscription(
-  { subscriber: { addr: PUT_WALLET_ADDRESS, signer: PUT_WALLET_SIGNER } },
-);
-
-console.log(response.txID); // response is of type string
-
-// ... rest of your code
-```
-
-### Subscription lookup:
-
-```ts
-// ... your code
-const subscriptionRecord = await subtopiaClient.getSubscription({
-  subscriberAddress: PUT_SUBSCRIBER_ADDRESS,
-  algodClient: PUT_ALGOD_INSTANCE_HERE,
-});
-
-// SubscriptionRecord (throws Error if not subscribed)
-console.log(subscriptionRecord);
-// ... rest of your code
-```
-
-### Unsubscribing:
-
-```ts
-// ... your code
-const deleteResult = await subtopiaClient.deleteSubscription({
-  subscriber: {
-    addr: PUT_SUBSCRIBER_ADDRESS,
-    signer: PUT_SUBSCRIBER_SIGNER,
-  },
-  subscriptionID: PUT_SUBSCRIPTION_ID,
-});
-
-// Transaction ID of the unsubscribe transaction
-console.log(deleteResult.txID);
-// ... your code
-```
-
-### Transfering subscription:
-
-```ts
-// ... your code
-const transferResult = await subtopiaClient.transferSubscription({
-  oldSubscriber: {
-    addr: PUT_OLD_SUBSCRIBER_ADDRESS,
-    signer: PUT_OLD_SUBSCRIBER_SIGNER,
-  },
-  newSubscriberAddress: PUT_NEW_SUBSCRIBER_ADDRESS,
-  subscriptionID: PUT_SUBSCRIPTION_ID,
-});
-
-// Transaction ID of the transfer transaction
-console.log(transferResult.txID);
-// ... your code
-```
-
-### **Discounts**
-
-### Creating a discount:
-
-```ts
-// ... your code
-
-const subtopiaRegistryClient = await SubtopiaRegistryClient.init({
-  algodClient: PUT_ALGOD_INSTANCE_HERE,
-  creator: { addr: PUT_WALLET_ADDRESS, signer: PUT_WALLET_SIGNER },
-  chainType: PUT_CHAIN_TYPE_HERE,
-});
-
-const discount = await subtopiaRegistryClient.createDiscount({
-  discountType: PUT_DISCOUNT_TYPE_HERE, // number - the type of discount to apply. FIXED or PERCENTAGE
-  discountValue: PUT_DISCOUNT_VALUE_HERE, // number - the discount to be deducted from the subscription price
-  expiresIn: PUT_EXPIRATION_TIME_HERE, // (Optional) Set 0 for discount to never expire. Else set number of seconds to append to unix timestamp at time of creation.
-});
-
-console.log(discount.txID); // response is of type string
-
-// ... rest of your code
-```
-
-### Discount lookup:
-
-```ts
-// ... your code
-
-const discount = await subtopiaClient.getDiscount();
-
-// DiscountRecord (throws Error if no active discount)
-console.log(discount);
-// ... rest of your code
-```
-
-### Deleting a discount:
-
-```ts
-// ... your code
-
-const deleteResult = await subtopiaRegistryClient.deleteDiscount();
-
-// Transaction ID of the delete discount transaction
-console.log(deleteResult.txID);
-// ... your code
-```
-
-## ⭐️ Stargazers
-
-Special thanks to everyone who starred the repository ❤️
-
-[![Stargazers repo roster for @subtopia-algo/subtopia-js-sdk](https://reporoster.com/stars/dark/subtopia-algo/subtopia-js-sdk)](https://github.com/subtopia-algo/subtopia-js-sdk/stargazers)
+Built with ❤️ by the Subtopia team

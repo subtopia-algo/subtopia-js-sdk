@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [
     dts({
       exclude: [],
+      outDir: "dist/types",
       beforeWriteFile: (filePath, content) => {
         return {
           filePath: filePath.replace("src/", ""),
@@ -24,8 +25,8 @@ export default defineConfig({
     lib: {
       entry: path.resolve(__dirname, "src/index.ts"),
       name: "subtopia",
-      formats: ["es"],
-      fileName: (format) => `index.${format}.js`,
+      formats: ["es", "cjs"],
+      fileName: (format) => `${format}/index.js`,
     },
     rollupOptions: {
       external: [...Object.keys(packageJson.peerDependencies)],
@@ -39,10 +40,20 @@ export default defineConfig({
             fileURLToPath(new URL(file, import.meta.url)),
           ]),
       ),
-      output: {
-        assetFileNames: "assets/[name][extname]",
-        entryFileNames: "[name].js",
-      },
+      output: [
+        {
+          format: "es",
+          dir: "dist/esm",
+          entryFileNames: "[name].js",
+          assetFileNames: "assets/[name][extname]",
+        },
+        {
+          format: "cjs",
+          dir: "dist/cjs",
+          entryFileNames: "[name].js",
+          assetFileNames: "assets/[name][extname]",
+        },
+      ],
     },
   },
 });

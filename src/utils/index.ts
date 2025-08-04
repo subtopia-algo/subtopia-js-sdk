@@ -12,7 +12,6 @@ import algosdk, {
   ABIType,
   ABIArrayDynamicType,
   ABIUintType,
-  encodeAddress,
   Address,
 } from "algosdk";
 
@@ -431,7 +430,7 @@ export function parseTokenProductGlobalState(input: AppState) {
   for (const key in input) {
     if (keyMap[key]) {
       if (keyMap[key] === "manager") {
-        output[keyMap[key]] = encodeAddress(
+        output[keyMap[key]] = new Address(
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           input[key].valueRaw,

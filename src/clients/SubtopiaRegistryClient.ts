@@ -5,7 +5,6 @@
 
 import algosdk, {
   algosToMicroalgos,
-  decodeAddress,
   decodeUint64,
   encodeAddress,
   AtomicTransactionComposer,
@@ -438,7 +437,7 @@ export class SubtopiaRegistryClient {
         registryID,
         new Uint8Array([
           ...getLockerBoxPrefix(lockerType),
-          ...decodeAddress(String(ownerAddress)).publicKey,
+          ...ownerAddress.publicKey,
         ]),
       )
       .do()
@@ -486,7 +485,7 @@ export class SubtopiaRegistryClient {
         appIndex: this.appID,
         name: new Uint8Array([
           ...getLockerBoxPrefix(LockerType.CREATOR),
-          ...decodeAddress(String(newOwnerAddress)).publicKey,
+          ...newOwnerAddress.publicKey,
         ]),
       },
     ];

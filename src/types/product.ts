@@ -16,15 +16,15 @@ interface ProductGlobalState {
   productName: string;
   subscriptionName: string;
   manager: Address;
-  price: number;
-  totalSubs: number;
-  maxSubs: number;
-  coinID: number;
+  price: bigint;
+  totalSubs: bigint;
+  maxSubs: bigint;
+  coinID: bigint;
   productType: ProductType;
   duration: Duration;
-  lifecycle: number;
-  createdAt: number;
-  oracleID: number;
+  lifecycle: bigint;
+  createdAt: bigint;
+  oracleID: bigint;
   unitName: string;
   imageURL: string;
 }
@@ -42,8 +42,8 @@ export interface ProductLifecycleStateUpdate {
 
 export interface ProductDiscountCreationParams {
   discountType: DiscountType;
-  discountValue: number;
-  expiresIn: number;
+  discountValue: bigint;
+  expiresIn: bigint;
   parseWholeUnits?: boolean;
 }
 
@@ -54,17 +54,17 @@ export interface ProductSubscriptionCreationParams {
 export interface ProductSubscriptionTransferParams {
   oldSubscriber: TransactionSignerAccount;
   newSubscriberAddress: Address;
-  subscriptionID: number;
+  subscriptionID: bigint;
 }
 
 export interface ProductSubscriptionClaimParams {
   subscriber: TransactionSignerAccount;
-  subscriptionID: number;
+  subscriptionID: bigint;
 }
 
 export interface ProductSubscriptionDeletionParams {
   subscriber: TransactionSignerAccount;
-  subscriptionID: number;
+  subscriptionID: bigint;
 }
 
 export interface ProductSubscriberCheckParams {
@@ -79,8 +79,8 @@ export interface ProductSubscriptionRetrievalParams {
 export interface ProductInitParams {
   algodClient: algosdk.Algodv2;
   chainType: ChainType;
-  productID: number;
+  productID: bigint;
   creator: TransactionSignerAccount;
-  registryID?: number;
+  registryID?: bigint;
   timeout?: number;
 }

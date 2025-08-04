@@ -78,10 +78,10 @@ export class SubtopiaRegistryClient {
   algodClient: algosdk.Algodv2;
   creator: TransactionSignerAccount;
   version: string;
-  appID: number;
+  appID: bigint;
   appAddress: Address;
   appSpec: ApplicationSpec;
-  oracleID: number;
+  oracleID: bigint;
   timeout: number;
 
   protected constructor({
@@ -96,10 +96,10 @@ export class SubtopiaRegistryClient {
   }: {
     algodClient: algosdk.Algodv2;
     creator: TransactionSignerAccount;
-    appID: number;
+    appID: bigint;
     appAddress: Address;
     appSpec: ApplicationSpec;
-    oracleID: number;
+    oracleID: bigint;
     version: string;
     timeout: number;
   }) {
@@ -149,7 +149,7 @@ export class SubtopiaRegistryClient {
       registryId,
       algodClient,
     );
-    const oracleID = Number(registryGlobalState.oracle_id.value);
+    const oracleID = BigInt(registryGlobalState.oracle_id.value);
 
     const versionAtc = new AtomicTransactionComposer();
     versionAtc.addMethodCall({
@@ -186,21 +186,19 @@ export class SubtopiaRegistryClient {
     return new SubtopiaRegistryClient({
       algodClient: algodClient,
       creator: creator,
-      appID: registryId,
+      appID: BigInt(registryId),
       appAddress: registryAddress,
       appSpec: {
         approval: registrySpec.params.approvalProgram,
         clear: registrySpec.params.clearStateProgram,
-        globalNumUint:
-          Number(registrySpec.params.globalStateSchema?.numUint) || 0,
+        globalNumUint: registrySpec.params.globalStateSchema?.numUint || 0,
         globalNumByteSlice:
-          Number(registrySpec.params.globalStateSchema?.numByteSlice) || 0,
-        localNumUint:
-          Number(registrySpec.params.localStateSchema?.numUint) || 0,
+          registrySpec.params.globalStateSchema?.numByteSlice || 0,
+        localNumUint: registrySpec.params.localStateSchema?.numUint || 0,
         localNumByteSlice:
-          Number(registrySpec.params.localStateSchema?.numByteSlice) || 0,
+          registrySpec.params.localStateSchema?.numByteSlice || 0,
       },
-      oracleID: Number(oracleID),
+      oracleID: oracleID,
       version: version,
       timeout: timeout,
     });
@@ -247,24 +245,24 @@ export class SubtopiaRegistryClient {
    * The fee is calculated based on the minimum balance requirements for creating and opting into an application,
    * and the minimum balance requirement for creating a product.
    * If a coinID is provided, the minimum balance requirement for opting into an ASA is also added to the fee.
-   * @param {number} coinID - The ID of the coin. If provided, the minimum balance requirement for opting into an ASA is added to the fee.
+   * @param {bigint} coinID - The ID of the coin. If provided, the minimum balance requirement for opting into an ASA is added to the fee.
    * @returns {Promise<number>} A promise that resolves to the product creation fee in microAlgos.
    */
-  public async getProductCreationFee(coinID = 0): Promise<number> {
+  public async getProductCreationFee(coinID = 0n): Promise<number> {
     return (
       algosToMicroalgos(MIN_APP_OPTIN_MBR) +
       algosToMicroalgos(MIN_APP_CREATE_MBR) +
       (await calculateProductCreationMbr(this.appSpec, 1, 9, 7)) +
-      (coinID > 0 ? algosToMicroalgos(MIN_ASA_OPTIN_MBR) : 0)
+      (coinID > 0n ? algosToMicroalgos(MIN_ASA_OPTIN_MBR) : 0)
     );
   }
 
   /**
    * This method is used to calculate the product creation platform fee.
    * The fee is always returns in microAlgos equivalent to the current price of Algo in cents.
-   * @returns {Promise<number>} A promise that resolves to the product creation platform fee in microAlgos.
+   * @returns {Promise<bigint>} A promise that resolves to the product creation platform fee in microAlgos.
    */
-  public async getProductCreationPlatformFee(): Promise<number> {
+  public async getProductCreationPlatformFee(): Promise<bigint> {
     const priceInCents = PRODUCT_CREATION_PLATFORM_FEE_CENTS;
     const computePlatformFeeAtc = new AtomicTransactionComposer();
     computePlatformFeeAtc.addMethodCall({
@@ -308,7 +306,7 @@ export class SubtopiaRegistryClient {
       request,
     );
 
-    return Number(response.methodResults[0].returnValue);
+    return BigInt(response.methodResults[0].returnValue as number);
   }
 
   /**
@@ -333,16 +331,16 @@ export class SubtopiaRegistryClient {
    * If the locker is new, the locker creation fee is also added.
    * @param {string} creatorAddress - The address of the creator.
    * @param {boolean} isNewLocker - Whether the locker is new.
-   * @param {number} coinID - The ID of the coin.
+   * @param {bigint} coinID - The ID of the coin.
    * @returns {number} The locker transfer fee.
    */
   public getLockerTransferFee(
     creatorAddress: Address,
     isNewLocker: boolean,
-    coinID: number,
+    coinID: bigint,
   ): number {
     let fee = algosToMicroalgos(MIN_APP_OPTIN_MBR);
-    fee = coinID ? fee + algosToMicroalgos(MIN_ASA_OPTIN_MBR) : fee;
+    fee = coinID > 0n ? fee + algosToMicroalgos(MIN_ASA_OPTIN_MBR) : fee;
     return isNewLocker ? fee + this.getLockerCreationFee(creatorAddress) : fee;
   }
 
@@ -351,11 +349,11 @@ export class SubtopiaRegistryClient {
    * The locker creation fee is calculated and paid by the creator.
    * The method returns the transaction ID and the locker ID.
    * @param {RegistryCreateLockerParams} params - An object containing the parameters for locker creation.
-   * @returns {Promise<{txID: string, lockerID: number}>} A promise that resolves to an object containing the transaction ID and the locker ID.
+   * @returns {Promise<{txID: string, lockerID: bigint}>} A promise that resolves to an object containing the transaction ID and the locker ID.
    */
   public async createLocker(params: RegistryCreateLockerParams): Promise<{
     txID: string;
-    lockerID: number;
+    lockerID: bigint;
   }> {
     const { creator, lockerType } = params;
     const feeAmount = this.getLockerCreationFee(creator.addr);
@@ -425,7 +423,7 @@ export class SubtopiaRegistryClient {
 
     return {
       txID: response.txIDs.pop() as string,
-      lockerID: Number(response.methodResults[0].returnValue),
+      lockerID: BigInt(response.methodResults[0].returnValue as string),
     };
   }
 
@@ -434,7 +432,7 @@ export class SubtopiaRegistryClient {
     algodClient,
     ownerAddress,
     lockerType,
-  }: RegistryGetLockerParams): Promise<number | null> {
+  }: RegistryGetLockerParams): Promise<bigint | null> {
     const boxValue = await algodClient
       .getApplicationBoxByName(
         registryID,
@@ -446,7 +444,7 @@ export class SubtopiaRegistryClient {
       .do()
       .catch(() => null);
 
-    return boxValue ? decodeUint64(boxValue.value, "safe") : null;
+    return boxValue ? BigInt(decodeUint64(boxValue.value, "bigint")) : null;
   }
 
   /**
@@ -512,9 +510,9 @@ export class SubtopiaRegistryClient {
     );
     const productState = parseTokenProductGlobalState(rawProductState);
 
-    const productCoinID = productState.coin_id as number;
+    const productCoinID = BigInt(productState.coin_id);
     const appCallFee =
-      (newOwnerLockerID ? 10 : 11) + (productCoinID > 0 ? 3 : 0);
+      (newOwnerLockerID ? 10 : 11) + (productCoinID > 0n ? 3 : 0);
     const payFee = this.getLockerTransferFee(
       newOwnerAddress,
       !newOwnerLockerID,
@@ -590,11 +588,11 @@ export class SubtopiaRegistryClient {
    * This method is used to create a new product.
    * The method returns the transaction ID and the product ID.
    * @param {RegistryCreateProductParams} params - An object containing the parameters for product creation.
-   * @returns {Promise<{txID: string, productID: number}>} A promise that resolves to an object containing the transaction ID and the product ID.
+   * @returns {Promise<{txID: string, productID: bigint}>} A promise that resolves to an object containing the transaction ID and the product ID.
    */
   public async createProduct(params: RegistryCreateProductParams): Promise<{
     txID: string;
-    productID: number;
+    productID: bigint;
   }> {
     const {
       productName,
@@ -602,8 +600,8 @@ export class SubtopiaRegistryClient {
       subscriptionName,
       price,
       lockerID,
-      maxSubs = 0,
-      coinID = 0,
+      maxSubs = 0n,
+      coinID = 0n,
       duration = Duration.UNLIMITED,
       unitName = SUBTOPIA_DEFAULT_UNIT_NAME,
       imageUrl = SUBTOPIA_DEFAULT_IMAGE_URL,
@@ -708,11 +706,7 @@ export class SubtopiaRegistryClient {
         productType,
         subscriptionName,
         parseWholeUnits
-          ? normalizePrice(
-              price,
-              asset.decimals,
-              PriceNormalizationType.RAW,
-            ).valueOf()
+          ? normalizePrice(price, asset.decimals, PriceNormalizationType.RAW)
           : price,
         maxSubs,
         asset.index,
@@ -770,7 +764,7 @@ export class SubtopiaRegistryClient {
       signer: this.creator.signer,
       suggestedParams: await getParamsWithFeeCount(
         this.algodClient,
-        coinID > 0 ? 11 : 8,
+        coinID > 0n ? 11 : 8,
       ),
     });
 
@@ -783,7 +777,7 @@ export class SubtopiaRegistryClient {
 
     return {
       txID: response.txIDs.pop() as string,
-      productID: Number(response.methodResults[0].returnValue),
+      productID: BigInt(response.methodResults[0].returnValue as string),
     };
   }
 

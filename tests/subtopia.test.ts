@@ -108,9 +108,9 @@ describe("subtopia", function () {
         productName: "Notflix",
         productType: ProductType.TOKEN_BASED,
         subscriptionName: "Premium",
-        price: algos(1).microAlgos,
-        maxSubs: 0,
-        coinID: 0,
+        price: BigInt(algos(1).microAlgos),
+        maxSubs: 0n,
+        coinID: 0n,
         lockerID: lockerID,
       });
 
@@ -125,7 +125,7 @@ describe("subtopia", function () {
         algodClient: algodClient,
         productID: response.productID,
         creator: creatorSignerAccount,
-        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        registryID: BigInt(SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET)),
         chainType: ChainType.LOCALNET,
       });
 
@@ -134,7 +134,7 @@ describe("subtopia", function () {
       });
 
       const productClientGlobalState = await productClient.getAppState();
-      expect(productClientGlobalState.totalSubs).toBe(1);
+      expect(productClientGlobalState.totalSubs).toBe(1n);
 
       expect(subscribeResponse.subscriptionID).toBeGreaterThan(0);
 
@@ -186,7 +186,7 @@ describe("subtopia", function () {
       const content = await productClient.getAppState();
 
       // Assert
-      expect(content.price).toBe(1);
+      expect(content.price).toBe(1n);
 
       const disableProductResponse = await productClient.disable();
 
@@ -215,9 +215,9 @@ describe("subtopia", function () {
         productName: "Hooli",
         productType: ProductType.TOKEN_BASED,
         subscriptionName: "Pro",
-        price: algos(2).microAlgos,
-        maxSubs: 0,
-        coinID: 0,
+        price: BigInt(algos(2).microAlgos),
+        maxSubs: 0n,
+        coinID: 0n,
         lockerID: lockerID,
       });
 
@@ -227,14 +227,14 @@ describe("subtopia", function () {
         algodClient: algodClient,
         productID: response.productID,
         creator: creatorSignerAccount,
-        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        registryID: BigInt(SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET)),
         chainType: ChainType.LOCALNET,
       });
 
       const createDiscountResponse = await productClient.createDiscount({
         discountType: DiscountType.FIXED,
-        discountValue: Number(algos(1).microAlgos),
-        expiresIn: 0,
+        discountValue: BigInt(algos(1).microAlgos),
+        expiresIn: 0n,
       });
 
       expect(createDiscountResponse.txID).toBeDefined();
@@ -263,7 +263,7 @@ describe("subtopia", function () {
         throw new Error("Discount not found");
       }
       expect(getDiscountResponse.discountValue).toBe(
-        Number(algos(1).microAlgos),
+        BigInt(algos(1).microAlgos),
       );
 
       const transferResponse = await subtopiaRegistryClient.transferProduct({
@@ -277,7 +277,7 @@ describe("subtopia", function () {
         algodClient: algodClient,
         productID: response.productID,
         creator: newOwner,
-        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        registryID: BigInt(SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET)),
         chainType: ChainType.LOCALNET,
       });
 
@@ -307,7 +307,7 @@ describe("subtopia", function () {
 
       const deleteProductResponse = await newOwnerRegistryClient.deleteProduct({
         productID: productClient.appID,
-        lockerID: newOwnerLockerID as number,
+        lockerID: newOwnerLockerID as bigint,
       });
 
       expect(deleteProductResponse.txID).toBeDefined();
@@ -327,9 +327,9 @@ describe("subtopia", function () {
         productName: "Freeflix",
         productType: ProductType.TOKEN_BASED,
         subscriptionName: "Free",
-        price: 0,
-        maxSubs: 0,
-        coinID: 0,
+        price: 0n,
+        maxSubs: 0n,
+        coinID: 0n,
         lockerID: lockerID,
       });
 
@@ -338,7 +338,7 @@ describe("subtopia", function () {
         algodClient: algodClient,
         productID: response.productID,
         creator: creatorSignerAccount,
-        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        registryID: BigInt(SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET)),
         chainType: ChainType.LOCALNET,
       });
 
@@ -356,7 +356,7 @@ describe("subtopia", function () {
       const platformFee = await productClient.getSubscriptionPlatformFee();
 
       // Assert that the platform fee is 0
-      expect(platformFee).toBe(0);
+      expect(platformFee).toBe(0n);
     },
   );
 
@@ -382,9 +382,9 @@ describe("subtopia", function () {
         productName: "ASAFlix",
         productType: ProductType.TOKEN_BASED,
         subscriptionName: "Premium",
-        price: 1,
-        maxSubs: 0,
-        coinID: localnetUsdcAsaID,
+        price: 1n,
+        maxSubs: 0n,
+        coinID: BigInt(localnetUsdcAsaID),
         lockerID: lockerID,
         duration: Duration.MONTH.valueOf(),
       });
@@ -394,7 +394,7 @@ describe("subtopia", function () {
         algodClient: algodClient,
         productID: response.productID,
         creator: creatorSignerAccount,
-        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        registryID: BigInt(SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET)),
         chainType: ChainType.LOCALNET,
       });
 
@@ -425,8 +425,8 @@ describe("subtopia", function () {
         {
           sender: creatorSignerAccount,
           recipient: subscriberSigner.addr,
-          assetID: localnetUsdcAsaID,
-          amount: 1,
+          assetID: BigInt(localnetUsdcAsaID),
+          amount: 1n,
         },
         algodClient,
       );
@@ -452,9 +452,9 @@ describe("subtopia", function () {
           productName: "Hooli",
           productType: ProductType.TOKEN_BASED,
           subscriptionName: "Pro",
-          price: 10,
-          maxSubs: 0,
-          coinID: 0,
+          price: 10n,
+          maxSubs: 0n,
+          coinID: 0n,
           lockerID: lockerID,
         });
 
@@ -464,7 +464,7 @@ describe("subtopia", function () {
         algodClient: algodClient,
         productID: productCreationResponse.productID,
         creator: creatorSignerAccount,
-        registryID: SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET),
+        registryID: BigInt(SUBTOPIA_REGISTRY_ID(ChainType.LOCALNET)),
         chainType: ChainType.LOCALNET,
       });
 

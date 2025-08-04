@@ -14,7 +14,7 @@ export interface RegistryInitParams {
   /** Optional timeout duration */
   timeout?: number;
   /** Optional registry ID */
-  registryID?: number;
+  registryID?: bigint;
 }
 
 /**
@@ -38,13 +38,13 @@ export interface RegistryCreateProductParams {
   /** Name of the subscription */
   subscriptionName: string;
   /** Price of the product */
-  price: number;
+  price: bigint;
   /** ID of the locker */
-  lockerID: number;
+  lockerID: bigint;
   /** Optional maximum number of subscriptions */
-  maxSubs?: number;
+  maxSubs?: bigint;
   /** Optional coin ID */
-  coinID?: number;
+  coinID?: bigint;
   /** Optional duration of the product */
   duration?: Duration;
   /** Optional unit name */
@@ -60,9 +60,9 @@ export interface RegistryCreateProductParams {
  */
 export interface RegistryDeleteProductParams {
   /** ID of the product */
-  productID: number;
+  productID: bigint;
   /** ID of the locker */
-  lockerID: number;
+  lockerID: bigint;
 }
 
 /**
@@ -70,7 +70,7 @@ export interface RegistryDeleteProductParams {
  */
 export interface RegistryTransferProductParams {
   /** ID of the product */
-  productID: number;
+  productID: bigint;
   /** Address of the new owner */
   newOwnerAddress: Address;
 }
@@ -80,7 +80,7 @@ export interface RegistryTransferProductParams {
  */
 export interface RegistryGetLockerParams {
   /** ID of the registry */
-  registryID: number;
+  registryID: bigint;
   /** Algod client instance */
   algodClient: algosdk.Algodv2;
   /** Address of the owner */

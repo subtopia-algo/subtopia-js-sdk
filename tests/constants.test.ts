@@ -54,7 +54,7 @@ describe("Constants", () => {
 
   it("should have correct ALGO_ASSET", () => {
     expect(constants.ALGO_ASSET).toEqual({
-      index: 0,
+      index: 0n,
       creator: Address.fromString(
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
       ),

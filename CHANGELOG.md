@@ -1,3 +1,10 @@
+## [3.0.1-beta.3](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.1-beta.2...v3.0.1-beta.3) (2025-08-04)
+
+
+### Bug Fixes
+
+* uses Address object directly ([#84](https://github.com/subtopia-algo/subtopia-js-sdk/issues/84)) ([c2bc44d](https://github.com/subtopia-algo/subtopia-js-sdk/commit/c2bc44d2debc93037975d2d5a009589ab76a833e))
+
 ## [3.0.1-beta.2](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.1-beta.1...v3.0.1-beta.2) (2025-08-04)
 
 

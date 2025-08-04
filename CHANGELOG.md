@@ -1,3 +1,10 @@
+## [3.0.1-beta.2](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.1-beta.1...v3.0.1-beta.2) (2025-08-04)
+
+
+### Bug Fixes
+
+* switch to bigints ([#83](https://github.com/subtopia-algo/subtopia-js-sdk/issues/83)) ([137bdeb](https://github.com/subtopia-algo/subtopia-js-sdk/commit/137bdeb7a01ee85b4a2a85b83aac5a626c4994a8))
+
 ## [3.0.1-beta.1](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v3.0.0...v3.0.1-beta.1) (2025-06-01)
 
 # [3.0.0](https://github.com/subtopia-algo/subtopia-js-sdk/compare/v2.0.2...v3.0.0) (2025-05-19)

@@ -19,10 +19,10 @@ export interface ApplicationSpec {
  * Interface for the subscription record.
  */
 export interface SubscriptionRecord {
-  createdAt: number;
-  expiresAt: number | null;
+  createdAt: bigint;
+  expiresAt: bigint | null;
   duration: Duration;
-  subscriptionID: number;
+  subscriptionID: bigint;
   productType: ProductType;
 }
 
@@ -39,21 +39,21 @@ export interface SubscriberRecord {
  */
 export interface BaseDiscountRecord {
   discountType: DiscountType;
-  discountValue: number;
+  discountValue: bigint;
 }
 
 /**
  * Interface for the discount record.
  */
 export interface DiscountRecord extends BaseDiscountRecord {
-  createdAt: number;
-  expiresAt: number | null;
-  totalClaims: number;
+  createdAt: bigint;
+  expiresAt: bigint | null;
+  totalClaims: bigint;
 }
 
 /**
  * Interface for the discount metadata.
  */
 export interface DiscountMetadata extends BaseDiscountRecord {
-  expiresIn?: number;
+  expiresIn?: bigint;
 }

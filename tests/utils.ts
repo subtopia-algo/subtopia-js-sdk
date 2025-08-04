@@ -14,9 +14,9 @@ import { normalizePrice, optInAsset } from "../src/utils";
 import { AlgorandClient } from "@algorandfoundation/algokit-utils";
 
 export interface AssetMetadata {
-  index: number;
+  index: bigint;
   name: string;
-  total: number;
+  total: bigint;
   decimals: number;
 }
 
@@ -34,7 +34,7 @@ export async function getRandomAccount(
     txn: makePaymentTxnWithSuggestedParamsFromObject({
       sender: funderAddress,
       receiver: randomAccount.addr,
-      amount: Number(50e6),
+      amount: BigInt(50e6),
       suggestedParams: await client.getTransactionParams().do(),
     }),
     signer: funderSigner,
@@ -91,7 +91,7 @@ export async function generateRandomAsset(
   const txn = makeAssetCreateTxnWithSuggestedParamsFromObject({
     sender: sender.addr,
     suggestedParams: params,
-    total: normalizePrice(total, decimals, PriceNormalizationType.RAW),
+    total: normalizePrice(BigInt(total), decimals, PriceNormalizationType.RAW),
     decimals: decimals,
     defaultFrozen: false,
     unitName: "",
@@ -110,11 +110,11 @@ export async function generateRandomAsset(
 
   const ptx = await client.pendingTransactionInformation(txid).do();
 
-  const assetId = Number(ptx.assetIndex!);
+  const assetId = ptx.assetIndex!;
 
   return {
     index: assetId,
-    total: total,
+    total: BigInt(total),
     decimals: decimals,
     name: assetName,
   } as AssetMetadata;

@@ -31,10 +31,10 @@ export interface ApplicationSpec {
  * Interface for the subscription record.
  */
 export interface SubscriptionRecord {
-  createdAt: number;
-  expiresAt: number | null;
+  createdAt: bigint;
+  expiresAt: bigint | null;
   duration: Duration;
-  subID: number;
+  subID: bigint;
   subType: ProductType;
 }
 
@@ -48,16 +48,16 @@ export interface SubscriberRecord {
  */
 export interface BaseDiscountRecord {
   discountType: DiscountType;
-  discountValue: number;
+  discountValue: bigint;
 }
 
 /**
  * Interface for the discount record.
  */
 export interface DiscountRecord extends BaseDiscountRecord {
-  createdAt: number;
-  expiresAt: number | null;
-  totalClaims: number;
+  createdAt: bigint;
+  expiresAt: bigint | null;
+  totalClaims: bigint;
 }
 // === Common ===
 
@@ -65,7 +65,7 @@ export interface DiscountRecord extends BaseDiscountRecord {
  * Interface for the asset metadata.
  */
 export interface AssetMetadata {
-  index: number;
+  index: bigint;
   creator: Address;
   name: string;
   decimals: number;
@@ -76,7 +76,7 @@ export interface AssetMetadata {
  * Interface for the discount metadata.
  */
 export interface DiscountMetadata extends BaseDiscountRecord {
-  expiresIn?: number;
+  expiresIn?: bigint;
 }
 
 /**
@@ -86,15 +86,15 @@ interface ProductGlobalState {
   productName: string;
   subscriptionName: string;
   manager: Address;
-  price: number;
-  totalSubs: number;
-  maxSubs: number;
-  coinID: number;
+  price: bigint;
+  totalSubs: bigint;
+  maxSubs: bigint;
+  coinID: bigint;
   productType: ProductType;
   duration: Duration;
-  lifecycle: number;
-  createdAt: number;
-  oracleID: number;
+  lifecycle: bigint;
+  createdAt: bigint;
+  oracleID: bigint;
   unitName: string;
   imageURL: string;
 }
@@ -115,7 +115,7 @@ export interface RegistryInitParams {
   creator: TransactionSignerAccount;
   chainType: ChainType;
   timeout?: number;
-  registryID?: number;
+  registryID?: bigint;
 }
 
 export interface RegistryCreateLockerParams {
@@ -127,10 +127,10 @@ export interface RegistryCreateProductParams {
   productName: string;
   productType: ProductType;
   subscriptionName: string;
-  price: number;
-  lockerID: number;
-  maxSubs?: number;
-  coinID?: number;
+  price: bigint;
+  lockerID: bigint;
+  maxSubs?: bigint;
+  coinID?: bigint;
   duration?: Duration;
   unitName?: string;
   imageUrl?: string;
@@ -138,6 +138,6 @@ export interface RegistryCreateProductParams {
 }
 
 export interface RegistryDeleteProductParams {
-  productID: number;
-  lockerID: number;
+  productID: bigint;
+  lockerID: bigint;
 }

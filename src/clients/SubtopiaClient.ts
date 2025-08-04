@@ -75,15 +75,15 @@ export class SubtopiaClient {
   subscriptionName: string;
   algodClient: algosdk.Algodv2;
   creator: TransactionSignerAccount;
-  price: number;
+  price: bigint;
   coin: AssetMetadata;
-  oracleID: number;
+  oracleID: bigint;
   version: string;
-  appID: number;
+  appID: bigint;
   appAddress: Address;
   appSpec: ApplicationSpec;
   timeout: number;
-  registryID: number;
+  registryID: bigint;
 
   protected constructor({
     algodClient,
@@ -105,14 +105,14 @@ export class SubtopiaClient {
     subscriptionName: string;
     creator: TransactionSignerAccount;
     appSpec: ApplicationSpec;
-    appID: number;
+    appID: bigint;
     appAddress: Address;
-    oracleID: number;
-    price: number;
+    oracleID: bigint;
+    price: bigint;
     coin: AssetMetadata;
     version: string;
     timeout: number;
-    registryID: number;
+    registryID: bigint;
   }) {
     this.algodClient = algodClient;
     this.productName = productName;
@@ -175,9 +175,9 @@ export class SubtopiaClient {
       throw new Error("Oracle missing, cannot initialize");
     }
 
-    const oracleID = productGlobalState.oracle_id;
+    const oracleID = BigInt(productGlobalState.oracle_id);
     const productAddress = getApplicationAddress(productID);
-    const productPrice = Number(productGlobalState.price);
+    const productPrice = BigInt(productGlobalState.price);
     const productSpec = await getAppById(productID, algodClient);
     const productName = productGlobalState.product_name;
     const subscriptionName = productGlobalState.subscription_name;
@@ -227,20 +227,19 @@ export class SubtopiaClient {
       appSpec: {
         approval: productSpec.params.approvalProgram,
         clear: productSpec.params.clearStateProgram,
-        globalNumUint:
-          Number(productSpec.params.globalStateSchema?.numUint) || 0,
+        globalNumUint: productSpec.params.globalStateSchema?.numUint || 0,
         globalNumByteSlice:
-          Number(productSpec.params.globalStateSchema?.numByteSlice) || 0,
-        localNumUint: Number(productSpec.params.localStateSchema?.numUint) || 0,
+          productSpec.params.globalStateSchema?.numByteSlice || 0,
+        localNumUint: productSpec.params.localStateSchema?.numUint || 0,
         localNumByteSlice:
-          Number(productSpec.params.localStateSchema?.numByteSlice) || 0,
+          productSpec.params.localStateSchema?.numByteSlice || 0,
       },
       oracleID,
       price: productPrice,
       coin,
       version,
       timeout,
-      registryID: registryId,
+      registryID: BigInt(registryId),
     });
   }
 
@@ -336,19 +335,19 @@ export class SubtopiaClient {
       manager: globalState.manager,
       price: parseWholeUnits
         ? normalizePrice(
-            Number(globalState.price),
+            BigInt(globalState.price),
             this.coin.decimals,
             PriceNormalizationType.PRETTY,
           )
-        : globalState.price,
-      totalSubs: Number(globalState.total_subscribers),
-      maxSubs: Number(globalState.max_subscribers),
-      coinID: Number(globalState.coin_id),
-      productType: Number(globalState.product_type),
-      lifecycle: Number(globalState.lifecycle),
-      createdAt: Number(globalState.created_at),
-      duration: Number(globalState.duration),
-      oracleID: Number(globalState.oracle_id),
+        : BigInt(globalState.price),
+      totalSubs: BigInt(globalState.total_subscribers),
+      maxSubs: BigInt(globalState.max_subscribers),
+      coinID: BigInt(globalState.coin_id),
+      productType: globalState.product_type,
+      lifecycle: BigInt(globalState.lifecycle),
+      createdAt: BigInt(globalState.created_at),
+      duration: globalState.duration,
+      oracleID: BigInt(globalState.oracle_id),
       unitName: String(globalState.unit_name),
       imageURL: String(globalState.image_url),
       discount: discount,
@@ -357,12 +356,12 @@ export class SubtopiaClient {
 
   /**
    * This method calculates the platform fee for a subscription.
-   * It returns the platform fee as a number.
-   * @returns {Promise<number>} A promise that resolves to the platform fee.
+   * It returns the platform fee as a bigint.
+   * @returns {Promise<bigint>} A promise that resolves to the platform fee.
    */
-  public async getSubscriptionPlatformFee(): Promise<number> {
-    if (this.price === 0) {
-      return new Promise((resolve) => resolve(0));
+  public async getSubscriptionPlatformFee(): Promise<bigint> {
+    if (this.price === 0n) {
+      return new Promise((resolve) => resolve(0n));
     }
 
     const priceInCents = SUBSCRIPTION_PLATFORM_FEE_CENTS;
@@ -408,7 +407,7 @@ export class SubtopiaClient {
       request,
     );
 
-    return Number(response.methodResults[0].returnValue);
+    return BigInt(response.methodResults[0].returnValue as string);
   }
 
   /**
@@ -479,8 +478,8 @@ export class SubtopiaClient {
       return undefined;
     }
 
-    const boxContent: Array<number> = Array.isArray(rawContent)
-      ? rawContent.map((value) => Number(value))
+    const boxContent: Array<bigint> = Array.isArray(rawContent)
+      ? rawContent.map((value) => BigInt(value))
       : [];
 
     if (boxContent.length !== 5) {
@@ -488,9 +487,9 @@ export class SubtopiaClient {
     }
 
     return {
-      discountType: boxContent[0],
+      discountType: Number(boxContent[0]),
       discountValue: boxContent[1],
-      expiresAt: boxContent[2] === 0 ? null : boxContent[2],
+      expiresAt: boxContent[2] === 0n ? null : boxContent[2],
       createdAt: boxContent[3],
       totalClaims: boxContent[4],
     };
@@ -626,13 +625,13 @@ export class SubtopiaClient {
    * This method is utilized to initiate a subscription.
    * It accepts a subscriber as an argument and returns a promise that resolves to an object containing the transaction ID and subscription ID.
    * @param {ProductSubscriptionCreationParams} params - The parameters for creating a subscription.
-   * @returns {Promise<{txID: string, subscriptionID: number}>} A promise that resolves to an object containing the transaction ID and subscription ID.
+   * @returns {Promise<{txID: string, subscriptionID: bigint}>} A promise that resolves to an object containing the transaction ID and subscription ID.
    */
   public async createSubscription(
     params: ProductSubscriptionCreationParams,
   ): Promise<{
     txID: string;
-    subscriptionID: number;
+    subscriptionID: bigint;
   }> {
     const { subscriber } = params;
     const oracleAdminState = (
@@ -663,7 +662,7 @@ export class SubtopiaClient {
       if (state.discount.discountType === DiscountType.PERCENTAGE) {
         subscriptionPrice =
           subscriptionPrice -
-          (subscriptionPrice * state.discount.discountValue) / 100;
+          (subscriptionPrice * state.discount.discountValue) / 100n;
       } else if (state.discount.discountType === DiscountType.FIXED) {
         subscriptionPrice = subscriptionPrice - state.discount.discountValue;
       }
@@ -746,7 +745,7 @@ export class SubtopiaClient {
           }),
           signer: subscriber.signer,
         },
-        this.coin.index === 0
+        this.coin.index === 0n
           ? {
               txn: makePaymentTxnWithSuggestedParamsFromObject({
                 sender: subscriber.addr,
@@ -802,7 +801,7 @@ export class SubtopiaClient {
 
     return {
       txID: response.txIDs.pop() as string,
-      subscriptionID: Number(response.methodResults[0].returnValue),
+      subscriptionID: BigInt(response.methodResults[0].returnValue as string),
     };
   }
 
@@ -1105,9 +1104,9 @@ export class SubtopiaClient {
     });
 
     const response = await getSubscriptionAtc.simulate(algodClient, request);
-    const boxContent: Array<number> = (
-      response.methodResults[0].returnValue?.valueOf() as Array<number>
-    ).map((value) => Number(value));
+    const boxContent: Array<bigint> = (
+      response.methodResults[0].returnValue?.valueOf() as Array<bigint>
+    ).map((value) => BigInt(value));
 
     if (boxContent.length !== 5) {
       throw new Error("Invalid subscription record");
@@ -1115,10 +1114,10 @@ export class SubtopiaClient {
 
     return {
       subscriptionID: boxContent[0],
-      productType: boxContent[1],
+      productType: Number(boxContent[1]),
       createdAt: boxContent[2],
-      expiresAt: boxContent[3] === 0 ? null : boxContent[3],
-      duration: boxContent[4],
+      expiresAt: boxContent[3] === 0n ? null : boxContent[3],
+      duration: Number(boxContent[4]),
     };
   }
 
@@ -1161,7 +1160,7 @@ export class SubtopiaClient {
       ? subscriberRecords.filter((record) => {
           return (
             record.subscription.expiresAt === null ||
-            record.subscription.expiresAt > Date.now() / 1000
+            record.subscription.expiresAt > BigInt(Date.now() / 1000)
           );
         })
       : subscriberRecords;

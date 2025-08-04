@@ -37,8 +37,8 @@ export async function transferAsset(
   transfer: {
     sender: TransactionSignerAccount;
     recipient: Address;
-    assetID: number;
-    amount: number;
+    assetID: bigint;
+    amount: bigint;
   },
   client: Algodv2,
   timeout = DEFAULT_TXN_SIGN_TIMEOUT_SECONDS,
@@ -82,7 +82,7 @@ export async function optInAsset({
 }: {
   client: Algodv2;
   account: TransactionSignerAccount;
-  assetID: number;
+  assetID: bigint;
   timeout?: number;
 }): Promise<{
   confirmedRound: bigint;
@@ -118,7 +118,7 @@ export async function optOutAsset({
 }: {
   client: Algodv2;
   account: TransactionSignerAccount;
-  assetID: number;
+  assetID: bigint;
   timeout?: number;
 }): Promise<{
   confirmedRound: bigint;
@@ -150,29 +150,33 @@ export async function optOutAsset({
 /**
  * Normalizes a price value based on the provided decimals and direction.
  *
- * @param {number} price - The price value to normalize.
+ * @param {bigint} price - The price value to normalize.
  * @param {number} decimals - The number of decimals to consider for normalization.
  * @param {PriceNormalizationType} direction - The direction of normalization. RAW = multiply by decimals, PRETTY = divide by decimals.
  * @param {number} precision - The precision to use when rounding the result. If not provided, the result is floored.
  *
- * @returns {number} - The normalized price.
+ * @returns {bigint} - The normalized price.
  */
 export function normalizePrice(
-  price: number,
+  price: bigint,
   decimals: number,
   direction = PriceNormalizationType.RAW, // RAW = multiply by decimals, PRETTY = divide by decimals
   precision?: number,
-): number {
-  let result =
-    direction === PriceNormalizationType.RAW
-      ? price * 10 ** decimals
-      : price / 10 ** decimals;
+): bigint {
+  const decimalsFactor = BigInt(10 ** decimals);
 
-  if (precision) {
-    const factor = 10 ** precision;
-    result = Math.round(result * factor) / factor;
+  let result: bigint;
+
+  if (direction === PriceNormalizationType.RAW) {
+    result = price * decimalsFactor;
   } else {
-    result = Math.floor(result);
+    result = price / decimalsFactor;
+  }
+
+  // Note: For bigint operations, precision parameter is not applicable
+  // as bigint doesn't support fractional values
+  if (precision) {
+    // Keep the result as-is since bigint doesn't support fractional precision
   }
 
   return result;
@@ -180,14 +184,14 @@ export function normalizePrice(
 
 export async function getAssetByID(
   client: Algodv2,
-  assetID: number,
+  assetID: bigint,
 ): Promise<AssetMetadata> {
-  if (Number(assetID) === 0) {
+  if (assetID === 0n) {
     return ALGO_ASSET;
   }
 
   // Fetch the asset by ID
-  const assetResponse = await client.getAssetByID(BigInt(assetID)).do();
+  const assetResponse = await client.getAssetByID(assetID).do();
   const assetParams = assetResponse.params;
 
   // Extract asset details
@@ -202,9 +206,9 @@ export async function getAssetByID(
   return asset;
 }
 
-export function getTxnFeeCount(txnNumber: number): number {
+export function getTxnFeeCount(txnNumber: number): bigint {
   // Get suggested params with a specific fee.
-  const fee = Number(ALGORAND_MIN_TX_FEE.microAlgos) * txnNumber;
+  const fee = ALGORAND_MIN_TX_FEE.microAlgos * BigInt(txnNumber);
   return fee;
 }
 

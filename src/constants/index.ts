@@ -31,7 +31,7 @@ export const SUBTOPIA_REGISTRY_ID = (chainType: ChainType) => {
 };
 
 export const ALGO_ASSET = {
-  index: 0,
+  index: 0n,
   creator: Address.fromString(
     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
   ),

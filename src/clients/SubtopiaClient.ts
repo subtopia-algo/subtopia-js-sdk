@@ -344,7 +344,7 @@ export class SubtopiaClient {
       maxSubs: BigInt(globalState.max_subscribers),
       coinID: BigInt(globalState.coin_id),
       productType: globalState.product_type,
-      lifecycle: BigInt(globalState.lifecycle),
+      lifecycle: globalState.lifecycle,
       createdAt: BigInt(globalState.created_at),
       duration: globalState.duration,
       oracleID: BigInt(globalState.oracle_id),

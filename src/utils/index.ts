@@ -435,6 +435,15 @@ export function parseTokenProductGlobalState(input: AppState) {
           // @ts-ignore
           input[key].valueRaw,
         );
+      } else if (keyMap[key] === "duration") {
+        // Convert duration from bigint to number to match Duration enum type
+        output[keyMap[key]] = Number(input[key].value);
+      } else if (keyMap[key] === "product_type") {
+        // Convert product_type from bigint to number to match ProductType enum type
+        output[keyMap[key]] = Number(input[key].value);
+      } else if (keyMap[key] === "lifecycle") {
+        // Convert lifecycle from bigint to number to match LifecycleState enum type
+        output[keyMap[key]] = Number(input[key].value);
       } else {
         output[keyMap[key]] = input[key].value;
       }

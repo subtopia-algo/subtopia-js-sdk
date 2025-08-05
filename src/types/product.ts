@@ -22,7 +22,7 @@ interface ProductGlobalState {
   coinID: bigint;
   productType: ProductType;
   duration: Duration;
-  lifecycle: bigint;
+  lifecycle: LifecycleState;
   createdAt: bigint;
   oracleID: bigint;
   unitName: string;

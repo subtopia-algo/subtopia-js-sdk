@@ -24,7 +24,7 @@ runs:
   using: "composite"
   steps:
     - name: Check out registry infra setup
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ssh-key: ${{ inputs.ssh-key }}
         repository: ${{ inputs.repository }}
